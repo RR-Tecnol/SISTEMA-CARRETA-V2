@@ -1,0 +1,25 @@
+﻿diff --git a/backend/src/models/Inscricao.ts b/backend/src/models/Inscricao.ts
+index f664cf0..c687e78 100644
+--- a/backend/src/models/Inscricao.ts
++++ b/backend/src/models/Inscricao.ts
+@@ -1,7 +1,7 @@
+ import { Model, DataTypes, UUIDV4 } from 'sequelize';
+ import { sequelize } from '../config/database';
+ 
+-export type InscricaoStatus = 'inscrito' | 'confirmado' | 'concluido' | 'cancelado';
++export type InscricaoStatus = 'pendente' | 'atendido' | 'faltou' | 'cancelado';
+ 
+ export interface InscricaoAttributes {
+     id?: string;
+@@ -60,9 +60,9 @@ Inscricao.init(
+             },
+         },
+         status: {
+-            type: DataTypes.ENUM('inscrito', 'confirmado', 'concluido', 'cancelado'),
++            type: DataTypes.ENUM('pendente', 'atendido', 'faltou', 'cancelado'),
+             allowNull: false,
+-            defaultValue: 'inscrito',
++            defaultValue: 'pendente',
+         },
+         data_inscricao: {
+             type: DataTypes.DATE,

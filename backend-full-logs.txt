@@ -1,0 +1,2712 @@
+﻿Ô£à Database connection has been established successfully.
+docker : Error fetching 
+acoes: Error
+No linha:1 caractere:1
++ docker logs 
+carretas-backend 2>&1 | 
+Out-File -FilePath 
+backend-full-l ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~
+    + CategoryInfo           
+   : NotSpecified: (Error f  
+  etching acoes: Error:Str   
+ ing) [], RemoteException
+    + FullyQualifiedErrorId  
+   : NativeCommandError
+ 
+Ô£à Redis connected successfully
+­ƒÜÇ Server running on port 3001
+­ƒôØ Environment: production
+­ƒöù API: http://localhost:3001/api
+    at Query.run (/app/node_m
+odules/sequelize/lib/dialects
+/postgres/query.js:50:25)
+    at /app/node_modules/sequ
+elize/lib/sequelize.js:315:28
+    at process.processTicksAn
+dRejections (node:internal/pr
+ocess/task_queues:95:5)
+    at async PostgresQueryInt
+erface.select (/app/node_modu
+les/sequelize/lib/dialects/ab
+stract/query-interface.js:407
+:12)
+    at async Acao.findAll (/a
+pp/node_modules/sequelize/lib
+/model.js:1140:21)
+    at async /app/dist/routes
+/acoes.js:59:23 {
+  name: 
+'SequelizeDatabaseError',
+  parent: error: column curso
+s_exames.campos_customizados 
+does not exist
+      at parseErrorMessage (/
+app/node_modules/pg-protocol/
+dist/parser.js:305:11)
+      at Parser.handlePacket 
+(/app/node_modules/pg-protoco
+l/dist/parser.js:143:27)
+      at Parser.parse (/app/n
+ode_modules/pg-protocol/dist/
+parser.js:37:38)
+      at Socket.<anonymous> (
+/app/node_modules/pg-protocol
+/dist/index.js:11:42)
+      at Socket.emit 
+(node:events:517:28)
+      at addChunk (node:inter
+nal/streams/readable:368:12)
+      at readableAddChunk (no
+de:internal/streams/readable:
+341:9)
+      at Readable.push (node:
+internal/streams/readable:278
+:10)
+      at TCP.onStreamRead (no
+de:internal/stream_base_commo
+ns:190:23) {
+    length: 132,
+    severity: 'ERROR',
+    code: '42703',
+    detail: undefined,
+    hint: undefined,
+    position: '787',
+    internalPosition: 
+undefined,
+    internalQuery: undefined,
+    where: undefined,
+    schema: undefined,
+    table: undefined,
+    column: undefined,
+    dataType: undefined,
+    constraint: undefined,
+    file: 'parse_relation.c',
+    line: '3665',
+    routine: 
+'errorMissingColumn',
+    sql: 'SELECT 
+"Acao"."id", 
+"Acao"."numero_acao", 
+"Acao"."instituicao_id", 
+"Acao"."tipo", 
+"Acao"."municipio", 
+"Acao"."estado", 
+"Acao"."data_inicio", 
+"Acao"."data_fim", 
+"Acao"."status", 
+"Acao"."descricao", 
+"Acao"."local_execucao", 
+"Acao"."vagas_disponiveis", 
+"Acao"."distancia_km", "Acao"
+."preco_combustivel_referenci
+a", "Acao"."campos_customizad
+os", "Acao"."created_at" AS 
+"createdAt", 
+"Acao"."updated_at" AS 
+"updatedAt", 
+"instituicao"."id" AS 
+"instituicao.id", 
+"instituicao"."razao_social" 
+AS 
+"instituicao.razao_social", 
+"cursos_exames"."id" AS 
+"cursos_exames.id", 
+"cursos_exames"."acao_id" AS 
+"cursos_exames.acao_id", "cur
+sos_exames"."curso_exame_id" 
+AS "cursos_exames.curso_exame
+_id", 
+"cursos_exames"."vagas" AS 
+"cursos_exames.vagas", 
+"cursos_exames"."horarios" 
+AS "cursos_exames.horarios", 
+"cursos_exames"."campos_custo
+mizados" AS "cursos_exames.ca
+mpos_customizados", "cursos_e
+xames->curso_exame"."id" AS "
+cursos_exames.curso_exame.id"
+, "cursos_exames->curso_exame
+"."nome" AS "cursos_exames.cu
+rso_exame.nome", "cursos_exam
+es->curso_exame"."tipo" AS "c
+ursos_exames.curso_exame.tipo
+", "cursos_exames->curso_exam
+e"."carga_horaria" AS "cursos
+_exames.curso_exame.carga_hor
+aria", "cursos_exames->curso_
+exame"."descricao" AS "cursos
+_exames.curso_exame.descricao
+", "cursos_exames->curso_exam
+e"."requisitos" AS "cursos_ex
+ames.curso_exame.requisitos",
+ "cursos_exames->curso_exame"
+."certificadora" AS "cursos_e
+xames.curso_exame.certificado
+ra", "cursos_exames->curso_ex
+ame"."campos_customizados" 
+AS "cursos_exames.curso_exame
+.campos_customizados", "curso
+s_exames->curso_exame"."ativo
+" AS "cursos_exames.curso_exa
+me.ativo", "cursos_exames->cu
+rso_exame"."created_at" AS "c
+ursos_exames.curso_exame.crea
+tedAt", "cursos_exames->curso
+_exame"."updated_at" AS "curs
+os_exames.curso_exame.updated
+At", "caminhoes"."id" AS 
+"caminhoes.id", 
+"caminhoes"."placa" AS 
+"caminhoes.placa", 
+"caminhoes"."modelo" AS 
+"caminhoes.modelo", 
+"caminhoes"."ano" AS 
+"caminhoes.ano", "caminhoes".
+"capacidade_atendimento" AS "
+caminhoes.capacidade_atendime
+nto", "caminhoes"."autonomia_
+km_litro" AS "caminhoes.auton
+omia_km_litro", 
+"caminhoes"."status" AS 
+"caminhoes.status", 
+"caminhoes"."created_at" AS 
+"caminhoes.createdAt", 
+"caminhoes"."updated_at" AS 
+"caminhoes.updatedAt", "camin
+hoes->AcaoCaminhao"."id" AS 
+"caminhoes.AcaoCaminhao.id", 
+"caminhoes->AcaoCaminhao"."ac
+ao_id" AS "caminhoes.AcaoCami
+nhao.acao_id", "caminhoes->Ac
+aoCaminhao"."caminhao_id" AS 
+"caminhoes.AcaoCaminhao.camin
+hao_id", "caminhoes->AcaoCami
+nhao"."created_at" AS "caminh
+oes.AcaoCaminhao.createdAt", 
+"caminhoes->AcaoCaminhao"."up
+dated_at" AS "caminhoes.AcaoC
+aminhao.updatedAt", 
+"funcionarios"."id" AS 
+"funcionarios.id", 
+"funcionarios"."nome" AS 
+"funcionarios.nome", 
+"funcionarios"."cargo" AS 
+"funcionarios.cargo", "funcio
+narios"."especialidade" AS "f
+uncionarios.especialidade", "
+funcionarios"."custo_diario" 
+AS 
+"funcionarios.custo_diario", 
+"funcionarios"."status" AS 
+"funcionarios.status", 
+"funcionarios"."created_at" 
+AS "funcionarios.createdAt", 
+"funcionarios"."updated_at" 
+AS "funcionarios.updatedAt", 
+"funcionarios->AcaoFuncionari
+o"."id" AS "funcionarios.Acao
+Funcionario.id", "funcionario
+s->AcaoFuncionario"."acao_id"
+ AS "funcionarios.AcaoFuncion
+ario.acao_id", "funcionarios-
+>AcaoFuncionario"."funcionari
+o_id" AS "funcionarios.AcaoFu
+ncionario.funcionario_id", "f
+uncionarios->AcaoFuncionario"
+."created_at" AS "funcionario
+s.AcaoFuncionario.createdAt",
+ "funcionarios->AcaoFuncionar
+io"."updated_at" AS "funciona
+rios.AcaoFuncionario.updatedA
+t" FROM "acoes" AS "Acao" 
+LEFT OUTER JOIN 
+"instituicoes" AS 
+"instituicao" ON 
+"Acao"."instituicao_id" = 
+"instituicao"."id" LEFT 
+OUTER JOIN 
+"acao_curso_exame" AS 
+"cursos_exames" ON 
+"Acao"."id" = 
+"cursos_exames"."acao_id" 
+LEFT OUTER JOIN 
+"cursos_exames" AS 
+"cursos_exames->curso_exame" 
+ON "cursos_exames"."curso_exa
+me_id" = "cursos_exames->curs
+o_exame"."id" LEFT OUTER 
+JOIN ( "acao_caminhoes" AS 
+"caminhoes->AcaoCaminhao" 
+INNER JOIN "caminhoes" AS 
+"caminhoes" ON 
+"caminhoes"."id" = "caminhoes
+->AcaoCaminhao"."caminhao_id"
+) ON "Acao"."id" = "caminhoes
+->AcaoCaminhao"."acao_id" 
+LEFT OUTER JOIN ( 
+"acao_funcionarios" AS "funci
+onarios->AcaoFuncionario" 
+INNER JOIN "funcionarios" AS 
+"funcionarios" ON 
+"funcionarios"."id" = "funcio
+narios->AcaoFuncionario"."fun
+cionario_id") ON "Acao"."id" 
+= "funcionarios->AcaoFunciona
+rio"."acao_id" ORDER BY 
+"Acao"."data_inicio" ASC;',
+    parameters: undefined
+  },
+  original: error: column cur
+sos_exames.campos_customizado
+s does not exist
+      at parseErrorMessage (/
+app/node_modules/pg-protocol/
+dist/parser.js:305:11)
+      at Parser.handlePacket 
+(/app/node_modules/pg-protoco
+l/dist/parser.js:143:27)
+      at Parser.parse (/app/n
+ode_modules/pg-protocol/dist/
+parser.js:37:38)
+      at Socket.<anonymous> (
+/app/node_modules/pg-protocol
+/dist/index.js:11:42)
+      at Socket.emit 
+(node:events:517:28)
+      at addChunk (node:inter
+nal/streams/readable:368:12)
+      at readableAddChunk (no
+de:internal/streams/readable:
+341:9)
+      at Readable.push (node:
+internal/streams/readable:278
+:10)
+      at TCP.onStreamRead (no
+de:internal/stream_base_commo
+ns:190:23) {
+    length: 132,
+    severity: 'ERROR',
+    code: '42703',
+    detail: undefined,
+    hint: undefined,
+    position: '787',
+    internalPosition: 
+undefined,
+    internalQuery: undefined,
+    where: undefined,
+    schema: undefined,
+    table: undefined,
+    column: undefined,
+    dataType: undefined,
+    constraint: undefined,
+    file: 'parse_relation.c',
+    line: '3665',
+    routine: 
+'errorMissingColumn',
+    sql: 'SELECT 
+"Acao"."id", 
+"Acao"."numero_acao", 
+"Acao"."instituicao_id", 
+"Acao"."tipo", 
+"Acao"."municipio", 
+"Acao"."estado", 
+"Acao"."data_inicio", 
+"Acao"."data_fim", 
+"Acao"."status", 
+"Acao"."descricao", 
+"Acao"."local_execucao", 
+"Acao"."vagas_disponiveis", 
+"Acao"."distancia_km", "Acao"
+."preco_combustivel_referenci
+a", "Acao"."campos_customizad
+os", "Acao"."created_at" AS 
+"createdAt", 
+"Acao"."updated_at" AS 
+"updatedAt", 
+"instituicao"."id" AS 
+"instituicao.id", 
+"instituicao"."razao_social" 
+AS 
+"instituicao.razao_social", 
+"cursos_exames"."id" AS 
+"cursos_exames.id", 
+"cursos_exames"."acao_id" AS 
+"cursos_exames.acao_id", "cur
+sos_exames"."curso_exame_id" 
+AS "cursos_exames.curso_exame
+_id", 
+"cursos_exames"."vagas" AS 
+"cursos_exames.vagas", 
+"cursos_exames"."horarios" 
+AS "cursos_exames.horarios", 
+"cursos_exames"."campos_custo
+mizados" AS "cursos_exames.ca
+mpos_customizados", "cursos_e
+xames->curso_exame"."id" AS "
+cursos_exames.curso_exame.id"
+, "cursos_exames->curso_exame
+"."nome" AS "cursos_exames.cu
+rso_exame.nome", "cursos_exam
+es->curso_exame"."tipo" AS "c
+ursos_exames.curso_exame.tipo
+", "cursos_exames->curso_exam
+e"."carga_horaria" AS "cursos
+_exames.curso_exame.carga_hor
+aria", "cursos_exames->curso_
+exame"."descricao" AS "cursos
+_exames.curso_exame.descricao
+", "cursos_exames->curso_exam
+e"."requisitos" AS "cursos_ex
+ames.curso_exame.requisitos",
+ "cursos_exames->curso_exame"
+."certificadora" AS "cursos_e
+xames.curso_exame.certificado
+ra", "cursos_exames->curso_ex
+ame"."campos_customizados" 
+AS "cursos_exames.curso_exame
+.campos_customizados", "curso
+s_exames->curso_exame"."ativo
+" AS "cursos_exames.curso_exa
+me.ativo", "cursos_exames->cu
+rso_exame"."created_at" AS "c
+ursos_exames.curso_exame.crea
+tedAt", "cursos_exames->curso
+_exame"."updated_at" AS "curs
+os_exames.curso_exame.updated
+At", "caminhoes"."id" AS 
+"caminhoes.id", 
+"caminhoes"."placa" AS 
+"caminhoes.placa", 
+"caminhoes"."modelo" AS 
+"caminhoes.modelo", 
+"caminhoes"."ano" AS 
+"caminhoes.ano", "caminhoes".
+"capacidade_atendimento" AS "
+caminhoes.capacidade_atendime
+nto", "caminhoes"."autonomia_
+km_litro" AS "caminhoes.auton
+omia_km_litro", 
+"caminhoes"."status" AS 
+"caminhoes.status", 
+"caminhoes"."created_at" AS 
+"caminhoes.createdAt", 
+"caminhoes"."updated_at" AS 
+"caminhoes.updatedAt", "camin
+hoes->AcaoCaminhao"."id" AS 
+"caminhoes.AcaoCaminhao.id", 
+"caminhoes->AcaoCaminhao"."ac
+ao_id" AS "caminhoes.AcaoCami
+nhao.acao_id", "caminhoes->Ac
+aoCaminhao"."caminhao_id" AS 
+"caminhoes.AcaoCaminhao.camin
+hao_id", "caminhoes->AcaoCami
+nhao"."created_at" AS "caminh
+oes.AcaoCaminhao.createdAt", 
+"caminhoes->AcaoCaminhao"."up
+dated_at" AS "caminhoes.AcaoC
+aminhao.updatedAt", 
+"funcionarios"."id" AS 
+"funcionarios.id", 
+"funcionarios"."nome" AS 
+"funcionarios.nome", 
+"funcionarios"."cargo" AS 
+"funcionarios.cargo", "funcio
+narios"."especialidade" AS "f
+uncionarios.especialidade", "
+funcionarios"."custo_diario" 
+AS 
+"funcionarios.custo_diario", 
+"funcionarios"."status" AS 
+"funcionarios.status", 
+"funcionarios"."created_at" 
+AS "funcionarios.createdAt", 
+"funcionarios"."updated_at" 
+AS "funcionarios.updatedAt", 
+"funcionarios->AcaoFuncionari
+o"."id" AS "funcionarios.Acao
+Funcionario.id", "funcionario
+s->AcaoFuncionario"."acao_id"
+ AS "funcionarios.AcaoFuncion
+ario.acao_id", "funcionarios-
+>AcaoFuncionario"."funcionari
+o_id" AS "funcionarios.AcaoFu
+ncionario.funcionario_id", "f
+uncionarios->AcaoFuncionario"
+."created_at" AS "funcionario
+s.AcaoFuncionario.createdAt",
+ "funcionarios->AcaoFuncionar
+io"."updated_at" AS "funciona
+rios.AcaoFuncionario.updatedA
+t" FROM "acoes" AS "Acao" 
+LEFT OUTER JOIN 
+"instituicoes" AS 
+"instituicao" ON 
+"Acao"."instituicao_id" = 
+"instituicao"."id" LEFT 
+OUTER JOIN 
+"acao_curso_exame" AS 
+"cursos_exames" ON 
+"Acao"."id" = 
+"cursos_exames"."acao_id" 
+LEFT OUTER JOIN 
+"cursos_exames" AS 
+"cursos_exames->curso_exame" 
+ON "cursos_exames"."curso_exa
+me_id" = "cursos_exames->curs
+o_exame"."id" LEFT OUTER 
+JOIN ( "acao_caminhoes" AS 
+"caminhoes->AcaoCaminhao" 
+INNER JOIN "caminhoes" AS 
+"caminhoes" ON 
+"caminhoes"."id" = "caminhoes
+->AcaoCaminhao"."caminhao_id"
+) ON "Acao"."id" = "caminhoes
+->AcaoCaminhao"."acao_id" 
+LEFT OUTER JOIN ( 
+"acao_funcionarios" AS "funci
+onarios->AcaoFuncionario" 
+INNER JOIN "funcionarios" AS 
+"funcionarios" ON 
+"funcionarios"."id" = "funcio
+narios->AcaoFuncionario"."fun
+cionario_id") ON "Acao"."id" 
+= "funcionarios->AcaoFunciona
+rio"."acao_id" ORDER BY 
+"Acao"."data_inicio" ASC;',
+    parameters: undefined
+  },
+  sql: 'SELECT "Acao"."id", 
+"Acao"."numero_acao", 
+"Acao"."instituicao_id", 
+"Acao"."tipo", 
+"Acao"."municipio", 
+"Acao"."estado", 
+"Acao"."data_inicio", 
+"Acao"."data_fim", 
+"Acao"."status", 
+"Acao"."descricao", 
+"Acao"."local_execucao", 
+"Acao"."vagas_disponiveis", 
+"Acao"."distancia_km", "Acao"
+."preco_combustivel_referenci
+a", "Acao"."campos_customizad
+os", "Acao"."created_at" AS 
+"createdAt", 
+"Acao"."updated_at" AS 
+"updatedAt", 
+"instituicao"."id" AS 
+"instituicao.id", 
+"instituicao"."razao_social" 
+AS 
+"instituicao.razao_social", 
+"cursos_exames"."id" AS 
+"cursos_exames.id", 
+"cursos_exames"."acao_id" AS 
+"cursos_exames.acao_id", "cur
+sos_exames"."curso_exame_id" 
+AS "cursos_exames.curso_exame
+_id", 
+"cursos_exames"."vagas" AS 
+"cursos_exames.vagas", 
+"cursos_exames"."horarios" 
+AS "cursos_exames.horarios", 
+"cursos_exames"."campos_custo
+mizados" AS "cursos_exames.ca
+mpos_customizados", "cursos_e
+xames->curso_exame"."id" AS "
+cursos_exames.curso_exame.id"
+, "cursos_exames->curso_exame
+"."nome" AS "cursos_exames.cu
+rso_exame.nome", "cursos_exam
+es->curso_exame"."tipo" AS "c
+ursos_exames.curso_exame.tipo
+", "cursos_exames->curso_exam
+e"."carga_horaria" AS "cursos
+_exames.curso_exame.carga_hor
+aria", "cursos_exames->curso_
+exame"."descricao" AS "cursos
+_exames.curso_exame.descricao
+", "cursos_exames->curso_exam
+e"."requisitos" AS "cursos_ex
+ames.curso_exame.requisitos",
+ "cursos_exames->curso_exame"
+."certificadora" AS "cursos_e
+xames.curso_exame.certificado
+ra", "cursos_exames->curso_ex
+ame"."campos_customizados" 
+AS "cursos_exames.curso_exame
+.campos_customizados", "curso
+s_exames->curso_exame"."ativo
+" AS "cursos_exames.curso_exa
+me.ativo", "cursos_exames->cu
+rso_exame"."created_at" AS "c
+ursos_exames.curso_exame.crea
+tedAt", "cursos_exames->curso
+_exame"."updated_at" AS "curs
+os_exames.curso_exame.updated
+At", "caminhoes"."id" AS 
+"caminhoes.id", 
+"caminhoes"."placa" AS 
+"caminhoes.placa", 
+"caminhoes"."modelo" AS 
+"caminhoes.modelo", 
+"caminhoes"."ano" AS 
+"caminhoes.ano", "caminhoes".
+"capacidade_atendimento" AS "
+caminhoes.capacidade_atendime
+nto", "caminhoes"."autonomia_
+km_litro" AS "caminhoes.auton
+omia_km_litro", 
+"caminhoes"."status" AS 
+"caminhoes.status", 
+"caminhoes"."created_at" AS 
+"caminhoes.createdAt", 
+"caminhoes"."updated_at" AS 
+"caminhoes.updatedAt", "camin
+hoes->AcaoCaminhao"."id" AS 
+"caminhoes.AcaoCaminhao.id", 
+"caminhoes->AcaoCaminhao"."ac
+ao_id" AS "caminhoes.AcaoCami
+nhao.acao_id", "caminhoes->Ac
+aoCaminhao"."caminhao_id" AS 
+"caminhoes.AcaoCaminhao.camin
+hao_id", "caminhoes->AcaoCami
+nhao"."created_at" AS "caminh
+oes.AcaoCaminhao.createdAt", 
+"caminhoes->AcaoCaminhao"."up
+dated_at" AS "caminhoes.AcaoC
+aminhao.updatedAt", 
+"funcionarios"."id" AS 
+"funcionarios.id", 
+"funcionarios"."nome" AS 
+"funcionarios.nome", 
+"funcionarios"."cargo" AS 
+"funcionarios.cargo", "funcio
+narios"."especialidade" AS "f
+uncionarios.especialidade", "
+funcionarios"."custo_diario" 
+AS 
+"funcionarios.custo_diario", 
+"funcionarios"."status" AS 
+"funcionarios.status", 
+"funcionarios"."created_at" 
+AS "funcionarios.createdAt", 
+"funcionarios"."updated_at" 
+AS "funcionarios.updatedAt", 
+"funcionarios->AcaoFuncionari
+o"."id" AS "funcionarios.Acao
+Funcionario.id", "funcionario
+s->AcaoFuncionario"."acao_id"
+ AS "funcionarios.AcaoFuncion
+ario.acao_id", "funcionarios-
+>AcaoFuncionario"."funcionari
+o_id" AS "funcionarios.AcaoFu
+ncionario.funcionario_id", "f
+uncionarios->AcaoFuncionario"
+."created_at" AS "funcionario
+s.AcaoFuncionario.createdAt",
+ "funcionarios->AcaoFuncionar
+io"."updated_at" AS "funciona
+rios.AcaoFuncionario.updatedA
+t" FROM "acoes" AS "Acao" 
+LEFT OUTER JOIN 
+"instituicoes" AS 
+"instituicao" ON 
+"Acao"."instituicao_id" = 
+"instituicao"."id" LEFT 
+OUTER JOIN 
+"acao_curso_exame" AS 
+"cursos_exames" ON 
+"Acao"."id" = 
+"cursos_exames"."acao_id" 
+LEFT OUTER JOIN 
+"cursos_exames" AS 
+"cursos_exames->curso_exame" 
+ON "cursos_exames"."curso_exa
+me_id" = "cursos_exames->curs
+o_exame"."id" LEFT OUTER 
+JOIN ( "acao_caminhoes" AS 
+"caminhoes->AcaoCaminhao" 
+INNER JOIN "caminhoes" AS 
+"caminhoes" ON 
+"caminhoes"."id" = "caminhoes
+->AcaoCaminhao"."caminhao_id"
+) ON "Acao"."id" = "caminhoes
+->AcaoCaminhao"."acao_id" 
+LEFT OUTER JOIN ( 
+"acao_funcionarios" AS "funci
+onarios->AcaoFuncionario" 
+INNER JOIN "funcionarios" AS 
+"funcionarios" ON 
+"funcionarios"."id" = "funcio
+narios->AcaoFuncionario"."fun
+cionario_id") ON "Acao"."id" 
+= "funcionarios->AcaoFunciona
+rio"."acao_id" ORDER BY 
+"Acao"."data_inicio" ASC;',
+  parameters: {}
+}
+Error fetching acoes: Error
+    at Query.run (/app/node_m
+odules/sequelize/lib/dialects
+/postgres/query.js:50:25)
+    at /app/node_modules/sequ
+elize/lib/sequelize.js:315:28
+    at process.processTicksAn
+dRejections (node:internal/pr
+ocess/task_queues:95:5)
+    at async PostgresQueryInt
+erface.select (/app/node_modu
+les/sequelize/lib/dialects/ab
+stract/query-interface.js:407
+:12)
+    at async Acao.findAll (/a
+pp/node_modules/sequelize/lib
+/model.js:1140:21)
+    at async /app/dist/routes
+/acoes.js:59:23 {
+  name: 
+'SequelizeDatabaseError',
+  parent: error: column curso
+s_exames.campos_customizados 
+does not exist
+      at parseErrorMessage (/
+app/node_modules/pg-protocol/
+dist/parser.js:305:11)
+      at Parser.handlePacket 
+(/app/node_modules/pg-protoco
+l/dist/parser.js:143:27)
+      at Parser.parse (/app/n
+ode_modules/pg-protocol/dist/
+parser.js:37:38)
+      at Socket.<anonymous> (
+/app/node_modules/pg-protocol
+/dist/index.js:11:42)
+      at Socket.emit 
+(node:events:517:28)
+      at addChunk (node:inter
+nal/streams/readable:368:12)
+      at readableAddChunk (no
+de:internal/streams/readable:
+341:9)
+      at Readable.push (node:
+internal/streams/readable:278
+:10)
+      at TCP.onStreamRead (no
+de:internal/stream_base_commo
+ns:190:23) {
+    length: 132,
+    severity: 'ERROR',
+    code: '42703',
+    detail: undefined,
+    hint: undefined,
+    position: '787',
+    internalPosition: 
+undefined,
+    internalQuery: undefined,
+    where: undefined,
+    schema: undefined,
+    table: undefined,
+    column: undefined,
+    dataType: undefined,
+    constraint: undefined,
+    file: 'parse_relation.c',
+    line: '3665',
+    routine: 
+'errorMissingColumn',
+    sql: 'SELECT 
+"Acao"."id", 
+"Acao"."numero_acao", 
+"Acao"."instituicao_id", 
+"Acao"."tipo", 
+"Acao"."municipio", 
+"Acao"."estado", 
+"Acao"."data_inicio", 
+"Acao"."data_fim", 
+"Acao"."status", 
+"Acao"."descricao", 
+"Acao"."local_execucao", 
+"Acao"."vagas_disponiveis", 
+"Acao"."distancia_km", "Acao"
+."preco_combustivel_referenci
+a", "Acao"."campos_customizad
+os", "Acao"."created_at" AS 
+"createdAt", 
+"Acao"."updated_at" AS 
+"updatedAt", 
+"instituicao"."id" AS 
+"instituicao.id", 
+"instituicao"."razao_social" 
+AS 
+"instituicao.razao_social", 
+"cursos_exames"."id" AS 
+"cursos_exames.id", 
+"cursos_exames"."acao_id" AS 
+"cursos_exames.acao_id", "cur
+sos_exames"."curso_exame_id" 
+AS "cursos_exames.curso_exame
+_id", 
+"cursos_exames"."vagas" AS 
+"cursos_exames.vagas", 
+"cursos_exames"."horarios" 
+AS "cursos_exames.horarios", 
+"cursos_exames"."campos_custo
+mizados" AS "cursos_exames.ca
+mpos_customizados", "cursos_e
+xames->curso_exame"."id" AS "
+cursos_exames.curso_exame.id"
+, "cursos_exames->curso_exame
+"."nome" AS "cursos_exames.cu
+rso_exame.nome", "cursos_exam
+es->curso_exame"."tipo" AS "c
+ursos_exames.curso_exame.tipo
+", "cursos_exames->curso_exam
+e"."carga_horaria" AS "cursos
+_exames.curso_exame.carga_hor
+aria", "cursos_exames->curso_
+exame"."descricao" AS "cursos
+_exames.curso_exame.descricao
+", "cursos_exames->curso_exam
+e"."requisitos" AS "cursos_ex
+ames.curso_exame.requisitos",
+ "cursos_exames->curso_exame"
+."certificadora" AS "cursos_e
+xames.curso_exame.certificado
+ra", "cursos_exames->curso_ex
+ame"."campos_customizados" 
+AS "cursos_exames.curso_exame
+.campos_customizados", "curso
+s_exames->curso_exame"."ativo
+" AS "cursos_exames.curso_exa
+me.ativo", "cursos_exames->cu
+rso_exame"."created_at" AS "c
+ursos_exames.curso_exame.crea
+tedAt", "cursos_exames->curso
+_exame"."updated_at" AS "curs
+os_exames.curso_exame.updated
+At", "caminhoes"."id" AS 
+"caminhoes.id", 
+"caminhoes"."placa" AS 
+"caminhoes.placa", 
+"caminhoes"."modelo" AS 
+"caminhoes.modelo", 
+"caminhoes"."ano" AS 
+"caminhoes.ano", "caminhoes".
+"capacidade_atendimento" AS "
+caminhoes.capacidade_atendime
+nto", "caminhoes"."autonomia_
+km_litro" AS "caminhoes.auton
+omia_km_litro", 
+"caminhoes"."status" AS 
+"caminhoes.status", 
+"caminhoes"."created_at" AS 
+"caminhoes.createdAt", 
+"caminhoes"."updated_at" AS 
+"caminhoes.updatedAt", "camin
+hoes->AcaoCaminhao"."id" AS 
+"caminhoes.AcaoCaminhao.id", 
+"caminhoes->AcaoCaminhao"."ac
+ao_id" AS "caminhoes.AcaoCami
+nhao.acao_id", "caminhoes->Ac
+aoCaminhao"."caminhao_id" AS 
+"caminhoes.AcaoCaminhao.camin
+hao_id", "caminhoes->AcaoCami
+nhao"."created_at" AS "caminh
+oes.AcaoCaminhao.createdAt", 
+"caminhoes->AcaoCaminhao"."up
+dated_at" AS "caminhoes.AcaoC
+aminhao.updatedAt", 
+"funcionarios"."id" AS 
+"funcionarios.id", 
+"funcionarios"."nome" AS 
+"funcionarios.nome", 
+"funcionarios"."cargo" AS 
+"funcionarios.cargo", "funcio
+narios"."especialidade" AS "f
+uncionarios.especialidade", "
+funcionarios"."custo_diario" 
+AS 
+"funcionarios.custo_diario", 
+"funcionarios"."status" AS 
+"funcionarios.status", 
+"funcionarios"."created_at" 
+AS "funcionarios.createdAt", 
+"funcionarios"."updated_at" 
+AS "funcionarios.updatedAt", 
+"funcionarios->AcaoFuncionari
+o"."id" AS "funcionarios.Acao
+Funcionario.id", "funcionario
+s->AcaoFuncionario"."acao_id"
+ AS "funcionarios.AcaoFuncion
+ario.acao_id", "funcionarios-
+>AcaoFuncionario"."funcionari
+o_id" AS "funcionarios.AcaoFu
+ncionario.funcionario_id", "f
+uncionarios->AcaoFuncionario"
+."created_at" AS "funcionario
+s.AcaoFuncionario.createdAt",
+ "funcionarios->AcaoFuncionar
+io"."updated_at" AS "funciona
+rios.AcaoFuncionario.updatedA
+t" FROM "acoes" AS "Acao" 
+LEFT OUTER JOIN 
+"instituicoes" AS 
+"instituicao" ON 
+"Acao"."instituicao_id" = 
+"instituicao"."id" LEFT 
+OUTER JOIN 
+"acao_curso_exame" AS 
+"cursos_exames" ON 
+"Acao"."id" = 
+"cursos_exames"."acao_id" 
+LEFT OUTER JOIN 
+"cursos_exames" AS 
+"cursos_exames->curso_exame" 
+ON "cursos_exames"."curso_exa
+me_id" = "cursos_exames->curs
+o_exame"."id" LEFT OUTER 
+JOIN ( "acao_caminhoes" AS 
+"caminhoes->AcaoCaminhao" 
+INNER JOIN "caminhoes" AS 
+"caminhoes" ON 
+"caminhoes"."id" = "caminhoes
+->AcaoCaminhao"."caminhao_id"
+) ON "Acao"."id" = "caminhoes
+->AcaoCaminhao"."acao_id" 
+LEFT OUTER JOIN ( 
+"acao_funcionarios" AS "funci
+onarios->AcaoFuncionario" 
+INNER JOIN "funcionarios" AS 
+"funcionarios" ON 
+"funcionarios"."id" = "funcio
+narios->AcaoFuncionario"."fun
+cionario_id") ON "Acao"."id" 
+= "funcionarios->AcaoFunciona
+rio"."acao_id" ORDER BY 
+"Acao"."data_inicio" ASC;',
+    parameters: undefined
+  },
+  original: error: column cur
+sos_exames.campos_customizado
+s does not exist
+      at parseErrorMessage (/
+app/node_modules/pg-protocol/
+dist/parser.js:305:11)
+      at Parser.handlePacket 
+(/app/node_modules/pg-protoco
+l/dist/parser.js:143:27)
+      at Parser.parse (/app/n
+ode_modules/pg-protocol/dist/
+parser.js:37:38)
+      at Socket.<anonymous> (
+/app/node_modules/pg-protocol
+/dist/index.js:11:42)
+      at Socket.emit 
+(node:events:517:28)
+      at addChunk (node:inter
+nal/streams/readable:368:12)
+      at readableAddChunk (no
+de:internal/streams/readable:
+341:9)
+      at Readable.push (node:
+internal/streams/readable:278
+:10)
+      at TCP.onStreamRead (no
+de:internal/stream_base_commo
+ns:190:23) {
+    length: 132,
+    severity: 'ERROR',
+    code: '42703',
+    detail: undefined,
+    hint: undefined,
+    position: '787',
+    internalPosition: 
+undefined,
+    internalQuery: undefined,
+    where: undefined,
+    schema: undefined,
+    table: undefined,
+    column: undefined,
+    dataType: undefined,
+    constraint: undefined,
+    file: 'parse_relation.c',
+    line: '3665',
+    routine: 
+'errorMissingColumn',
+    sql: 'SELECT 
+"Acao"."id", 
+"Acao"."numero_acao", 
+"Acao"."instituicao_id", 
+"Acao"."tipo", 
+"Acao"."municipio", 
+"Acao"."estado", 
+"Acao"."data_inicio", 
+"Acao"."data_fim", 
+"Acao"."status", 
+"Acao"."descricao", 
+"Acao"."local_execucao", 
+"Acao"."vagas_disponiveis", 
+"Acao"."distancia_km", "Acao"
+."preco_combustivel_referenci
+a", "Acao"."campos_customizad
+os", "Acao"."created_at" AS 
+"createdAt", 
+"Acao"."updated_at" AS 
+"updatedAt", 
+"instituicao"."id" AS 
+"instituicao.id", 
+"instituicao"."razao_social" 
+AS 
+"instituicao.razao_social", 
+"cursos_exames"."id" AS 
+"cursos_exames.id", 
+"cursos_exames"."acao_id" AS 
+"cursos_exames.acao_id", "cur
+sos_exames"."curso_exame_id" 
+AS "cursos_exames.curso_exame
+_id", 
+"cursos_exames"."vagas" AS 
+"cursos_exames.vagas", 
+"cursos_exames"."horarios" 
+AS "cursos_exames.horarios", 
+"cursos_exames"."campos_custo
+mizados" AS "cursos_exames.ca
+mpos_customizados", "cursos_e
+xames->curso_exame"."id" AS "
+cursos_exames.curso_exame.id"
+, "cursos_exames->curso_exame
+"."nome" AS "cursos_exames.cu
+rso_exame.nome", "cursos_exam
+es->curso_exame"."tipo" AS "c
+ursos_exames.curso_exame.tipo
+", "cursos_exames->curso_exam
+e"."carga_horaria" AS "cursos
+_exames.curso_exame.carga_hor
+aria", "cursos_exames->curso_
+exame"."descricao" AS "cursos
+_exames.curso_exame.descricao
+", "cursos_exames->curso_exam
+e"."requisitos" AS "cursos_ex
+ames.curso_exame.requisitos",
+ "cursos_exames->curso_exame"
+."certificadora" AS "cursos_e
+xames.curso_exame.certificado
+ra", "cursos_exames->curso_ex
+ame"."campos_customizados" 
+AS "cursos_exames.curso_exame
+.campos_customizados", "curso
+s_exames->curso_exame"."ativo
+" AS "cursos_exames.curso_exa
+me.ativo", "cursos_exames->cu
+rso_exame"."created_at" AS "c
+ursos_exames.curso_exame.crea
+tedAt", "cursos_exames->curso
+_exame"."updated_at" AS "curs
+os_exames.curso_exame.updated
+At", "caminhoes"."id" AS 
+"caminhoes.id", 
+"caminhoes"."placa" AS 
+"caminhoes.placa", 
+"caminhoes"."modelo" AS 
+"caminhoes.modelo", 
+"caminhoes"."ano" AS 
+"caminhoes.ano", "caminhoes".
+"capacidade_atendimento" AS "
+caminhoes.capacidade_atendime
+nto", "caminhoes"."autonomia_
+km_litro" AS "caminhoes.auton
+omia_km_litro", 
+"caminhoes"."status" AS 
+"caminhoes.status", 
+"caminhoes"."created_at" AS 
+"caminhoes.createdAt", 
+"caminhoes"."updated_at" AS 
+"caminhoes.updatedAt", "camin
+hoes->AcaoCaminhao"."id" AS 
+"caminhoes.AcaoCaminhao.id", 
+"caminhoes->AcaoCaminhao"."ac
+ao_id" AS "caminhoes.AcaoCami
+nhao.acao_id", "caminhoes->Ac
+aoCaminhao"."caminhao_id" AS 
+"caminhoes.AcaoCaminhao.camin
+hao_id", "caminhoes->AcaoCami
+nhao"."created_at" AS "caminh
+oes.AcaoCaminhao.createdAt", 
+"caminhoes->AcaoCaminhao"."up
+dated_at" AS "caminhoes.AcaoC
+aminhao.updatedAt", 
+"funcionarios"."id" AS 
+"funcionarios.id", 
+"funcionarios"."nome" AS 
+"funcionarios.nome", 
+"funcionarios"."cargo" AS 
+"funcionarios.cargo", "funcio
+narios"."especialidade" AS "f
+uncionarios.especialidade", "
+funcionarios"."custo_diario" 
+AS 
+"funcionarios.custo_diario", 
+"funcionarios"."status" AS 
+"funcionarios.status", 
+"funcionarios"."created_at" 
+AS "funcionarios.createdAt", 
+"funcionarios"."updated_at" 
+AS "funcionarios.updatedAt", 
+"funcionarios->AcaoFuncionari
+o"."id" AS "funcionarios.Acao
+Funcionario.id", "funcionario
+s->AcaoFuncionario"."acao_id"
+ AS "funcionarios.AcaoFuncion
+ario.acao_id", "funcionarios-
+>AcaoFuncionario"."funcionari
+o_id" AS "funcionarios.AcaoFu
+ncionario.funcionario_id", "f
+uncionarios->AcaoFuncionario"
+."created_at" AS "funcionario
+s.AcaoFuncionario.createdAt",
+ "funcionarios->AcaoFuncionar
+io"."updated_at" AS "funciona
+rios.AcaoFuncionario.updatedA
+t" FROM "acoes" AS "Acao" 
+LEFT OUTER JOIN 
+"instituicoes" AS 
+"instituicao" ON 
+"Acao"."instituicao_id" = 
+"instituicao"."id" LEFT 
+OUTER JOIN 
+"acao_curso_exame" AS 
+"cursos_exames" ON 
+"Acao"."id" = 
+"cursos_exames"."acao_id" 
+LEFT OUTER JOIN 
+"cursos_exames" AS 
+"cursos_exames->curso_exame" 
+ON "cursos_exames"."curso_exa
+me_id" = "cursos_exames->curs
+o_exame"."id" LEFT OUTER 
+JOIN ( "acao_caminhoes" AS 
+"caminhoes->AcaoCaminhao" 
+INNER JOIN "caminhoes" AS 
+"caminhoes" ON 
+"caminhoes"."id" = "caminhoes
+->AcaoCaminhao"."caminhao_id"
+) ON "Acao"."id" = "caminhoes
+->AcaoCaminhao"."acao_id" 
+LEFT OUTER JOIN ( 
+"acao_funcionarios" AS "funci
+onarios->AcaoFuncionario" 
+INNER JOIN "funcionarios" AS 
+"funcionarios" ON 
+"funcionarios"."id" = "funcio
+narios->AcaoFuncionario"."fun
+cionario_id") ON "Acao"."id" 
+= "funcionarios->AcaoFunciona
+rio"."acao_id" ORDER BY 
+"Acao"."data_inicio" ASC;',
+    parameters: undefined
+  },
+  sql: 'SELECT "Acao"."id", 
+"Acao"."numero_acao", 
+"Acao"."instituicao_id", 
+"Acao"."tipo", 
+"Acao"."municipio", 
+"Acao"."estado", 
+"Acao"."data_inicio", 
+"Acao"."data_fim", 
+"Acao"."status", 
+"Acao"."descricao", 
+"Acao"."local_execucao", 
+"Acao"."vagas_disponiveis", 
+"Acao"."distancia_km", "Acao"
+."preco_combustivel_referenci
+a", "Acao"."campos_customizad
+os", "Acao"."created_at" AS 
+"createdAt", 
+"Acao"."updated_at" AS 
+"updatedAt", 
+"instituicao"."id" AS 
+"instituicao.id", 
+"instituicao"."razao_social" 
+AS 
+"instituicao.razao_social", 
+"cursos_exames"."id" AS 
+"cursos_exames.id", 
+"cursos_exames"."acao_id" AS 
+"cursos_exames.acao_id", "cur
+sos_exames"."curso_exame_id" 
+AS "cursos_exames.curso_exame
+_id", 
+"cursos_exames"."vagas" AS 
+"cursos_exames.vagas", 
+"cursos_exames"."horarios" 
+AS "cursos_exames.horarios", 
+"cursos_exames"."campos_custo
+mizados" AS "cursos_exames.ca
+mpos_customizados", "cursos_e
+xames->curso_exame"."id" AS "
+cursos_exames.curso_exame.id"
+, "cursos_exames->curso_exame
+"."nome" AS "cursos_exames.cu
+rso_exame.nome", "cursos_exam
+es->curso_exame"."tipo" AS "c
+ursos_exames.curso_exame.tipo
+", "cursos_exames->curso_exam
+e"."carga_horaria" AS "cursos
+_exames.curso_exame.carga_hor
+aria", "cursos_exames->curso_
+exame"."descricao" AS "cursos
+_exames.curso_exame.descricao
+", "cursos_exames->curso_exam
+e"."requisitos" AS "cursos_ex
+ames.curso_exame.requisitos",
+ "cursos_exames->curso_exame"
+."certificadora" AS "cursos_e
+xames.curso_exame.certificado
+ra", "cursos_exames->curso_ex
+ame"."campos_customizados" 
+AS "cursos_exames.curso_exame
+.campos_customizados", "curso
+s_exames->curso_exame"."ativo
+" AS "cursos_exames.curso_exa
+me.ativo", "cursos_exames->cu
+rso_exame"."created_at" AS "c
+ursos_exames.curso_exame.crea
+tedAt", "cursos_exames->curso
+_exame"."updated_at" AS "curs
+os_exames.curso_exame.updated
+At", "caminhoes"."id" AS 
+"caminhoes.id", 
+"caminhoes"."placa" AS 
+"caminhoes.placa", 
+"caminhoes"."modelo" AS 
+"caminhoes.modelo", 
+"caminhoes"."ano" AS 
+"caminhoes.ano", "caminhoes".
+"capacidade_atendimento" AS "
+caminhoes.capacidade_atendime
+nto", "caminhoes"."autonomia_
+km_litro" AS "caminhoes.auton
+omia_km_litro", 
+"caminhoes"."status" AS 
+"caminhoes.status", 
+"caminhoes"."created_at" AS 
+"caminhoes.createdAt", 
+"caminhoes"."updated_at" AS 
+"caminhoes.updatedAt", "camin
+hoes->AcaoCaminhao"."id" AS 
+"caminhoes.AcaoCaminhao.id", 
+"caminhoes->AcaoCaminhao"."ac
+ao_id" AS "caminhoes.AcaoCami
+nhao.acao_id", "caminhoes->Ac
+aoCaminhao"."caminhao_id" AS 
+"caminhoes.AcaoCaminhao.camin
+hao_id", "caminhoes->AcaoCami
+nhao"."created_at" AS "caminh
+oes.AcaoCaminhao.createdAt", 
+"caminhoes->AcaoCaminhao"."up
+dated_at" AS "caminhoes.AcaoC
+aminhao.updatedAt", 
+"funcionarios"."id" AS 
+"funcionarios.id", 
+"funcionarios"."nome" AS 
+"funcionarios.nome", 
+"funcionarios"."cargo" AS 
+"funcionarios.cargo", "funcio
+narios"."especialidade" AS "f
+uncionarios.especialidade", "
+funcionarios"."custo_diario" 
+AS 
+"funcionarios.custo_diario", 
+"funcionarios"."status" AS 
+"funcionarios.status", 
+"funcionarios"."created_at" 
+AS "funcionarios.createdAt", 
+"funcionarios"."updated_at" 
+AS "funcionarios.updatedAt", 
+"funcionarios->AcaoFuncionari
+o"."id" AS "funcionarios.Acao
+Funcionario.id", "funcionario
+s->AcaoFuncionario"."acao_id"
+ AS "funcionarios.AcaoFuncion
+ario.acao_id", "funcionarios-
+>AcaoFuncionario"."funcionari
+o_id" AS "funcionarios.AcaoFu
+ncionario.funcionario_id", "f
+uncionarios->AcaoFuncionario"
+."created_at" AS "funcionario
+s.AcaoFuncionario.createdAt",
+ "funcionarios->AcaoFuncionar
+io"."updated_at" AS "funciona
+rios.AcaoFuncionario.updatedA
+t" FROM "acoes" AS "Acao" 
+LEFT OUTER JOIN 
+"instituicoes" AS 
+"instituicao" ON 
+"Acao"."instituicao_id" = 
+"instituicao"."id" LEFT 
+OUTER JOIN 
+"acao_curso_exame" AS 
+"cursos_exames" ON 
+"Acao"."id" = 
+"cursos_exames"."acao_id" 
+LEFT OUTER JOIN 
+"cursos_exames" AS 
+"cursos_exames->curso_exame" 
+ON "cursos_exames"."curso_exa
+me_id" = "cursos_exames->curs
+o_exame"."id" LEFT OUTER 
+JOIN ( "acao_caminhoes" AS 
+"caminhoes->AcaoCaminhao" 
+INNER JOIN "caminhoes" AS 
+"caminhoes" ON 
+"caminhoes"."id" = "caminhoes
+->AcaoCaminhao"."caminhao_id"
+) ON "Acao"."id" = "caminhoes
+->AcaoCaminhao"."acao_id" 
+LEFT OUTER JOIN ( 
+"acao_funcionarios" AS "funci
+onarios->AcaoFuncionario" 
+INNER JOIN "funcionarios" AS 
+"funcionarios" ON 
+"funcionarios"."id" = "funcio
+narios->AcaoFuncionario"."fun
+cionario_id") ON "Acao"."id" 
+= "funcionarios->AcaoFunciona
+rio"."acao_id" ORDER BY 
+"Acao"."data_inicio" ASC;',
+  parameters: {}
+}
+Error fetching acoes: Error
+    at Query.run (/app/node_m
+odules/sequelize/lib/dialects
+/postgres/query.js:50:25)
+    at /app/node_modules/sequ
+elize/lib/sequelize.js:315:28
+    at process.processTicksAn
+dRejections (node:internal/pr
+ocess/task_queues:95:5)
+    at async PostgresQueryInt
+erface.select (/app/node_modu
+les/sequelize/lib/dialects/ab
+stract/query-interface.js:407
+:12)
+    at async Acao.findAll (/a
+pp/node_modules/sequelize/lib
+/model.js:1140:21)
+    at async /app/dist/routes
+/acoes.js:59:23 {
+  name: 
+'SequelizeDatabaseError',
+  parent: error: column curso
+s_exames.campos_customizados 
+does not exist
+      at parseErrorMessage (/
+app/node_modules/pg-protocol/
+dist/parser.js:305:11)
+      at Parser.handlePacket 
+(/app/node_modules/pg-protoco
+l/dist/parser.js:143:27)
+      at Parser.parse (/app/n
+ode_modules/pg-protocol/dist/
+parser.js:37:38)
+      at Socket.<anonymous> (
+/app/node_modules/pg-protocol
+/dist/index.js:11:42)
+      at Socket.emit 
+(node:events:517:28)
+      at addChunk (node:inter
+nal/streams/readable:368:12)
+      at readableAddChunk (no
+de:internal/streams/readable:
+341:9)
+      at Readable.push (node:
+internal/streams/readable:278
+:10)
+      at TCP.onStreamRead (no
+de:internal/stream_base_commo
+ns:190:23) {
+    length: 132,
+    severity: 'ERROR',
+    code: '42703',
+    detail: undefined,
+    hint: undefined,
+    position: '787',
+    internalPosition: 
+undefined,
+    internalQuery: undefined,
+    where: undefined,
+    schema: undefined,
+    table: undefined,
+    column: undefined,
+    dataType: undefined,
+    constraint: undefined,
+    file: 'parse_relation.c',
+    line: '3665',
+    routine: 
+'errorMissingColumn',
+    sql: 'SELECT 
+"Acao"."id", 
+"Acao"."numero_acao", 
+"Acao"."instituicao_id", 
+"Acao"."tipo", 
+"Acao"."municipio", 
+"Acao"."estado", 
+"Acao"."data_inicio", 
+"Acao"."data_fim", 
+"Acao"."status", 
+"Acao"."descricao", 
+"Acao"."local_execucao", 
+"Acao"."vagas_disponiveis", 
+"Acao"."distancia_km", "Acao"
+."preco_combustivel_referenci
+a", "Acao"."campos_customizad
+os", "Acao"."created_at" AS 
+"createdAt", 
+"Acao"."updated_at" AS 
+"updatedAt", 
+"instituicao"."id" AS 
+"instituicao.id", 
+"instituicao"."razao_social" 
+AS 
+"instituicao.razao_social", 
+"cursos_exames"."id" AS 
+"cursos_exames.id", 
+"cursos_exames"."acao_id" AS 
+"cursos_exames.acao_id", "cur
+sos_exames"."curso_exame_id" 
+AS "cursos_exames.curso_exame
+_id", 
+"cursos_exames"."vagas" AS 
+"cursos_exames.vagas", 
+"cursos_exames"."horarios" 
+AS "cursos_exames.horarios", 
+"cursos_exames"."campos_custo
+mizados" AS "cursos_exames.ca
+mpos_customizados", "cursos_e
+xames->curso_exame"."id" AS "
+cursos_exames.curso_exame.id"
+, "cursos_exames->curso_exame
+"."nome" AS "cursos_exames.cu
+rso_exame.nome", "cursos_exam
+es->curso_exame"."tipo" AS "c
+ursos_exames.curso_exame.tipo
+", "cursos_exames->curso_exam
+e"."carga_horaria" AS "cursos
+_exames.curso_exame.carga_hor
+aria", "cursos_exames->curso_
+exame"."descricao" AS "cursos
+_exames.curso_exame.descricao
+", "cursos_exames->curso_exam
+e"."requisitos" AS "cursos_ex
+ames.curso_exame.requisitos",
+ "cursos_exames->curso_exame"
+."certificadora" AS "cursos_e
+xames.curso_exame.certificado
+ra", "cursos_exames->curso_ex
+ame"."campos_customizados" 
+AS "cursos_exames.curso_exame
+.campos_customizados", "curso
+s_exames->curso_exame"."ativo
+" AS "cursos_exames.curso_exa
+me.ativo", "cursos_exames->cu
+rso_exame"."created_at" AS "c
+ursos_exames.curso_exame.crea
+tedAt", "cursos_exames->curso
+_exame"."updated_at" AS "curs
+os_exames.curso_exame.updated
+At", "caminhoes"."id" AS 
+"caminhoes.id", 
+"caminhoes"."placa" AS 
+"caminhoes.placa", 
+"caminhoes"."modelo" AS 
+"caminhoes.modelo", 
+"caminhoes"."ano" AS 
+"caminhoes.ano", "caminhoes".
+"capacidade_atendimento" AS "
+caminhoes.capacidade_atendime
+nto", "caminhoes"."autonomia_
+km_litro" AS "caminhoes.auton
+omia_km_litro", 
+"caminhoes"."status" AS 
+"caminhoes.status", 
+"caminhoes"."created_at" AS 
+"caminhoes.createdAt", 
+"caminhoes"."updated_at" AS 
+"caminhoes.updatedAt", "camin
+hoes->AcaoCaminhao"."id" AS 
+"caminhoes.AcaoCaminhao.id", 
+"caminhoes->AcaoCaminhao"."ac
+ao_id" AS "caminhoes.AcaoCami
+nhao.acao_id", "caminhoes->Ac
+aoCaminhao"."caminhao_id" AS 
+"caminhoes.AcaoCaminhao.camin
+hao_id", "caminhoes->AcaoCami
+nhao"."created_at" AS "caminh
+oes.AcaoCaminhao.createdAt", 
+"caminhoes->AcaoCaminhao"."up
+dated_at" AS "caminhoes.AcaoC
+aminhao.updatedAt", 
+"funcionarios"."id" AS 
+"funcionarios.id", 
+"funcionarios"."nome" AS 
+"funcionarios.nome", 
+"funcionarios"."cargo" AS 
+"funcionarios.cargo", "funcio
+narios"."especialidade" AS "f
+uncionarios.especialidade", "
+funcionarios"."custo_diario" 
+AS 
+"funcionarios.custo_diario", 
+"funcionarios"."status" AS 
+"funcionarios.status", 
+"funcionarios"."created_at" 
+AS "funcionarios.createdAt", 
+"funcionarios"."updated_at" 
+AS "funcionarios.updatedAt", 
+"funcionarios->AcaoFuncionari
+o"."id" AS "funcionarios.Acao
+Funcionario.id", "funcionario
+s->AcaoFuncionario"."acao_id"
+ AS "funcionarios.AcaoFuncion
+ario.acao_id", "funcionarios-
+>AcaoFuncionario"."funcionari
+o_id" AS "funcionarios.AcaoFu
+ncionario.funcionario_id", "f
+uncionarios->AcaoFuncionario"
+."created_at" AS "funcionario
+s.AcaoFuncionario.createdAt",
+ "funcionarios->AcaoFuncionar
+io"."updated_at" AS "funciona
+rios.AcaoFuncionario.updatedA
+t" FROM "acoes" AS "Acao" 
+LEFT OUTER JOIN 
+"instituicoes" AS 
+"instituicao" ON 
+"Acao"."instituicao_id" = 
+"instituicao"."id" LEFT 
+OUTER JOIN 
+"acao_curso_exame" AS 
+"cursos_exames" ON 
+"Acao"."id" = 
+"cursos_exames"."acao_id" 
+LEFT OUTER JOIN 
+"cursos_exames" AS 
+"cursos_exames->curso_exame" 
+ON "cursos_exames"."curso_exa
+me_id" = "cursos_exames->curs
+o_exame"."id" LEFT OUTER 
+JOIN ( "acao_caminhoes" AS 
+"caminhoes->AcaoCaminhao" 
+INNER JOIN "caminhoes" AS 
+"caminhoes" ON 
+"caminhoes"."id" = "caminhoes
+->AcaoCaminhao"."caminhao_id"
+) ON "Acao"."id" = "caminhoes
+->AcaoCaminhao"."acao_id" 
+LEFT OUTER JOIN ( 
+"acao_funcionarios" AS "funci
+onarios->AcaoFuncionario" 
+INNER JOIN "funcionarios" AS 
+"funcionarios" ON 
+"funcionarios"."id" = "funcio
+narios->AcaoFuncionario"."fun
+cionario_id") ON "Acao"."id" 
+= "funcionarios->AcaoFunciona
+rio"."acao_id" ORDER BY 
+"Acao"."data_inicio" ASC;',
+    parameters: undefined
+  },
+  original: error: column cur
+sos_exames.campos_customizado
+s does not exist
+      at parseErrorMessage (/
+app/node_modules/pg-protocol/
+dist/parser.js:305:11)
+      at Parser.handlePacket 
+(/app/node_modules/pg-protoco
+l/dist/parser.js:143:27)
+      at Parser.parse (/app/n
+ode_modules/pg-protocol/dist/
+parser.js:37:38)
+      at Socket.<anonymous> (
+/app/node_modules/pg-protocol
+/dist/index.js:11:42)
+      at Socket.emit 
+(node:events:517:28)
+      at addChunk (node:inter
+nal/streams/readable:368:12)
+      at readableAddChunk (no
+de:internal/streams/readable:
+341:9)
+      at Readable.push (node:
+internal/streams/readable:278
+:10)
+      at TCP.onStreamRead (no
+de:internal/stream_base_commo
+ns:190:23) {
+    length: 132,
+    severity: 'ERROR',
+    code: '42703',
+    detail: undefined,
+    hint: undefined,
+    position: '787',
+    internalPosition: 
+undefined,
+    internalQuery: undefined,
+    where: undefined,
+    schema: undefined,
+    table: undefined,
+    column: undefined,
+    dataType: undefined,
+    constraint: undefined,
+    file: 'parse_relation.c',
+    line: '3665',
+    routine: 
+'errorMissingColumn',
+    sql: 'SELECT 
+"Acao"."id", 
+"Acao"."numero_acao", 
+"Acao"."instituicao_id", 
+"Acao"."tipo", 
+"Acao"."municipio", 
+"Acao"."estado", 
+"Acao"."data_inicio", 
+"Acao"."data_fim", 
+"Acao"."status", 
+"Acao"."descricao", 
+"Acao"."local_execucao", 
+"Acao"."vagas_disponiveis", 
+"Acao"."distancia_km", "Acao"
+."preco_combustivel_referenci
+a", "Acao"."campos_customizad
+os", "Acao"."created_at" AS 
+"createdAt", 
+"Acao"."updated_at" AS 
+"updatedAt", 
+"instituicao"."id" AS 
+"instituicao.id", 
+"instituicao"."razao_social" 
+AS 
+"instituicao.razao_social", 
+"cursos_exames"."id" AS 
+"cursos_exames.id", 
+"cursos_exames"."acao_id" AS 
+"cursos_exames.acao_id", "cur
+sos_exames"."curso_exame_id" 
+AS "cursos_exames.curso_exame
+_id", 
+"cursos_exames"."vagas" AS 
+"cursos_exames.vagas", 
+"cursos_exames"."horarios" 
+AS "cursos_exames.horarios", 
+"cursos_exames"."campos_custo
+mizados" AS "cursos_exames.ca
+mpos_customizados", "cursos_e
+xames->curso_exame"."id" AS "
+cursos_exames.curso_exame.id"
+, "cursos_exames->curso_exame
+"."nome" AS "cursos_exames.cu
+rso_exame.nome", "cursos_exam
+es->curso_exame"."tipo" AS "c
+ursos_exames.curso_exame.tipo
+", "cursos_exames->curso_exam
+e"."carga_horaria" AS "cursos
+_exames.curso_exame.carga_hor
+aria", "cursos_exames->curso_
+exame"."descricao" AS "cursos
+_exames.curso_exame.descricao
+", "cursos_exames->curso_exam
+e"."requisitos" AS "cursos_ex
+ames.curso_exame.requisitos",
+ "cursos_exames->curso_exame"
+."certificadora" AS "cursos_e
+xames.curso_exame.certificado
+ra", "cursos_exames->curso_ex
+ame"."campos_customizados" 
+AS "cursos_exames.curso_exame
+.campos_customizados", "curso
+s_exames->curso_exame"."ativo
+" AS "cursos_exames.curso_exa
+me.ativo", "cursos_exames->cu
+rso_exame"."created_at" AS "c
+ursos_exames.curso_exame.crea
+tedAt", "cursos_exames->curso
+_exame"."updated_at" AS "curs
+os_exames.curso_exame.updated
+At", "caminhoes"."id" AS 
+"caminhoes.id", 
+"caminhoes"."placa" AS 
+"caminhoes.placa", 
+"caminhoes"."modelo" AS 
+"caminhoes.modelo", 
+"caminhoes"."ano" AS 
+"caminhoes.ano", "caminhoes".
+"capacidade_atendimento" AS "
+caminhoes.capacidade_atendime
+nto", "caminhoes"."autonomia_
+km_litro" AS "caminhoes.auton
+omia_km_litro", 
+"caminhoes"."status" AS 
+"caminhoes.status", 
+"caminhoes"."created_at" AS 
+"caminhoes.createdAt", 
+"caminhoes"."updated_at" AS 
+"caminhoes.updatedAt", "camin
+hoes->AcaoCaminhao"."id" AS 
+"caminhoes.AcaoCaminhao.id", 
+"caminhoes->AcaoCaminhao"."ac
+ao_id" AS "caminhoes.AcaoCami
+nhao.acao_id", "caminhoes->Ac
+aoCaminhao"."caminhao_id" AS 
+"caminhoes.AcaoCaminhao.camin
+hao_id", "caminhoes->AcaoCami
+nhao"."created_at" AS "caminh
+oes.AcaoCaminhao.createdAt", 
+"caminhoes->AcaoCaminhao"."up
+dated_at" AS "caminhoes.AcaoC
+aminhao.updatedAt", 
+"funcionarios"."id" AS 
+"funcionarios.id", 
+"funcionarios"."nome" AS 
+"funcionarios.nome", 
+"funcionarios"."cargo" AS 
+"funcionarios.cargo", "funcio
+narios"."especialidade" AS "f
+uncionarios.especialidade", "
+funcionarios"."custo_diario" 
+AS 
+"funcionarios.custo_diario", 
+"funcionarios"."status" AS 
+"funcionarios.status", 
+"funcionarios"."created_at" 
+AS "funcionarios.createdAt", 
+"funcionarios"."updated_at" 
+AS "funcionarios.updatedAt", 
+"funcionarios->AcaoFuncionari
+o"."id" AS "funcionarios.Acao
+Funcionario.id", "funcionario
+s->AcaoFuncionario"."acao_id"
+ AS "funcionarios.AcaoFuncion
+ario.acao_id", "funcionarios-
+>AcaoFuncionario"."funcionari
+o_id" AS "funcionarios.AcaoFu
+ncionario.funcionario_id", "f
+uncionarios->AcaoFuncionario"
+."created_at" AS "funcionario
+s.AcaoFuncionario.createdAt",
+ "funcionarios->AcaoFuncionar
+io"."updated_at" AS "funciona
+rios.AcaoFuncionario.updatedA
+t" FROM "acoes" AS "Acao" 
+LEFT OUTER JOIN 
+"instituicoes" AS 
+"instituicao" ON 
+"Acao"."instituicao_id" = 
+"instituicao"."id" LEFT 
+OUTER JOIN 
+"acao_curso_exame" AS 
+"cursos_exames" ON 
+"Acao"."id" = 
+"cursos_exames"."acao_id" 
+LEFT OUTER JOIN 
+"cursos_exames" AS 
+"cursos_exames->curso_exame" 
+ON "cursos_exames"."curso_exa
+me_id" = "cursos_exames->curs
+o_exame"."id" LEFT OUTER 
+JOIN ( "acao_caminhoes" AS 
+"caminhoes->AcaoCaminhao" 
+INNER JOIN "caminhoes" AS 
+"caminhoes" ON 
+"caminhoes"."id" = "caminhoes
+->AcaoCaminhao"."caminhao_id"
+) ON "Acao"."id" = "caminhoes
+->AcaoCaminhao"."acao_id" 
+LEFT OUTER JOIN ( 
+"acao_funcionarios" AS "funci
+onarios->AcaoFuncionario" 
+INNER JOIN "funcionarios" AS 
+"funcionarios" ON 
+"funcionarios"."id" = "funcio
+narios->AcaoFuncionario"."fun
+cionario_id") ON "Acao"."id" 
+= "funcionarios->AcaoFunciona
+rio"."acao_id" ORDER BY 
+"Acao"."data_inicio" ASC;',
+    parameters: undefined
+  },
+  sql: 'SELECT "Acao"."id", 
+"Acao"."numero_acao", 
+"Acao"."instituicao_id", 
+"Acao"."tipo", 
+"Acao"."municipio", 
+"Acao"."estado", 
+"Acao"."data_inicio", 
+"Acao"."data_fim", 
+"Acao"."status", 
+"Acao"."descricao", 
+"Acao"."local_execucao", 
+"Acao"."vagas_disponiveis", 
+"Acao"."distancia_km", "Acao"
+."preco_combustivel_referenci
+a", "Acao"."campos_customizad
+os", "Acao"."created_at" AS 
+"createdAt", 
+"Acao"."updated_at" AS 
+"updatedAt", 
+"instituicao"."id" AS 
+"instituicao.id", 
+"instituicao"."razao_social" 
+AS 
+"instituicao.razao_social", 
+"cursos_exames"."id" AS 
+"cursos_exames.id", 
+"cursos_exames"."acao_id" AS 
+"cursos_exames.acao_id", "cur
+sos_exames"."curso_exame_id" 
+AS "cursos_exames.curso_exame
+_id", 
+"cursos_exames"."vagas" AS 
+"cursos_exames.vagas", 
+"cursos_exames"."horarios" 
+AS "cursos_exames.horarios", 
+"cursos_exames"."campos_custo
+mizados" AS "cursos_exames.ca
+mpos_customizados", "cursos_e
+xames->curso_exame"."id" AS "
+cursos_exames.curso_exame.id"
+, "cursos_exames->curso_exame
+"."nome" AS "cursos_exames.cu
+rso_exame.nome", "cursos_exam
+es->curso_exame"."tipo" AS "c
+ursos_exames.curso_exame.tipo
+", "cursos_exames->curso_exam
+e"."carga_horaria" AS "cursos
+_exames.curso_exame.carga_hor
+aria", "cursos_exames->curso_
+exame"."descricao" AS "cursos
+_exames.curso_exame.descricao
+", "cursos_exames->curso_exam
+e"."requisitos" AS "cursos_ex
+ames.curso_exame.requisitos",
+ "cursos_exames->curso_exame"
+."certificadora" AS "cursos_e
+xames.curso_exame.certificado
+ra", "cursos_exames->curso_ex
+ame"."campos_customizados" 
+AS "cursos_exames.curso_exame
+.campos_customizados", "curso
+s_exames->curso_exame"."ativo
+" AS "cursos_exames.curso_exa
+me.ativo", "cursos_exames->cu
+rso_exame"."created_at" AS "c
+ursos_exames.curso_exame.crea
+tedAt", "cursos_exames->curso
+_exame"."updated_at" AS "curs
+os_exames.curso_exame.updated
+At", "caminhoes"."id" AS 
+"caminhoes.id", 
+"caminhoes"."placa" AS 
+"caminhoes.placa", 
+"caminhoes"."modelo" AS 
+"caminhoes.modelo", 
+"caminhoes"."ano" AS 
+"caminhoes.ano", "caminhoes".
+"capacidade_atendimento" AS "
+caminhoes.capacidade_atendime
+nto", "caminhoes"."autonomia_
+km_litro" AS "caminhoes.auton
+omia_km_litro", 
+"caminhoes"."status" AS 
+"caminhoes.status", 
+"caminhoes"."created_at" AS 
+"caminhoes.createdAt", 
+"caminhoes"."updated_at" AS 
+"caminhoes.updatedAt", "camin
+hoes->AcaoCaminhao"."id" AS 
+"caminhoes.AcaoCaminhao.id", 
+"caminhoes->AcaoCaminhao"."ac
+ao_id" AS "caminhoes.AcaoCami
+nhao.acao_id", "caminhoes->Ac
+aoCaminhao"."caminhao_id" AS 
+"caminhoes.AcaoCaminhao.camin
+hao_id", "caminhoes->AcaoCami
+nhao"."created_at" AS "caminh
+oes.AcaoCaminhao.createdAt", 
+"caminhoes->AcaoCaminhao"."up
+dated_at" AS "caminhoes.AcaoC
+aminhao.updatedAt", 
+"funcionarios"."id" AS 
+"funcionarios.id", 
+"funcionarios"."nome" AS 
+"funcionarios.nome", 
+"funcionarios"."cargo" AS 
+"funcionarios.cargo", "funcio
+narios"."especialidade" AS "f
+uncionarios.especialidade", "
+funcionarios"."custo_diario" 
+AS 
+"funcionarios.custo_diario", 
+"funcionarios"."status" AS 
+"funcionarios.status", 
+"funcionarios"."created_at" 
+AS "funcionarios.createdAt", 
+"funcionarios"."updated_at" 
+AS "funcionarios.updatedAt", 
+"funcionarios->AcaoFuncionari
+o"."id" AS "funcionarios.Acao
+Funcionario.id", "funcionario
+s->AcaoFuncionario"."acao_id"
+ AS "funcionarios.AcaoFuncion
+ario.acao_id", "funcionarios-
+>AcaoFuncionario"."funcionari
+o_id" AS "funcionarios.AcaoFu
+ncionario.funcionario_id", "f
+uncionarios->AcaoFuncionario"
+."created_at" AS "funcionario
+s.AcaoFuncionario.createdAt",
+ "funcionarios->AcaoFuncionar
+io"."updated_at" AS "funciona
+rios.AcaoFuncionario.updatedA
+t" FROM "acoes" AS "Acao" 
+LEFT OUTER JOIN 
+"instituicoes" AS 
+"instituicao" ON 
+"Acao"."instituicao_id" = 
+"instituicao"."id" LEFT 
+OUTER JOIN 
+"acao_curso_exame" AS 
+"cursos_exames" ON 
+"Acao"."id" = 
+"cursos_exames"."acao_id" 
+LEFT OUTER JOIN 
+"cursos_exames" AS 
+"cursos_exames->curso_exame" 
+ON "cursos_exames"."curso_exa
+me_id" = "cursos_exames->curs
+o_exame"."id" LEFT OUTER 
+JOIN ( "acao_caminhoes" AS 
+"caminhoes->AcaoCaminhao" 
+INNER JOIN "caminhoes" AS 
+"caminhoes" ON 
+"caminhoes"."id" = "caminhoes
+->AcaoCaminhao"."caminhao_id"
+) ON "Acao"."id" = "caminhoes
+->AcaoCaminhao"."acao_id" 
+LEFT OUTER JOIN ( 
+"acao_funcionarios" AS "funci
+onarios->AcaoFuncionario" 
+INNER JOIN "funcionarios" AS 
+"funcionarios" ON 
+"funcionarios"."id" = "funcio
+narios->AcaoFuncionario"."fun
+cionario_id") ON "Acao"."id" 
+= "funcionarios->AcaoFunciona
+rio"."acao_id" ORDER BY 
+"Acao"."data_inicio" ASC;',
+  parameters: {}
+}
+Error updating curso/exame: 
+Error
+    at Query.run (/app/node_m
+odules/sequelize/lib/dialects
+/postgres/query.js:50:25)
+    at /app/node_modules/sequ
+elize/lib/sequelize.js:315:28
+    at process.processTicksAn
+dRejections (node:internal/pr
+ocess/task_queues:95:5)
+    at async PostgresQueryInt
+erface.select (/app/node_modu
+les/sequelize/lib/dialects/ab
+stract/query-interface.js:407
+:12)
+    at async 
+CursoExame.findAll (/app/node
+_modules/sequelize/lib/model.
+js:1140:21)
+    at async 
+CursoExame.findOne (/app/node
+_modules/sequelize/lib/model.
+js:1240:12)
+    at async 
+CursoExame.findByPk (/app/nod
+e_modules/sequelize/lib/model
+.js:1221:12)
+    at async /app/dist/routes
+/cursosExames.js:82:28 {
+  name: 
+'SequelizeDatabaseError',
+  parent: error: column 
+"campos_customizados" does 
+not exist
+      at parseErrorMessage (/
+app/node_modules/pg-protocol/
+dist/parser.js:305:11)
+      at Parser.handlePacket 
+(/app/node_modules/pg-protoco
+l/dist/parser.js:143:27)
+      at Parser.parse (/app/n
+ode_modules/pg-protocol/dist/
+parser.js:37:38)
+      at Socket.<anonymous> (
+/app/node_modules/pg-protocol
+/dist/index.js:11:42)
+      at Socket.emit 
+(node:events:517:28)
+      at addChunk (node:inter
+nal/streams/readable:368:12)
+      at readableAddChunk (no
+de:internal/streams/readable:
+341:9)
+      at Readable.push (node:
+internal/streams/readable:278
+:10)
+      at TCP.onStreamRead (no
+de:internal/stream_base_commo
+ns:190:23) {
+    length: 119,
+    severity: 'ERROR',
+    code: '42703',
+    detail: undefined,
+    hint: undefined,
+    position: '91',
+    internalPosition: 
+undefined,
+    internalQuery: undefined,
+    where: undefined,
+    schema: undefined,
+    table: undefined,
+    column: undefined,
+    dataType: undefined,
+    constraint: undefined,
+    file: 'parse_relation.c',
+    line: '3665',
+    routine: 
+'errorMissingColumn',
+    sql: `SELECT "id", 
+"nome", "tipo", 
+"carga_horaria", 
+"descricao", "requisitos", 
+"certificadora", 
+"campos_customizados", 
+"ativo", "created_at" AS 
+"createdAt", "updated_at" AS 
+"updatedAt" FROM 
+"cursos_exames" AS 
+"CursoExame" WHERE 
+"CursoExame"."id" = 'e1111111
+-1111-1111-1111-111111111111'
+;`,
+    parameters: undefined
+  },
+  original: error: column 
+"campos_customizados" does 
+not exist
+      at parseErrorMessage (/
+app/node_modules/pg-protocol/
+dist/parser.js:305:11)
+      at Parser.handlePacket 
+(/app/node_modules/pg-protoco
+l/dist/parser.js:143:27)
+      at Parser.parse (/app/n
+ode_modules/pg-protocol/dist/
+parser.js:37:38)
+      at Socket.<anonymous> (
+/app/node_modules/pg-protocol
+/dist/index.js:11:42)
+      at Socket.emit 
+(node:events:517:28)
+      at addChunk (node:inter
+nal/streams/readable:368:12)
+      at readableAddChunk (no
+de:internal/streams/readable:
+341:9)
+      at Readable.push (node:
+internal/streams/readable:278
+:10)
+      at TCP.onStreamRead (no
+de:internal/stream_base_commo
+ns:190:23) {
+    length: 119,
+    severity: 'ERROR',
+    code: '42703',
+    detail: undefined,
+    hint: undefined,
+    position: '91',
+    internalPosition: 
+undefined,
+    internalQuery: undefined,
+    where: undefined,
+    schema: undefined,
+    table: undefined,
+    column: undefined,
+    dataType: undefined,
+    constraint: undefined,
+    file: 'parse_relation.c',
+    line: '3665',
+    routine: 
+'errorMissingColumn',
+    sql: `SELECT "id", 
+"nome", "tipo", 
+"carga_horaria", 
+"descricao", "requisitos", 
+"certificadora", 
+"campos_customizados", 
+"ativo", "created_at" AS 
+"createdAt", "updated_at" AS 
+"updatedAt" FROM 
+"cursos_exames" AS 
+"CursoExame" WHERE 
+"CursoExame"."id" = 'e1111111
+-1111-1111-1111-111111111111'
+;`,
+    parameters: undefined
+  },
+  sql: `SELECT "id", "nome", 
+"tipo", "carga_horaria", 
+"descricao", "requisitos", 
+"certificadora", 
+"campos_customizados", 
+"ativo", "created_at" AS 
+"createdAt", "updated_at" AS 
+"updatedAt" FROM 
+"cursos_exames" AS 
+"CursoExame" WHERE 
+"CursoExame"."id" = 'e1111111
+-1111-1111-1111-111111111111'
+;`,
+  parameters: {}
+}
+Error fetching acoes: Error
+    at Query.run (/app/node_m
+odules/sequelize/lib/dialects
+/postgres/query.js:50:25)
+    at /app/node_modules/sequ
+elize/lib/sequelize.js:315:28
+    at process.processTicksAn
+dRejections (node:internal/pr
+ocess/task_queues:95:5)
+    at async PostgresQueryInt
+erface.select (/app/node_modu
+les/sequelize/lib/dialects/ab
+stract/query-interface.js:407
+:12)
+    at async Acao.findAll (/a
+pp/node_modules/sequelize/lib
+/model.js:1140:21)
+    at async /app/dist/routes
+/acoes.js:59:23 {
+  name: 
+'SequelizeDatabaseError',
+  parent: error: column curso
+s_exames.campos_customizados 
+does not exist
+      at parseErrorMessage (/
+app/node_modules/pg-protocol/
+dist/parser.js:305:11)
+      at Parser.handlePacket 
+(/app/node_modules/pg-protoco
+l/dist/parser.js:143:27)
+      at Parser.parse (/app/n
+ode_modules/pg-protocol/dist/
+parser.js:37:38)
+      at Socket.<anonymous> (
+/app/node_modules/pg-protocol
+/dist/index.js:11:42)
+      at Socket.emit 
+(node:events:517:28)
+      at addChunk (node:inter
+nal/streams/readable:368:12)
+      at readableAddChunk (no
+de:internal/streams/readable:
+341:9)
+      at Readable.push (node:
+internal/streams/readable:278
+:10)
+      at TCP.onStreamRead (no
+de:internal/stream_base_commo
+ns:190:23) {
+    length: 132,
+    severity: 'ERROR',
+    code: '42703',
+    detail: undefined,
+    hint: undefined,
+    position: '787',
+    internalPosition: 
+undefined,
+    internalQuery: undefined,
+    where: undefined,
+    schema: undefined,
+    table: undefined,
+    column: undefined,
+    dataType: undefined,
+    constraint: undefined,
+    file: 'parse_relation.c',
+    line: '3665',
+    routine: 
+'errorMissingColumn',
+    sql: 'SELECT 
+"Acao"."id", 
+"Acao"."numero_acao", 
+"Acao"."instituicao_id", 
+"Acao"."tipo", 
+"Acao"."municipio", 
+"Acao"."estado", 
+"Acao"."data_inicio", 
+"Acao"."data_fim", 
+"Acao"."status", 
+"Acao"."descricao", 
+"Acao"."local_execucao", 
+"Acao"."vagas_disponiveis", 
+"Acao"."distancia_km", "Acao"
+."preco_combustivel_referenci
+a", "Acao"."campos_customizad
+os", "Acao"."created_at" AS 
+"createdAt", 
+"Acao"."updated_at" AS 
+"updatedAt", 
+"instituicao"."id" AS 
+"instituicao.id", 
+"instituicao"."razao_social" 
+AS 
+"instituicao.razao_social", 
+"cursos_exames"."id" AS 
+"cursos_exames.id", 
+"cursos_exames"."acao_id" AS 
+"cursos_exames.acao_id", "cur
+sos_exames"."curso_exame_id" 
+AS "cursos_exames.curso_exame
+_id", 
+"cursos_exames"."vagas" AS 
+"cursos_exames.vagas", 
+"cursos_exames"."horarios" 
+AS "cursos_exames.horarios", 
+"cursos_exames"."campos_custo
+mizados" AS "cursos_exames.ca
+mpos_customizados", "cursos_e
+xames->curso_exame"."id" AS "
+cursos_exames.curso_exame.id"
+, "cursos_exames->curso_exame
+"."nome" AS "cursos_exames.cu
+rso_exame.nome", "cursos_exam
+es->curso_exame"."tipo" AS "c
+ursos_exames.curso_exame.tipo
+", "cursos_exames->curso_exam
+e"."carga_horaria" AS "cursos
+_exames.curso_exame.carga_hor
+aria", "cursos_exames->curso_
+exame"."descricao" AS "cursos
+_exames.curso_exame.descricao
+", "cursos_exames->curso_exam
+e"."requisitos" AS "cursos_ex
+ames.curso_exame.requisitos",
+ "cursos_exames->curso_exame"
+."certificadora" AS "cursos_e
+xames.curso_exame.certificado
+ra", "cursos_exames->curso_ex
+ame"."campos_customizados" 
+AS "cursos_exames.curso_exame
+.campos_customizados", "curso
+s_exames->curso_exame"."ativo
+" AS "cursos_exames.curso_exa
+me.ativo", "cursos_exames->cu
+rso_exame"."created_at" AS "c
+ursos_exames.curso_exame.crea
+tedAt", "cursos_exames->curso
+_exame"."updated_at" AS "curs
+os_exames.curso_exame.updated
+At", "caminhoes"."id" AS 
+"caminhoes.id", 
+"caminhoes"."placa" AS 
+"caminhoes.placa", 
+"caminhoes"."modelo" AS 
+"caminhoes.modelo", 
+"caminhoes"."ano" AS 
+"caminhoes.ano", "caminhoes".
+"capacidade_atendimento" AS "
+caminhoes.capacidade_atendime
+nto", "caminhoes"."autonomia_
+km_litro" AS "caminhoes.auton
+omia_km_litro", 
+"caminhoes"."status" AS 
+"caminhoes.status", 
+"caminhoes"."created_at" AS 
+"caminhoes.createdAt", 
+"caminhoes"."updated_at" AS 
+"caminhoes.updatedAt", "camin
+hoes->AcaoCaminhao"."id" AS 
+"caminhoes.AcaoCaminhao.id", 
+"caminhoes->AcaoCaminhao"."ac
+ao_id" AS "caminhoes.AcaoCami
+nhao.acao_id", "caminhoes->Ac
+aoCaminhao"."caminhao_id" AS 
+"caminhoes.AcaoCaminhao.camin
+hao_id", "caminhoes->AcaoCami
+nhao"."created_at" AS "caminh
+oes.AcaoCaminhao.createdAt", 
+"caminhoes->AcaoCaminhao"."up
+dated_at" AS "caminhoes.AcaoC
+aminhao.updatedAt", 
+"funcionarios"."id" AS 
+"funcionarios.id", 
+"funcionarios"."nome" AS 
+"funcionarios.nome", 
+"funcionarios"."cargo" AS 
+"funcionarios.cargo", "funcio
+narios"."especialidade" AS "f
+uncionarios.especialidade", "
+funcionarios"."custo_diario" 
+AS 
+"funcionarios.custo_diario", 
+"funcionarios"."status" AS 
+"funcionarios.status", 
+"funcionarios"."created_at" 
+AS "funcionarios.createdAt", 
+"funcionarios"."updated_at" 
+AS "funcionarios.updatedAt", 
+"funcionarios->AcaoFuncionari
+o"."id" AS "funcionarios.Acao
+Funcionario.id", "funcionario
+s->AcaoFuncionario"."acao_id"
+ AS "funcionarios.AcaoFuncion
+ario.acao_id", "funcionarios-
+>AcaoFuncionario"."funcionari
+o_id" AS "funcionarios.AcaoFu
+ncionario.funcionario_id", "f
+uncionarios->AcaoFuncionario"
+."created_at" AS "funcionario
+s.AcaoFuncionario.createdAt",
+ "funcionarios->AcaoFuncionar
+io"."updated_at" AS "funciona
+rios.AcaoFuncionario.updatedA
+t" FROM "acoes" AS "Acao" 
+LEFT OUTER JOIN 
+"instituicoes" AS 
+"instituicao" ON 
+"Acao"."instituicao_id" = 
+"instituicao"."id" LEFT 
+OUTER JOIN 
+"acao_curso_exame" AS 
+"cursos_exames" ON 
+"Acao"."id" = 
+"cursos_exames"."acao_id" 
+LEFT OUTER JOIN 
+"cursos_exames" AS 
+"cursos_exames->curso_exame" 
+ON "cursos_exames"."curso_exa
+me_id" = "cursos_exames->curs
+o_exame"."id" LEFT OUTER 
+JOIN ( "acao_caminhoes" AS 
+"caminhoes->AcaoCaminhao" 
+INNER JOIN "caminhoes" AS 
+"caminhoes" ON 
+"caminhoes"."id" = "caminhoes
+->AcaoCaminhao"."caminhao_id"
+) ON "Acao"."id" = "caminhoes
+->AcaoCaminhao"."acao_id" 
+LEFT OUTER JOIN ( 
+"acao_funcionarios" AS "funci
+onarios->AcaoFuncionario" 
+INNER JOIN "funcionarios" AS 
+"funcionarios" ON 
+"funcionarios"."id" = "funcio
+narios->AcaoFuncionario"."fun
+cionario_id") ON "Acao"."id" 
+= "funcionarios->AcaoFunciona
+rio"."acao_id" ORDER BY 
+"Acao"."data_inicio" ASC;',
+    parameters: undefined
+  },
+  original: error: column cur
+sos_exames.campos_customizado
+s does not exist
+      at parseErrorMessage (/
+app/node_modules/pg-protocol/
+dist/parser.js:305:11)
+      at Parser.handlePacket 
+(/app/node_modules/pg-protoco
+l/dist/parser.js:143:27)
+      at Parser.parse (/app/n
+ode_modules/pg-protocol/dist/
+parser.js:37:38)
+      at Socket.<anonymous> (
+/app/node_modules/pg-protocol
+/dist/index.js:11:42)
+      at Socket.emit 
+(node:events:517:28)
+      at addChunk (node:inter
+nal/streams/readable:368:12)
+      at readableAddChunk (no
+de:internal/streams/readable:
+341:9)
+      at Readable.push (node:
+internal/streams/readable:278
+:10)
+      at TCP.onStreamRead (no
+de:internal/stream_base_commo
+ns:190:23) {
+    length: 132,
+    severity: 'ERROR',
+    code: '42703',
+    detail: undefined,
+    hint: undefined,
+    position: '787',
+    internalPosition: 
+undefined,
+    internalQuery: undefined,
+    where: undefined,
+    schema: undefined,
+    table: undefined,
+    column: undefined,
+    dataType: undefined,
+    constraint: undefined,
+    file: 'parse_relation.c',
+    line: '3665',
+    routine: 
+'errorMissingColumn',
+    sql: 'SELECT 
+"Acao"."id", 
+"Acao"."numero_acao", 
+"Acao"."instituicao_id", 
+"Acao"."tipo", 
+"Acao"."municipio", 
+"Acao"."estado", 
+"Acao"."data_inicio", 
+"Acao"."data_fim", 
+"Acao"."status", 
+"Acao"."descricao", 
+"Acao"."local_execucao", 
+"Acao"."vagas_disponiveis", 
+"Acao"."distancia_km", "Acao"
+."preco_combustivel_referenci
+a", "Acao"."campos_customizad
+os", "Acao"."created_at" AS 
+"createdAt", 
+"Acao"."updated_at" AS 
+"updatedAt", 
+"instituicao"."id" AS 
+"instituicao.id", 
+"instituicao"."razao_social" 
+AS 
+"instituicao.razao_social", 
+"cursos_exames"."id" AS 
+"cursos_exames.id", 
+"cursos_exames"."acao_id" AS 
+"cursos_exames.acao_id", "cur
+sos_exames"."curso_exame_id" 
+AS "cursos_exames.curso_exame
+_id", 
+"cursos_exames"."vagas" AS 
+"cursos_exames.vagas", 
+"cursos_exames"."horarios" 
+AS "cursos_exames.horarios", 
+"cursos_exames"."campos_custo
+mizados" AS "cursos_exames.ca
+mpos_customizados", "cursos_e
+xames->curso_exame"."id" AS "
+cursos_exames.curso_exame.id"
+, "cursos_exames->curso_exame
+"."nome" AS "cursos_exames.cu
+rso_exame.nome", "cursos_exam
+es->curso_exame"."tipo" AS "c
+ursos_exames.curso_exame.tipo
+", "cursos_exames->curso_exam
+e"."carga_horaria" AS "cursos
+_exames.curso_exame.carga_hor
+aria", "cursos_exames->curso_
+exame"."descricao" AS "cursos
+_exames.curso_exame.descricao
+", "cursos_exames->curso_exam
+e"."requisitos" AS "cursos_ex
+ames.curso_exame.requisitos",
+ "cursos_exames->curso_exame"
+."certificadora" AS "cursos_e
+xames.curso_exame.certificado
+ra", "cursos_exames->curso_ex
+ame"."campos_customizados" 
+AS "cursos_exames.curso_exame
+.campos_customizados", "curso
+s_exames->curso_exame"."ativo
+" AS "cursos_exames.curso_exa
+me.ativo", "cursos_exames->cu
+rso_exame"."created_at" AS "c
+ursos_exames.curso_exame.crea
+tedAt", "cursos_exames->curso
+_exame"."updated_at" AS "curs
+os_exames.curso_exame.updated
+At", "caminhoes"."id" AS 
+"caminhoes.id", 
+"caminhoes"."placa" AS 
+"caminhoes.placa", 
+"caminhoes"."modelo" AS 
+"caminhoes.modelo", 
+"caminhoes"."ano" AS 
+"caminhoes.ano", "caminhoes".
+"capacidade_atendimento" AS "
+caminhoes.capacidade_atendime
+nto", "caminhoes"."autonomia_
+km_litro" AS "caminhoes.auton
+omia_km_litro", 
+"caminhoes"."status" AS 
+"caminhoes.status", 
+"caminhoes"."created_at" AS 
+"caminhoes.createdAt", 
+"caminhoes"."updated_at" AS 
+"caminhoes.updatedAt", "camin
+hoes->AcaoCaminhao"."id" AS 
+"caminhoes.AcaoCaminhao.id", 
+"caminhoes->AcaoCaminhao"."ac
+ao_id" AS "caminhoes.AcaoCami
+nhao.acao_id", "caminhoes->Ac
+aoCaminhao"."caminhao_id" AS 
+"caminhoes.AcaoCaminhao.camin
+hao_id", "caminhoes->AcaoCami
+nhao"."created_at" AS "caminh
+oes.AcaoCaminhao.createdAt", 
+"caminhoes->AcaoCaminhao"."up
+dated_at" AS "caminhoes.AcaoC
+aminhao.updatedAt", 
+"funcionarios"."id" AS 
+"funcionarios.id", 
+"funcionarios"."nome" AS 
+"funcionarios.nome", 
+"funcionarios"."cargo" AS 
+"funcionarios.cargo", "funcio
+narios"."especialidade" AS "f
+uncionarios.especialidade", "
+funcionarios"."custo_diario" 
+AS 
+"funcionarios.custo_diario", 
+"funcionarios"."status" AS 
+"funcionarios.status", 
+"funcionarios"."created_at" 
+AS "funcionarios.createdAt", 
+"funcionarios"."updated_at" 
+AS "funcionarios.updatedAt", 
+"funcionarios->AcaoFuncionari
+o"."id" AS "funcionarios.Acao
+Funcionario.id", "funcionario
+s->AcaoFuncionario"."acao_id"
+ AS "funcionarios.AcaoFuncion
+ario.acao_id", "funcionarios-
+>AcaoFuncionario"."funcionari
+o_id" AS "funcionarios.AcaoFu
+ncionario.funcionario_id", "f
+uncionarios->AcaoFuncionario"
+."created_at" AS "funcionario
+s.AcaoFuncionario.createdAt",
+ "funcionarios->AcaoFuncionar
+io"."updated_at" AS "funciona
+rios.AcaoFuncionario.updatedA
+t" FROM "acoes" AS "Acao" 
+LEFT OUTER JOIN 
+"instituicoes" AS 
+"instituicao" ON 
+"Acao"."instituicao_id" = 
+"instituicao"."id" LEFT 
+OUTER JOIN 
+"acao_curso_exame" AS 
+"cursos_exames" ON 
+"Acao"."id" = 
+"cursos_exames"."acao_id" 
+LEFT OUTER JOIN 
+"cursos_exames" AS 
+"cursos_exames->curso_exame" 
+ON "cursos_exames"."curso_exa
+me_id" = "cursos_exames->curs
+o_exame"."id" LEFT OUTER 
+JOIN ( "acao_caminhoes" AS 
+"caminhoes->AcaoCaminhao" 
+INNER JOIN "caminhoes" AS 
+"caminhoes" ON 
+"caminhoes"."id" = "caminhoes
+->AcaoCaminhao"."caminhao_id"
+) ON "Acao"."id" = "caminhoes
+->AcaoCaminhao"."acao_id" 
+LEFT OUTER JOIN ( 
+"acao_funcionarios" AS "funci
+onarios->AcaoFuncionario" 
+INNER JOIN "funcionarios" AS 
+"funcionarios" ON 
+"funcionarios"."id" = "funcio
+narios->AcaoFuncionario"."fun
+cionario_id") ON "Acao"."id" 
+= "funcionarios->AcaoFunciona
+rio"."acao_id" ORDER BY 
+"Acao"."data_inicio" ASC;',
+    parameters: undefined
+  },
+  sql: 'SELECT "Acao"."id", 
+"Acao"."numero_acao", 
+"Acao"."instituicao_id", 
+"Acao"."tipo", 
+"Acao"."municipio", 
+"Acao"."estado", 
+"Acao"."data_inicio", 
+"Acao"."data_fim", 
+"Acao"."status", 
+"Acao"."descricao", 
+"Acao"."local_execucao", 
+"Acao"."vagas_disponiveis", 
+"Acao"."distancia_km", "Acao"
+."preco_combustivel_referenci
+a", "Acao"."campos_customizad
+os", "Acao"."created_at" AS 
+"createdAt", 
+"Acao"."updated_at" AS 
+"updatedAt", 
+"instituicao"."id" AS 
+"instituicao.id", 
+"instituicao"."razao_social" 
+AS 
+"instituicao.razao_social", 
+"cursos_exames"."id" AS 
+"cursos_exames.id", 
+"cursos_exames"."acao_id" AS 
+"cursos_exames.acao_id", "cur
+sos_exames"."curso_exame_id" 
+AS "cursos_exames.curso_exame
+_id", 
+"cursos_exames"."vagas" AS 
+"cursos_exames.vagas", 
+"cursos_exames"."horarios" 
+AS "cursos_exames.horarios", 
+"cursos_exames"."campos_custo
+mizados" AS "cursos_exames.ca
+mpos_customizados", "cursos_e
+xames->curso_exame"."id" AS "
+cursos_exames.curso_exame.id"
+, "cursos_exames->curso_exame
+"."nome" AS "cursos_exames.cu
+rso_exame.nome", "cursos_exam
+es->curso_exame"."tipo" AS "c
+ursos_exames.curso_exame.tipo
+", "cursos_exames->curso_exam
+e"."carga_horaria" AS "cursos
+_exames.curso_exame.carga_hor
+aria", "cursos_exames->curso_
+exame"."descricao" AS "cursos
+_exames.curso_exame.descricao
+", "cursos_exames->curso_exam
+e"."requisitos" AS "cursos_ex
+ames.curso_exame.requisitos",
+ "cursos_exames->curso_exame"
+."certificadora" AS "cursos_e
+xames.curso_exame.certificado
+ra", "cursos_exames->curso_ex
+ame"."campos_customizados" 
+AS "cursos_exames.curso_exame
+.campos_customizados", "curso
+s_exames->curso_exame"."ativo
+" AS "cursos_exames.curso_exa
+me.ativo", "cursos_exames->cu
+rso_exame"."created_at" AS "c
+ursos_exames.curso_exame.crea
+tedAt", "cursos_exames->curso
+_exame"."updated_at" AS "curs
+os_exames.curso_exame.updated
+At", "caminhoes"."id" AS 
+"caminhoes.id", 
+"caminhoes"."placa" AS 
+"caminhoes.placa", 
+"caminhoes"."modelo" AS 
+"caminhoes.modelo", 
+"caminhoes"."ano" AS 
+"caminhoes.ano", "caminhoes".
+"capacidade_atendimento" AS "
+caminhoes.capacidade_atendime
+nto", "caminhoes"."autonomia_
+km_litro" AS "caminhoes.auton
+omia_km_litro", 
+"caminhoes"."status" AS 
+"caminhoes.status", 
+"caminhoes"."created_at" AS 
+"caminhoes.createdAt", 
+"caminhoes"."updated_at" AS 
+"caminhoes.updatedAt", "camin
+hoes->AcaoCaminhao"."id" AS 
+"caminhoes.AcaoCaminhao.id", 
+"caminhoes->AcaoCaminhao"."ac
+ao_id" AS "caminhoes.AcaoCami
+nhao.acao_id", "caminhoes->Ac
+aoCaminhao"."caminhao_id" AS 
+"caminhoes.AcaoCaminhao.camin
+hao_id", "caminhoes->AcaoCami
+nhao"."created_at" AS "caminh
+oes.AcaoCaminhao.createdAt", 
+"caminhoes->AcaoCaminhao"."up
+dated_at" AS "caminhoes.AcaoC
+aminhao.updatedAt", 
+"funcionarios"."id" AS 
+"funcionarios.id", 
+"funcionarios"."nome" AS 
+"funcionarios.nome", 
+"funcionarios"."cargo" AS 
+"funcionarios.cargo", "funcio
+narios"."especialidade" AS "f
+uncionarios.especialidade", "
+funcionarios"."custo_diario" 
+AS 
+"funcionarios.custo_diario", 
+"funcionarios"."status" AS 
+"funcionarios.status", 
+"funcionarios"."created_at" 
+AS "funcionarios.createdAt", 
+"funcionarios"."updated_at" 
+AS "funcionarios.updatedAt", 
+"funcionarios->AcaoFuncionari
+o"."id" AS "funcionarios.Acao
+Funcionario.id", "funcionario
+s->AcaoFuncionario"."acao_id"
+ AS "funcionarios.AcaoFuncion
+ario.acao_id", "funcionarios-
+>AcaoFuncionario"."funcionari
+o_id" AS "funcionarios.AcaoFu
+ncionario.funcionario_id", "f
+uncionarios->AcaoFuncionario"
+."created_at" AS "funcionario
+s.AcaoFuncionario.createdAt",
+ "funcionarios->AcaoFuncionar
+io"."updated_at" AS "funciona
+rios.AcaoFuncionario.updatedA
+t" FROM "acoes" AS "Acao" 
+LEFT OUTER JOIN 
+"instituicoes" AS 
+"instituicao" ON 
+"Acao"."instituicao_id" = 
+"instituicao"."id" LEFT 
+OUTER JOIN 
+"acao_curso_exame" AS 
+"cursos_exames" ON 
+"Acao"."id" = 
+"cursos_exames"."acao_id" 
+LEFT OUTER JOIN 
+"cursos_exames" AS 
+"cursos_exames->curso_exame" 
+ON "cursos_exames"."curso_exa
+me_id" = "cursos_exames->curs
+o_exame"."id" LEFT OUTER 
+JOIN ( "acao_caminhoes" AS 
+"caminhoes->AcaoCaminhao" 
+INNER JOIN "caminhoes" AS 
+"caminhoes" ON 
+"caminhoes"."id" = "caminhoes
+->AcaoCaminhao"."caminhao_id"
+) ON "Acao"."id" = "caminhoes
+->AcaoCaminhao"."acao_id" 
+LEFT OUTER JOIN ( 
+"acao_funcionarios" AS "funci
+onarios->AcaoFuncionario" 
+INNER JOIN "funcionarios" AS 
+"funcionarios" ON 
+"funcionarios"."id" = "funcio
+narios->AcaoFuncionario"."fun
+cionario_id") ON "Acao"."id" 
+= "funcionarios->AcaoFunciona
+rio"."acao_id" ORDER BY 
+"Acao"."data_inicio" ASC;',
+  parameters: {}
+}

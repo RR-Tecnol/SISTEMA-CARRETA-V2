@@ -1,0 +1,80 @@
+
+import { Routes, Route } from 'react-router-dom';
+
+// Public pages
+import Home from './pages/public/Home';
+import Acoes from './pages/public/Acoes';
+import Cadastro from './pages/public/Cadastro';
+import Login from './pages/public/Login';
+import EsqueciSenha from './pages/public/EsqueciSenha';
+import RedefinirSenha from './pages/public/RedefinirSenha';
+
+// Citizen portal
+import Portal from './pages/citizen/Portal';
+import MeuPerfil from './pages/citizen/MeuPerfil';
+import MinhasInscricoes from './pages/citizen/MinhasInscricoes';
+import AcoesDisponiveis from './pages/citizen/AcoesDisponiveis';
+
+// Admin panel
+import AdminDashboard from './pages/admin/Dashboard';
+import AdminAcoes from './pages/admin/Acoes';
+import NovaAcao from './pages/admin/NovaAcao';
+import GerenciarAcao from './pages/admin/GerenciarAcao';
+import Instituicoes from './pages/admin/Instituicoes';
+import NovaInstituicao from './pages/admin/NovaInstituicao';
+import Caminhoes from './pages/admin/Caminhoes';
+import Funcionarios from './pages/admin/Funcionarios';
+import Relatorios from './pages/admin/Relatorios';
+import CursosExames from './pages/admin/CursosExames';
+import Cidadaos from './pages/admin/Cidadaos';
+import Inscricoes from './pages/admin/Inscricoes';
+import MeuPerfilAdmin from './pages/admin/MeuPerfil';
+
+// Layout
+import PublicLayout from './components/layout/PublicLayout';
+import CitizenLayout from './components/layout/CitizenLayout';
+import AdminLayout from './components/layout/AdminLayout';
+
+function App() {
+    return (
+        <Routes>
+            {/* Public routes */}
+            <Route path="/" element={<PublicLayout />}>
+                <Route index element={<Home />} />
+                <Route path="acoes" element={<Acoes />} />
+                <Route path="cadastro" element={<Cadastro />} />
+                <Route path="login" element={<Login />} />
+                <Route path="recuperar-senha" element={<EsqueciSenha />} />
+                <Route path="redefinir-senha" element={<RedefinirSenha />} />
+            </Route>
+
+            {/* Citizen portal routes */}
+            <Route path="/portal" element={<CitizenLayout />}>
+                <Route index element={<Portal />} />
+                <Route path="acoes" element={<AcoesDisponiveis />} />
+                <Route path="perfil" element={<MeuPerfil />} />
+                <Route path="inscricoes" element={<MinhasInscricoes />} />
+            </Route>
+
+            {/* Admin routes */}
+            <Route path="/admin" element={<AdminLayout />}>
+                <Route index element={<AdminDashboard />} />
+                <Route path="perfil" element={<MeuPerfilAdmin />} />
+                <Route path="acoes" element={<AdminAcoes />} />
+                <Route path="acoes/nova" element={<NovaAcao />} />
+                <Route path="acoes/:id" element={<GerenciarAcao />} />
+                <Route path="instituicoes" element={<Instituicoes />} />
+                <Route path="instituicoes/nova" element={<NovaInstituicao />} />
+                <Route path="instituicoes/:id" element={<NovaInstituicao />} />
+                <Route path="caminhoes" element={<Caminhoes />} />
+                <Route path="funcionarios" element={<Funcionarios />} />
+                <Route path="relatorios" element={<Relatorios />} />
+                <Route path="cursos-exames" element={<CursosExames />} />
+                <Route path="cidadaos" element={<Cidadaos />} />
+                <Route path="inscricoes" element={<Inscricoes />} />
+            </Route>
+        </Routes>
+    );
+}
+
+export default App;

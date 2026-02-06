@@ -1,0 +1,16 @@
+-- Popular cidadãos fictícios
+-- Senha para todos: senha123 (hash bcrypt)
+
+INSERT INTO cidadaos (id, nome_completo, cpf, data_nascimento, sexo, raca, telefone, email, cep, logradouro, numero, complemento, bairro, municipio, estado, senha, created_at, updated_at)
+VALUES
+    (gen_random_uuid(), 'Maria Silva Santos', '12345678901', '1985-03-15', 'F', 'parda', '(98) 98765-4321', 'maria.silva@email.com', '65000-000', 'Rua das Flores', '123', 'Apto 201', 'Centro', 'São Luís', 'MA', '$2a$10$rZ5qH8qH8qH8qH8qH8qH8.N8N8N8N8N8N8N8N8N8N8N8N8N8N8', NOW(), NOW()),
+    (gen_random_uuid(), 'João Pedro Oliveira', '23456789012', '1990-07-22', 'M', 'branca', '(98) 99876-5432', 'joao.oliveira@email.com', '65010-000', 'Avenida dos Holandeses', '456', '', 'Calhau', 'São Luís', 'MA', '$2a$10$rZ5qH8qH8qH8qH8qH8qH8.N8N8N8N8N8N8N8N8N8N8N8N8N8N8', NOW(), NOW()),
+    (gen_random_uuid(), 'Ana Carolina Ferreira', '34567890123', '1978-11-30', 'F', 'branca', '(98) 98234-5678', 'ana.ferreira@email.com', '65020-000', 'Rua Grande', '789', 'Casa', 'Centro', 'São Luís', 'MA', '$2a$10$rZ5qH8qH8qH8qH8qH8qH8.N8N8N8N8N8N8N8N8N8N8N8N8N8N8', NOW(), NOW()),
+    (gen_random_uuid(), 'Carlos Eduardo Souza', '45678901234', '1995-05-18', 'M', 'preta', '(98) 99345-6789', 'carlos.souza@email.com', '65030-000', 'Avenida Kennedy', '321', 'Bloco B', 'Renascença', 'São Luís', 'MA', '$2a$10$rZ5qH8qH8qH8qH8qH8qH8.N8N8N8N8N8N8N8N8N8N8N8N8N8N8', NOW(), NOW()),
+    (gen_random_uuid(), 'Juliana Costa Lima', '56789012345', '1988-09-25', 'F', 'parda', '(98) 98456-7890', 'juliana.lima@email.com', '65040-000', 'Rua do Sol', '654', '', 'Cohab', 'São Luís', 'MA', '$2a$10$rZ5qH8qH8qH8qH8qH8qH8.N8N8N8N8N8N8N8N8N8N8N8N8N8N8', NOW(), NOW()),
+    (gen_random_uuid(), 'Roberto Alves Pereira', '67890123456', '1982-12-10', 'M', 'branca', '(98) 99567-8901', 'roberto.pereira@email.com', '65050-000', 'Avenida Colares Moreira', '987', 'Sala 5', 'Renascença', 'São Luís', 'MA', '$2a$10$rZ5qH8qH8qH8qH8qH8qH8.N8N8N8N8N8N8N8N8N8N8N8N8N8N8', NOW(), NOW()),
+    (gen_random_uuid(), 'Patrícia Rodrigues Martins', '78901234567', '1992-04-08', 'F', 'parda', '(98) 98678-9012', 'patricia.martins@email.com', '65060-000', 'Rua da Paz', '147', 'Apto 302', 'Turu', 'São Luís', 'MA', '$2a$10$rZ5qH8qH8qH8qH8qH8qH8.N8N8N8N8N8N8N8N8N8N8N8N8N8N8', NOW(), NOW()),
+    (gen_random_uuid(), 'Fernando Santos Araújo', '89012345678', '1987-08-14', 'M', 'preta', '(98) 99789-0123', 'fernando.araujo@email.com', '65070-000', 'Avenida São Luís Rei de França', '258', '', 'São Francisco', 'São Luís', 'MA', '$2a$10$rZ5qH8qH8qH8qH8qH8qH8.N8N8N8N8N8N8N8N8N8N8N8N8N8N8', NOW(), NOW()),
+    (gen_random_uuid(), 'Camila Mendes Rocha', '90123456789', '1994-02-20', 'F', 'amarela', '(98) 98890-1234', 'camila.rocha@email.com', '65080-000', 'Rua do Comércio', '369', 'Loja 2', 'Centro', 'São Luís', 'MA', '$2a$10$rZ5qH8qH8qH8qH8qH8qH8.N8N8N8N8N8N8N8N8N8N8N8N8N8N8', NOW(), NOW()),
+    (gen_random_uuid(), 'Ricardo Barbosa Nunes', '01234567890', '1980-06-05', 'M', 'indigena', '(98) 99901-2345', 'ricardo.nunes@email.com', '65090-000', 'Avenida Guajajaras', '741', 'Casa 3', 'Cohama', 'São Luís', 'MA', '$2a$10$rZ5qH8qH8qH8qH8qH8qH8.N8N8N8N8N8N8N8N8N8N8N8N8N8N8', NOW(), NOW())
+ON CONFLICT (cpf) DO NOTHING;

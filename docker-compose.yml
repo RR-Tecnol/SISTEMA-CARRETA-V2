@@ -1,0 +1,105 @@
+services:
+  # Banco de Dados PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    container_name: carretas-postgres
+    environment:
+      POSTGRES_DB: sistema_carretas
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/init-database.sql:/docker-entrypoint-initdb.d/init-database.sql
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - carretas-network
+    restart: unless-stopped
+
+  # Cache Redis
+  redis:
+    image: redis:7-alpine
+    container_name: carretas-redis
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - carretas-network
+    restart: unless-stopped
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: carretas-backend
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      FRONTEND_URL: http://76.13.170.155
+
+      # Database
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: sistema_carretas
+      DB_USER: postgres
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+
+      # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+
+      # MinIO removido (Uso local de disco)
+
+      # JWT
+      JWT_SECRET: ${JWT_SECRET:-super_secure_random_secre_key_change_in_prod_12345}
+
+      # CORS
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost}
+    # ports:
+    #   - "3001:3001" # Security: Exposed only via internal network to Nginx
+    volumes:
+      - uploads_data:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - carretas-network
+    restart: unless-stopped
+
+  # Frontend React
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        REACT_APP_API_URL: ${REACT_APP_API_URL:-}
+    container_name: carretas-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - carretas-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  uploads_data:
+    driver: local
+
+networks:
+  carretas-network:
+    driver: bridge

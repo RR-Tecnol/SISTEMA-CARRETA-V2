@@ -1,0 +1,1557 @@
+import { useState, useEffect, useCallback } from 'react';
+import {
+    Container,
+    Paper,
+    Typography,
+    TextField,
+    Button,
+    Grid,
+    MenuItem,
+    Box,
+    CircularProgress,
+    Tabs,
+    Tab,
+    Card,
+    CardContent,
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TableRow,
+    Chip,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    Alert,
+    IconButton,
+    Radio,
+    RadioGroup,
+    FormControlLabel,
+    FormControl,
+    FormLabel,
+} from '@mui/material';
+import {
+    CheckCircle as CheckIcon,
+    Download as DownloadIcon,
+    PersonAdd as PersonAddIcon,
+    Edit as EditIcon,
+} from '@mui/icons-material';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useSnackbar } from 'notistack';
+import api from '../../services/api';
+
+interface Instituicao {
+    id: string;
+    razao_social: string;
+}
+
+interface CursoExame {
+    id: string;
+    nome: string;
+    tipo: 'curso' | 'exame';
+    descricao?: string;
+}
+
+interface AcaoCursoExame {
+    id: string;
+    acao_id: string;
+    curso_exame_id: string;
+    vagas: number;
+    curso_exame?: CursoExame;
+}
+
+const GerenciarAcao = () => {
+    const { id } = useParams<{ id: string }>();
+    const navigate = useNavigate();
+    const { enqueueSnackbar } = useSnackbar();
+
+    const [loading, setLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState(0);
+
+    // Form state
+    const [formData, setFormData] = useState({
+        instituicao_id: '',
+        tipo: '',
+        status: '',
+        municipio: '',
+        estado: '',
+        data_inicio: '',
+        data_fim: '',
+        local_execucao: '',
+        vagas_disponiveis: 0,
+        distancia_km: 0,
+        preco_combustivel_referencia: 0,
+        descricao: '',
+    });
+
+    // Instituições
+    const [instituicoes, setInstituicoes] = useState<Instituicao[]>([]);
+
+    // Inscrições state
+    const [inscricoes, setInscricoes] = useState<any[]>([]);
+
+    // Custos state
+    const [custos, setCustos] = useState<any[]>([]);
+    // Funcion�rios state
+    
+    
+    
+    const [selectedFuncionario, setSelectedFuncionario] = useState('');
+    const [openAbastecimentoDialog, setOpenAbastecimentoDialog] = useState(false);
+    const [abastecimentoForm, setAbastecimentoForm] = useState({
+        caminhao_id: '',
+        data_abastecimento: new Date().toISOString().split('T')[0],
+        litros: 0,
+        valor_total: 0,
+        observacoes: '',
+    });
+
+    // Recursos state
+    const [caminhoes, setCaminhoes] = useState<any[]>([]);
+    const [caminhoesVinculados, setCaminhoesVinculados] = useState<any[]>([]);
+    const [openAddCaminhaoDialog, setOpenAddCaminhaoDialog] = useState(false);
+    const [selectedCaminhaoId, setSelectedCaminhaoId] = useState('');
+
+    // Cursos/Exames state
+    const [cursosExames, setCursosExames] = useState<CursoExame[]>([]);
+    const [cursosExamesVinculados, setCursosExamesVinculados] = useState<AcaoCursoExame[]>([]);
+    const [openAddCursoExameDialog, setOpenAddCursoExameDialog] = useState(false);
+    const [selectedCursoExameId, setSelectedCursoExameId] = useState('');
+    const [vagasCursoExame, setVagasCursoExame] = useState(10);
+
+    // Inscrição state
+    const [openInscricaoDialog, setOpenInscricaoDialog] = useState(false);
+    const [cpfBusca, setCpfBusca] = useState('');
+    const [cidadaoEncontrado, setCidadaoEncontrado] = useState<any>(null);
+    const [buscandoCidadao, setBuscandoCidadao] = useState(false);
+    const [selectedAcaoCursoId, setSelectedAcaoCursoId] = useState('');
+
+    // Editar status inscrição state
+    const [openEditStatusDialog, setOpenEditStatusDialog] = useState(false);
+    const [inscricaoSelecionada, setInscricaoSelecionada] = useState<any>(null);
+    const [novoStatus, setNovoStatus] = useState('pendente');
+
+    const loadData = useCallback(async () => {
+        try {
+            const [acaoResponse, instituicoesResponse] = await Promise.all([
+                api.get(`/acoes/${id}`),
+                api.get('/instituicoes'),
+            ]);
+
+            setFormData(acaoResponse.data);
+            setInstituicoes(instituicoesResponse.data);
+            setLoading(false);
+        } catch (error: any) {
+            enqueueSnackbar(
+                error.response?.data?.error || 'Erro ao carregar dados',
+                { variant: 'error' }
+            );
+            setLoading(false);
+        }
+    }, [id, enqueueSnackbar]);
+
+    const loadInscricoes = useCallback(async () => {
+        if (!id) return;
+
+        try {
+            const response = await api.get(`/inscricoes/acoes/${id}/inscricoes`);
+            setInscricoes(response.data);
+        } catch (error: any) {
+            enqueueSnackbar(
+                error.response?.data?.error || 'Erro ao carregar inscrições',
+                { variant: 'error' }
+            );
+        }
+    }, [id, enqueueSnackbar]);
+
+    
+
+    
+
+    
+
+    
+
+    const loadCustos = useCallback(async () => {
+        if (!id) return;
+
+        try {
+            const response = await api.get(`/acoes/${id}/abastecimentos`);
+            setCustos(response.data);
+        } catch (error: any) {
+            enqueueSnackbar(
+                error.response?.data?.error || 'Erro ao carregar custos',
+                { variant: 'error' }
+            );
+        }
+    }, [id, enqueueSnackbar]);
+
+    useEffect(() => {
+        loadData();
+        loadInscricoes();
+        loadCustos();
+        
+    }, [loadData, loadInscricoes, loadCustos, loadFuncionariosAcao]);
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+        setFormData((prev) => ({
+            ...prev,
+            [name]: value,
+        }));
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        try {
+            await api.put(`/acoes/${id}`, formData);
+            enqueueSnackbar('Ação atualizada com sucesso!', { variant: 'success' });
+        } catch (error: any) {
+            enqueueSnackbar(
+                error.response?.data?.error || 'Erro ao atualizar ação',
+                { variant: 'error' }
+            );
+        }
+    };
+
+    const handleExcluir = async () => {
+        if (!window.confirm('Tem certeza que deseja excluir esta ação?')) {
+            return;
+        }
+
+        try {
+            await api.delete(`/acoes/${id}`);
+            enqueueSnackbar('Ação excluída com sucesso!', { variant: 'success' });
+            navigate('/admin/acoes');
+        } catch (error: any) {
+            enqueueSnackbar(
+                error.response?.data?.error || 'Erro ao excluir ação',
+                { variant: 'error' }
+            );
+        }
+    };
+
+    const handleAbastecimentoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+        setAbastecimentoForm((prev) => ({
+            ...prev,
+            [name]: name === 'litros' || name === 'valor_total' ? parseFloat(value) || 0 : value,
+        }));
+    };
+
+    const handleAddAbastecimento = async () => {
+        try {
+            if (!abastecimentoForm.caminhao_id) {
+                enqueueSnackbar('Selecione um caminhão', { variant: 'warning' });
+                return;
+            }
+
+            await api.post(`/acoes/${id}/abastecimentos`, abastecimentoForm);
+
+            enqueueSnackbar('Abastecimento registrado com sucesso!', { variant: 'success' });
+            setOpenAbastecimentoDialog(false);
+            setAbastecimentoForm({
+                caminhao_id: '',
+                data_abastecimento: new Date().toISOString().split('T')[0],
+                litros: 0,
+                valor_total: 0,
+                observacoes: '',
+            });
+            loadCustos();
+        } catch (error: any) {
+            enqueueSnackbar(
+                error.response?.data?.error || 'Erro ao registrar abastecimento',
+                { variant: 'error' }
+            );
+        }
+    };
+
+    const loadRecursos = useCallback(async () => {
+        if (!id) return;
+
+        try {
+            const [caminhoesRes, cursosExamesRes, acaoRes] = await Promise.all([
+                api.get('/caminhoes'),
+                api.get('/cursos-exames'),
+                api.get(`/acoes/${id}`),
+            ]);
+
+            setCaminhoes(caminhoesRes.data);
+            setCursosExames(cursosExamesRes.data);
+            setCaminhoesVinculados(acaoRes.data.caminhoes || []);
+            setCursosExamesVinculados(acaoRes.data.cursos_exames || []);
+        } catch (error: any) {
+            enqueueSnackbar(
+                error.response?.data?.error || 'Erro ao carregar recursos',
+                { variant: 'error' }
+            );
+        }
+    }, [id, enqueueSnackbar]);
+
+    const handleAddCaminhao = async () => {
+        try {
+            if (!selectedCaminhaoId) {
+                enqueueSnackbar('Selecione um caminhão', { variant: 'warning' });
+                return;
+            }
+
+            await api.post(`/acoes/${id}/caminhoes`, {
+                caminhao_id: selectedCaminhaoId,
+            });
+
+            enqueueSnackbar('Caminhão vinculado com sucesso!', { variant: 'success' });
+            setOpenAddCaminhaoDialog(false);
+            setSelectedCaminhaoId('');
+            loadRecursos();
+        } catch (error: any) {
+            enqueueSnackbar(
+                error.response?.data?.error || 'Erro ao vincular caminhão',
+                { variant: 'error' }
+            );
+        }
+    };
+
+    const handleRemoveCaminhao = async (caminhaoId: string) => {
+        try {
+            await api.delete(`/acoes/${id}/caminhoes/${caminhaoId}`);
+            enqueueSnackbar('Caminhão desvinculado com sucesso!', { variant: 'success' });
+            loadRecursos();
+        } catch (error: any) {
+            enqueueSnackbar(
+                error.response?.data?.error || 'Erro ao desvincular caminhão',
+                { variant: 'error' }
+            );
+        }
+    };
+
+    const handleAddCursoExame = async () => {
+        try {
+            if (!selectedCursoExameId) {
+                enqueueSnackbar('Selecione um curso/exame', { variant: 'warning' });
+                return;
+            }
+
+            if (vagasCursoExame <= 0) {
+                enqueueSnackbar('Número de vagas deve ser maior que zero', { variant: 'warning' });
+                return;
+            }
+
+            // Validar se a soma das vagas não excede as vagas disponíveis da ação
+            const vagasJaOferecidas = cursosExamesVinculados.reduce((total, ce) => total + ce.vagas, 0);
+            const totalVagasComNovo = vagasJaOferecidas + vagasCursoExame;
+            const vagasDisponiveis = Number(formData.vagas_disponiveis) || 0;
+
+            if (totalVagasComNovo > vagasDisponiveis) {
+                enqueueSnackbar(
+                    `Erro: Total de vagas (${totalVagasComNovo}) excede as vagas disponíveis da ação (${vagasDisponiveis}). Vagas já oferecidas: ${vagasJaOferecidas}`,
+                    { variant: 'error' }
+                );
+                return;
+            }
+
+            // Validar se o tipo do curso/exame é compatível com o tipo da ação
+            const cursoExameSelecionado = cursosExames.find(ce => ce.id === selectedCursoExameId);
+            if (cursoExameSelecionado) {
+                const tipoAcao = formData.tipo.toLowerCase();
+                const tipoCursoExame = cursoExameSelecionado.tipo.toLowerCase();
+
+                if (tipoAcao === 'saude' && tipoCursoExame !== 'exame') {
+                    enqueueSnackbar(
+                        'Erro: Ações de SAÚDE só podem ter EXAMES vinculados',
+                        { variant: 'error' }
+                    );
+                    return;
+                }
+
+                if (tipoAcao === 'curso' && tipoCursoExame !== 'curso') {
+                    enqueueSnackbar(
+                        'Erro: Ações de CURSO só podem ter CURSOS vinculados',
+                        { variant: 'error' }
+                    );
+                    return;
+                }
+            }
+
+            await api.post(`/acoes/${id}/cursos-exames`, {
+                curso_exame_id: selectedCursoExameId,
+                vagas: vagasCursoExame,
+            });
+
+            enqueueSnackbar('Curso/Exame vinculado com sucesso!', { variant: 'success' });
+            setOpenAddCursoExameDialog(false);
+            setSelectedCursoExameId('');
+            setVagasCursoExame(10);
+            loadRecursos();
+        } catch (error: any) {
+            enqueueSnackbar(
+                error.response?.data?.error || 'Erro ao vincular curso/exame',
+                { variant: 'error' }
+            );
+        }
+    };
+
+    const handleRemoveCursoExame = async (acaoCursoExameId: string) => {
+        try {
+            await api.delete(`/acoes/${id}/cursos-exames/${acaoCursoExameId}`);
+            enqueueSnackbar('Curso/Exame desvinculado com sucesso!', { variant: 'success' });
+            loadRecursos();
+        } catch (error: any) {
+            enqueueSnackbar(
+                error.response?.data?.error || 'Erro ao desvincular curso/exame',
+                { variant: 'error' }
+            );
+        }
+    };
+
+    const handleBuscarCidadao = async () => {
+        if (!cpfBusca) {
+            enqueueSnackbar('Digite um CPF para buscar', { variant: 'warning' });
+            return;
+        }
+
+        setBuscandoCidadao(true);
+        try {
+            const response = await api.get(`/cidadaos/buscar-cpf/${cpfBusca.replace(/\D/g, '')}`);
+            setCidadaoEncontrado(response.data);
+            enqueueSnackbar('Cidadão encontrado!', { variant: 'success' });
+        } catch (error: any) {
+            enqueueSnackbar('Cidadão não encontrado', { variant: 'warning' });
+            setCidadaoEncontrado(null);
+        } finally {
+            setBuscandoCidadao(false);
+        }
+    };
+
+    const handleInscreverCidadao = async () => {
+        try {
+            if (!cidadaoEncontrado) {
+                enqueueSnackbar('Busque um cidadão primeiro', { variant: 'warning' });
+                return;
+            }
+
+            if (!selectedAcaoCursoId) {
+                enqueueSnackbar('Selecione um curso/exame', { variant: 'warning' });
+                return;
+            }
+
+            await api.post(`/inscricoes/acoes/${id}/inscricoes`, {
+                cidadao_id: cidadaoEncontrado.id,
+                acao_curso_id: selectedAcaoCursoId,
+            });
+
+            enqueueSnackbar('Cidadão inscrito com sucesso!', { variant: 'success' });
+            setOpenInscricaoDialog(false);
+            setCpfBusca('');
+            setCidadaoEncontrado(null);
+            setSelectedAcaoCursoId('');
+            loadInscricoes();
+        } catch (error: any) {
+            enqueueSnackbar(
+                error.response?.data?.error || 'Erro ao inscrever cidadão',
+                { variant: 'error' }
+            );
+        }
+    };
+
+    // Helper para mapear status para exibição
+    const getStatusDisplay = (inscricao: any): string => {
+        if (inscricao.compareceu === true) return 'atendido';
+        if (inscricao.compareceu === false) return 'faltou';
+        return 'pendente';
+    };
+
+    // Handler para atualizar status da inscrição
+    const handleAtualizarStatus = async () => {
+        try {
+            if (!inscricaoSelecionada) return;
+
+            await api.put(`/inscricoes/${inscricaoSelecionada.id}/status`, {
+                status: novoStatus,
+            });
+
+            enqueueSnackbar('Status atualizado com sucesso!', { variant: 'success' });
+            setOpenEditStatusDialog(false);
+            setInscricaoSelecionada(null);
+            await loadInscricoes();
+        } catch (error: any) {
+            enqueueSnackbar(
+                error.response?.data?.error || 'Erro ao atualizar status',
+                { variant: 'error' }
+            );
+        }
+    };
+
+    const handleOpenEditStatus = (inscricao: any) => {
+        setInscricaoSelecionada(inscricao);
+        setNovoStatus(getStatusDisplay(inscricao));
+        setOpenEditStatusDialog(true);
+    };
+
+    const handleExportarCSV = async () => {
+        try {
+            const response = await api.get(`/acoes/${id}/export/inscritos?format=csv`, {
+                responseType: 'blob',
+            });
+
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `inscricoes_${id}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+
+            enqueueSnackbar('CSV exportado com sucesso!', { variant: 'success' });
+        } catch (error: any) {
+            enqueueSnackbar(
+                error.response?.data?.error || 'Erro ao exportar CSV',
+                { variant: 'error' }
+            );
+        }
+    };
+
+    const handleExportarPDF = async () => {
+        try {
+            const response = await api.get(`/acoes/${id}/export/inscritos?format=pdf`, {
+                responseType: 'blob',
+            });
+
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `inscricoes_${id}.pdf`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+
+            enqueueSnackbar('PDF exportado com sucesso!', { variant: 'success' });
+        } catch (error: any) {
+            enqueueSnackbar(
+                error.response?.data?.error || 'Erro ao exportar PDF',
+                { variant: 'error' }
+            );
+        }
+    };
+
+    const handleExportarExcel = async () => {
+        try {
+            const response = await api.get(`/acoes/${id}/export/inscritos?format=csv`, {
+                responseType: 'blob',
+            });
+
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `inscricoes_acao_${id}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+
+            enqueueSnackbar('Excel exportado com sucesso!', { variant: 'success' });
+        } catch (error: any) {
+            enqueueSnackbar(
+                error.response?.data?.error || 'Erro ao exportar Excel',
+                { variant: 'error' }
+            );
+        }
+    };
+
+    useEffect(() => {
+        if (activeTab === 1) {
+            loadRecursos();
+        }
+    }, [activeTab, loadRecursos]);
+
+    useEffect(() => {
+        if (activeTab === 2) {
+            loadInscricoes();
+        }
+    }, [activeTab, loadInscricoes]);
+
+    useEffect(() => {
+        if (activeTab === 3) {
+            loadCustos();
+        }
+    }, [activeTab, loadCustos]);
+
+    const estados = [
+        'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA',
+        'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN',
+        'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
+    ];
+
+    if (loading) {
+        return (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh' }}>
+                <CircularProgress />
+            </Box>
+        );
+    }
+
+    return (
+        <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+            <Paper elevation={3} sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                    <Typography variant="h4" component="h1">
+                        Gerenciar Ação
+                    </Typography>
+                    <Button
+                        variant="outlined"
+                        color="error"
+                        onClick={handleExcluir}
+                    >
+                        Excluir Ação
+                    </Button>
+                </Box>
+
+                <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)} sx={{ mb: 3 }}>
+                    <Tab label="Informações Básicas" />
+                    <Tab label="Recursos" />
+                    <Tab label="Inscrições" />
+                    <Tab label="Custos" />
+                </Tabs>
+
+                {activeTab === 0 && (
+                    <Box component="form" onSubmit={handleSubmit}>
+                        <Grid container spacing={3}>
+                            <Grid item xs={12} sm={6}>
+                                <TextField
+                                    required
+                                    fullWidth
+                                    select
+                                    label="Instituição"
+                                    name="instituicao_id"
+                                    value={formData.instituicao_id}
+                                    onChange={handleChange}
+                                >
+                                    {instituicoes.map((inst) => (
+                                        <MenuItem key={inst.id} value={inst.id}>
+                                            {inst.razao_social}
+                                        </MenuItem>
+                                    ))}
+                                </TextField>
+                            </Grid>
+
+                            <Grid item xs={12} sm={6}>
+                                <TextField
+                                    required
+                                    fullWidth
+                                    select
+                                    label="Tipo"
+                                    name="tipo"
+                                    value={formData.tipo}
+                                    onChange={handleChange}
+                                >
+                                    <MenuItem value="curso">Curso</MenuItem>
+                                    <MenuItem value="saude">Saúde</MenuItem>
+                                    <MenuItem value="documentacao">Documentação</MenuItem>
+                                    <MenuItem value="assistencia_social">Assistência Social</MenuItem>
+                                </TextField>
+                            </Grid>
+
+                            <Grid item xs={12} sm={6}>
+                                <TextField
+                                    required
+                                    fullWidth
+                                    select
+                                    label="Status"
+                                    name="status"
+                                    value={formData.status}
+                                    onChange={handleChange}
+                                >
+                                    <MenuItem value="planejada">Planejada</MenuItem>
+                                    <MenuItem value="em_andamento">Em Andamento</MenuItem>
+                                    <MenuItem value="concluida">Concluída</MenuItem>
+                                    <MenuItem value="cancelada">Cancelada</MenuItem>
+                                </TextField>
+                            </Grid>
+
+                            <Grid item xs={12} sm={6}>
+                                <TextField
+                                    required
+                                    fullWidth
+                                    label="Município"
+                                    name="municipio"
+                                    value={formData.municipio}
+                                    onChange={handleChange}
+                                />
+                            </Grid>
+
+                            <Grid item xs={12} sm={6}>
+                                <TextField
+                                    required
+                                    fullWidth
+                                    select
+                                    label="Estado"
+                                    name="estado"
+                                    value={formData.estado}
+                                    onChange={handleChange}
+                                >
+                                    {estados.map((estado) => (
+                                        <MenuItem key={estado} value={estado}>
+                                            {estado}
+                                        </MenuItem>
+                                    ))}
+                                </TextField>
+                            </Grid>
+
+                            <Grid item xs={12} sm={6}>
+                                <TextField
+                                    required
+                                    fullWidth
+                                    type="date"
+                                    label="Data de Início"
+                                    name="data_inicio"
+                                    value={formData.data_inicio}
+                                    onChange={handleChange}
+                                    InputLabelProps={{ shrink: true }}
+                                />
+                            </Grid>
+
+                            <Grid item xs={12} sm={6}>
+                                <TextField
+                                    required
+                                    fullWidth
+                                    type="date"
+                                    label="Data de Fim"
+                                    name="data_fim"
+                                    value={formData.data_fim}
+                                    onChange={handleChange}
+                                    InputLabelProps={{ shrink: true }}
+                                />
+                            </Grid>
+
+                            <Grid item xs={12} sm={6}>
+                                <TextField
+                                    required
+                                    fullWidth
+                                    label="Local de Execução"
+                                    name="local_execucao"
+                                    value={formData.local_execucao}
+                                    onChange={handleChange}
+                                />
+                            </Grid>
+
+                            <Grid item xs={12} sm={6}>
+                                <TextField
+                                    fullWidth
+                                    type="number"
+                                    label="Vagas Disponíveis"
+                                    name="vagas_disponiveis"
+                                    value={formData.vagas_disponiveis}
+                                    onChange={handleChange}
+                                    onFocus={e => e.target.select()}
+                                    inputProps={{ min: 0 }}
+                                />
+                            </Grid>
+
+                            <Grid item xs={12} sm={6}>
+                                <TextField
+                                    fullWidth
+                                    type="number"
+                                    label="Distância (km)"
+                                    name="distancia_km"
+                                    value={formData.distancia_km}
+                                    onChange={handleChange}
+                                    onFocus={e => e.target.select()}
+                                    inputProps={{ min: 0, step: 0.1 }}
+                                />
+                            </Grid>
+
+                            <Grid item xs={12} sm={6}>
+                                <TextField
+                                    fullWidth
+                                    type="number"
+                                    label="Preço Combustível Referência (R$/L)"
+                                    name="preco_combustivel_referencia"
+                                    value={formData.preco_combustivel_referencia}
+                                    onChange={handleChange}
+                                    onFocus={e => e.target.select()}
+                                    inputProps={{ min: 0, step: 0.01 }}
+                                />
+                            </Grid>
+
+                            <Grid item xs={12}>
+                                <TextField
+                                    fullWidth
+                                    multiline
+                                    rows={4}
+                                    label="Descrição"
+                                    name="descricao"
+                                    value={formData.descricao}
+                                    onChange={handleChange}
+                                />
+                            </Grid>
+
+                            <Grid item xs={12}>
+                                <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                                    <Button
+                                        variant="outlined"
+                                        onClick={() => navigate('/admin/acoes')}
+                                    >
+                                        Cancelar
+                                    </Button>
+                                    <Button
+                                        type="submit"
+                                        variant="contained"
+                                        startIcon={<CheckIcon />}
+                                    >
+                                        Salvar Alterações
+                                    </Button>
+                                </Box>
+                            </Grid>
+                        </Grid>
+                    </Box>
+                )}
+
+                {activeTab === 1 && (
+                    <Box>
+                        {/* Seção de Caminhões */}
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                            <Typography variant="h6">
+                                Caminhões Vinculados ({caminhoesVinculados.length})
+                            </Typography>
+                            <Button
+                                variant="contained"
+                                onClick={() => setOpenAddCaminhaoDialog(true)}
+                            >
+                                Adicionar Caminhão
+                            </Button>
+                        </Box>
+
+                        {caminhoesVinculados.length === 0 ? (
+                            <Card>
+                                <CardContent>
+                                    <Typography variant="body2" color="text.secondary" align="center">
+                                        Nenhum caminhão vinculado ainda.
+                                    </Typography>
+                                </CardContent>
+                            </Card>
+                        ) : (
+                            <TableContainer component={Paper}>
+                                <Table>
+                                    <TableHead>
+                                        <TableRow>
+                                            <TableCell>Placa</TableCell>
+                                            <TableCell>Modelo</TableCell>
+                                            <TableCell>Status</TableCell>
+                                            <TableCell align="right">Ações</TableCell>
+                                        </TableRow>
+                                    </TableHead>
+                                    <TableBody>
+                                        {caminhoes.map((caminhao: any) => (
+                                            <TableRow key={caminhao.id}>
+                                                <TableCell>{caminhao.placa}</TableCell>
+                                                <TableCell>{caminhao.modelo}</TableCell>
+                                                <TableCell>
+                                                    <Chip
+                                                        label={
+                                                            caminhao.status === 'disponivel' ? 'Disponível' :
+                                                                caminhao.status === 'em_manutencao' ? 'Em Manutenção' :
+                                                                    'Em Ação'
+                                                        }
+                                                        color={
+                                                            caminhao.status === 'disponivel' ? 'success' :
+                                                                caminhao.status === 'em_manutencao' ? 'warning' :
+                                                                    'info'
+                                                        }
+                                                        size="small"
+                                                    />
+                                                </TableCell>
+                                                <TableCell align="right">
+                                                    <Button
+                                                        size="small"
+                                                        color="error"
+                                                        onClick={() => handleRemoveCaminhao(caminhao.id)}
+                                                    >
+                                                        Remover
+                                                    </Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </TableContainer>
+                        )}
+
+                        <Dialog
+                            open={openAddCaminhaoDialog}
+                            onClose={() => setOpenAddCaminhaoDialog(false)}
+                            maxWidth="sm"
+                            fullWidth
+                        >
+                            <DialogTitle>Adicionar Caminhão</DialogTitle>
+                            <DialogContent>
+                                <Box sx={{ pt: 2 }}>
+                                    <TextField
+                                        required
+                                        select
+                                        fullWidth
+                                        label="Selecione o Caminhão"
+                                        value={selectedCaminhaoId}
+                                        onChange={(e) => setSelectedCaminhaoId(e.target.value)}
+                                    >
+                                        {caminhoes
+                                            .filter(c => !caminhoesVinculados.find(cv => cv.id === c.id))
+                                            .map((caminhao: any) => (
+                                                <MenuItem key={caminhao.id} value={caminhao.id}>
+                                                    {caminhao.placa} - {caminhao.modelo} ({caminhao.status === 'disponivel' ? 'Disponível' : caminhao.status === 'em_manutencao' ? 'Em Manutenção' : 'Em Ação'})
+                                                </MenuItem>
+                                            ))}
+                                    </TextField>
+                                </Box>
+                            </DialogContent>
+                            <DialogActions>
+                                <Button onClick={() => setOpenAddCaminhaoDialog(false)}>
+                                    Cancelar
+                                </Button>
+                                <Button
+                                    variant="contained"
+                                    onClick={handleAddCaminhao}
+                                    disabled={!selectedCaminhaoId}
+                                >
+                                    Adicionar
+                                </Button>
+                            </DialogActions>
+                        </Dialog>
+
+                        {/* Seção de Cursos/Exames */}
+                        <Box sx={{ mt: 4 }}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                                <Typography variant="h6">
+                                    Cursos/Exames Vinculados ({cursosExamesVinculados.length})
+                                </Typography>
+                                <Button
+                                    variant="contained"
+                                    onClick={() => setOpenAddCursoExameDialog(true)}
+                                >
+                                    Adicionar Curso/Exame
+                                </Button>
+                            </Box>
+
+                            {cursosExamesVinculados.length === 0 ? (
+                                <Card>
+                                    <CardContent>
+                                        <Typography variant="body2" color="text.secondary" align="center">
+                                            Nenhum curso/exame vinculado ainda.
+                                        </Typography>
+                                    </CardContent>
+                                </Card>
+                            ) : (
+                                <TableContainer component={Paper}>
+                                    <Table>
+                                        <TableHead>
+                                            <TableRow>
+                                                <TableCell>Nome</TableCell>
+                                                <TableCell>Tipo</TableCell>
+                                                <TableCell>Vagas</TableCell>
+                                                <TableCell align="right">Ações</TableCell>
+                                            </TableRow>
+                                        </TableHead>
+                                        <TableBody>
+                                            {cursosExamesVinculados.map((acaoCurso: AcaoCursoExame) => (
+                                                <TableRow key={acaoCurso.id}>
+                                                    <TableCell>{acaoCurso.curso_exame?.nome || '-'}</TableCell>
+                                                    <TableCell>
+                                                        <Chip
+                                                            label={acaoCurso.curso_exame?.tipo === 'curso' ? 'Curso' : 'Exame'}
+                                                            color={acaoCurso.curso_exame?.tipo === 'curso' ? 'primary' : 'secondary'}
+                                                            size="small"
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell>{acaoCurso.vagas}</TableCell>
+                                                    <TableCell align="right">
+                                                        <Button
+                                                            size="small"
+                                                            color="error"
+                                                            onClick={() => handleRemoveCursoExame(acaoCurso.id)}
+                                                        >
+                                                            Remover
+                                                        </Button>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </TableContainer>
+                            )}
+
+                            <Dialog
+                                open={openAddCursoExameDialog}
+                                onClose={() => setOpenAddCursoExameDialog(false)}
+                                maxWidth="sm"
+                                fullWidth
+                            >
+                                <DialogTitle>Adicionar Curso/Exame</DialogTitle>
+                                <DialogContent>
+                                    <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                        <TextField
+                                            required
+                                            select
+                                            fullWidth
+                                            label="Selecione o Curso/Exame"
+                                            value={selectedCursoExameId}
+                                            onChange={(e) => setSelectedCursoExameId(e.target.value)}
+                                        >
+                                            {cursosExames
+                                                .filter(ce => !cursosExamesVinculados.find(cev => cev.curso_exame_id === ce.id))
+                                                .filter(ce => {
+                                                    // Filtrar por tipo compatível com a ação
+                                                    const tipoAcao = formData.tipo.toLowerCase();
+                                                    const tipoCursoExame = ce.tipo.toLowerCase();
+
+                                                    if (tipoAcao === 'saude') return tipoCursoExame === 'exame';
+                                                    if (tipoAcao === 'curso') return tipoCursoExame === 'curso';
+                                                    return true; // Outros tipos de ação aceitam ambos
+                                                })
+                                                .map((cursoExame: CursoExame) => (
+                                                    <MenuItem key={cursoExame.id} value={cursoExame.id}>
+                                                        {cursoExame.nome} ({cursoExame.tipo === 'curso' ? 'Curso' : 'Exame'})
+                                                    </MenuItem>
+                                                ))}
+                                        </TextField>
+                                        <TextField
+                                            required
+                                            fullWidth
+                                            type="number"
+                                            label="Número de Vagas"
+                                            value={vagasCursoExame}
+                                            onChange={(e) => setVagasCursoExame(parseInt(e.target.value) || 0)}
+                                            onFocus={e => e.target.select()}
+                                            inputProps={{ min: 1 }}
+                                        />
+                                    </Box>
+                                </DialogContent>
+                                <DialogActions>
+                                    <Button onClick={() => setOpenAddCursoExameDialog(false)}>
+                                        Cancelar
+                                    </Button>
+                                    <Button
+                                        variant="contained"
+                                        onClick={handleAddCursoExame}
+                                        disabled={!selectedCursoExameId || vagasCursoExame <= 0}
+                                    >
+                                        Adicionar
+                                    </Button>
+                                </DialogActions>
+                            </Dialog>
+                        </Box>
+                    </Box>
+                )}
+
+                {activeTab === 2 && (
+                    <Box>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                            <Typography variant="h6">
+                                Inscrições ({inscricoes.length})
+                            </Typography>
+                            <Box sx={{ display: 'flex', gap: 1 }}>
+                                <Button
+                                    variant="outlined"
+                                    startIcon={<DownloadIcon />}
+                                    onClick={handleExportarCSV}
+                                    disabled={inscricoes.length === 0}
+                                >
+                                    CSV
+                                </Button>
+                                <Button
+                                    variant="outlined"
+                                    startIcon={<DownloadIcon />}
+                                    onClick={handleExportarPDF}
+                                    disabled={inscricoes.length === 0}
+                                >
+                                    PDF
+                                </Button>
+                                <Button
+                                    variant="outlined"
+                                    startIcon={<DownloadIcon />}
+                                    onClick={handleExportarExcel}
+                                    disabled={inscricoes.length === 0}
+                                >
+                                    Excel
+                                </Button>
+                                <Button
+                                    variant="contained"
+                                    startIcon={<PersonAddIcon />}
+                                    onClick={() => setOpenInscricaoDialog(true)}
+                                    disabled={cursosExamesVinculados.length === 0}
+                                >
+                                    Inscrever Aluno
+                                </Button>
+                            </Box>
+                        </Box>
+
+                        {cursosExamesVinculados.length === 0 && (
+                            <Alert severity="warning" sx={{ mb: 2 }}>
+                                Para inscrever alunos, primeiro adicione cursos/exames na aba "Recursos".
+                            </Alert>
+                        )}
+
+                        {inscricoes.length === 0 ? (
+                            <Card>
+                                <CardContent>
+                                    <Typography variant="body2" color="text.secondary" align="center">
+                                        Nenhuma inscrição registrada ainda.
+                                    </Typography>
+                                </CardContent>
+                            </Card>
+                        ) : (
+                            <TableContainer component={Paper}>
+                                <Table>
+                                    <TableHead>
+                                        <TableRow>
+                                            <TableCell>Cidadão</TableCell>
+                                            <TableCell>CPF</TableCell>
+                                            <TableCell>Data Inscrição</TableCell>
+                                            <TableCell>Status</TableCell>
+                                            <TableCell>Ações</TableCell>
+                                        </TableRow>
+                                    </TableHead>
+                                    <TableBody>
+                                        {inscricoes.map((inscricao: any) => (
+                                            <TableRow key={inscricao.id}>
+                                                <TableCell>{inscricao.cidadao?.nome_completo || '-'}</TableCell>
+                                                <TableCell>{inscricao.cidadao?.cpf || '-'}</TableCell>
+                                                <TableCell>
+                                                    {new Date(inscricao.data_inscricao).toLocaleDateString('pt-BR')}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Chip
+                                                        label={getStatusDisplay(inscricao).toUpperCase()}
+                                                        color={
+                                                            getStatusDisplay(inscricao) === 'atendido' ? 'success' :
+                                                                getStatusDisplay(inscricao) === 'faltou' ? 'error' :
+                                                                    'warning'
+                                                        }
+                                                        size="small"
+                                                    />
+                                                </TableCell>
+                                                <TableCell>
+                                                    <IconButton
+                                                        size="small"
+                                                        onClick={() => handleOpenEditStatus(inscricao)}
+                                                        title="Editar Status"
+                                                    >
+                                                        <EditIcon fontSize="small" />
+                                                    </IconButton>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </TableContainer>
+                        )}
+
+                        <Dialog open={openInscricaoDialog} onClose={() => setOpenInscricaoDialog(false)} maxWidth="sm" fullWidth>
+                            <DialogTitle>Inscrever Aluno</DialogTitle>
+                            <DialogContent>
+                                <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                    <TextField
+                                        required
+                                        select
+                                        fullWidth
+                                        label="Curso/Exame"
+                                        value={selectedAcaoCursoId}
+                                        onChange={(e) => setSelectedAcaoCursoId(e.target.value)}
+                                    >
+                                        {cursosExamesVinculados.map((acaoCurso: AcaoCursoExame) => (
+                                            <MenuItem key={acaoCurso.id} value={acaoCurso.id}>
+                                                {acaoCurso.curso_exame?.nome || '-'} ({acaoCurso.vagas} vagas)
+                                            </MenuItem>
+                                        ))}
+                                    </TextField>
+                                    <TextField
+                                        fullWidth
+                                        label="CPF do Aluno"
+                                        value={cpfBusca}
+                                        onChange={(e) => setCpfBusca(e.target.value)}
+                                        placeholder="000.000.000-00"
+                                    />
+                                    <Button
+                                        variant="outlined"
+                                        onClick={handleBuscarCidadao}
+                                        disabled={!cpfBusca || buscandoCidadao}
+                                    >
+                                        {buscandoCidadao ? 'Buscando...' : 'Buscar'}
+                                    </Button>
+
+                                    {cidadaoEncontrado && (
+                                        <Alert severity="success">
+                                            <strong>{cidadaoEncontrado.nome_completo}</strong><br />
+                                            CPF: {cidadaoEncontrado.cpf}<br />
+                                            Email: {cidadaoEncontrado.email || '-'}
+                                        </Alert>
+                                    )}
+                                </Box>
+                            </DialogContent>
+                            <DialogActions>
+                                <Button onClick={() => {
+                                    setOpenInscricaoDialog(false);
+                                    setCpfBusca('');
+                                    setCidadaoEncontrado(null);
+                                    setSelectedAcaoCursoId('');
+                                }}>
+                                    Cancelar
+                                </Button>
+                                <Button
+                                    variant="contained"
+                                    onClick={handleInscreverCidadao}
+                                    disabled={!cidadaoEncontrado || !selectedAcaoCursoId}
+                                >
+                                    Inscrever
+                                </Button>
+                            </DialogActions>
+                        </Dialog>
+                    </Box>
+                )}
+
+                {activeTab === 3 && (
+                    <Box>
+                        {/* Custos Estimados */}
+                        <Box sx={{ mb: 4 }}>
+                            <Typography variant="h6" sx={{ mb: 2 }}>
+                                Custos Estimados
+                            </Typography>
+                            <Card>
+                                <CardContent>
+                                    <Grid container spacing={2}>
+                                        <Grid item xs={12} sm={6} md={3}>
+                                            <Typography variant="body2" color="text.secondary">
+                                                Distância
+                                            </Typography>
+                                            <Typography variant="h6">
+                                                {String(formData.distancia_km)} km
+                                            </Typography>
+                                        </Grid>
+                                        <Grid item xs={12} sm={6} md={3}>
+                                            <Typography variant="body2" color="text.secondary">
+                                                Preço Combustível
+                                            </Typography>
+                                            <Typography variant="h6">
+                                                R$ {parseFloat(String(formData.preco_combustivel_referencia || 0)).toFixed(2)}/L
+                                            </Typography>
+                                        </Grid>
+                                        <Grid item xs={12} sm={6} md={3}>
+                                            <Typography variant="body2" color="text.secondary">
+                                                Autonomia Média
+                                            </Typography>
+                                            <Typography variant="h6">
+                                                {(() => {
+                                                    if (caminhoesVinculados.length === 0) return '0';
+
+                                                    let somaAutonomia = 0;
+                                                    let count = 0;
+
+                                                    caminhoesVinculados.forEach((cv: any) => {
+
+                                                        const autonomia = parseFloat(cv.autonomia_km_litro || cv.caminhao?.autonomia_km_litro || 0);
+
+                                                        if (!isNaN(autonomia) && autonomia > 0) {
+                                                            somaAutonomia += autonomia;
+                                                            count++;
+                                                        }
+                                                    });
+
+                                                    if (count === 0) return '0';
+                                                    const media = somaAutonomia / count;
+                                                    return media.toFixed(1);
+                                                })()} km/L
+                                            </Typography>
+                                        </Grid>
+                                        <Grid item xs={12} sm={6} md={3}>
+                                            <Typography variant="body2" color="text.secondary">
+                                                Custo Estimado Total
+                                            </Typography>
+                                            <Typography variant="h6" color="primary">
+                                                R$ {(() => {
+                                                    const distancia = Number(formData.distancia_km) || 0;
+                                                    const precoCombustivel = Number(formData.preco_combustivel_referencia) || 0;
+
+                                                    // Calcular autonomia média
+                                                    let somaAutonomia = 0;
+                                                    let count = 0;
+
+                                                    caminhoesVinculados.forEach((cv: any) => {
+                                                        // With belongsToMany, Sequelize returns truck data at top level
+                                                        const autonomia = Number(
+                                                            cv.autonomia_km_litro ||
+                                                            cv.autonomiaKmLitro ||
+                                                            cv.caminhao?.autonomia_km_litro ||
+                                                            cv.caminhao?.autonomiaKmLitro ||
+                                                            0
+                                                        );
+
+                                                        if (!isNaN(autonomia) && autonomia > 0) {
+                                                            somaAutonomia += autonomia;
+                                                            count++;
+                                                        }
+                                                    });
+
+                                                    if (count === 0) return '0.00';
+
+                                                    const autonomiaMedia = somaAutonomia / count;
+
+                                                    // Cálculo: (distância / autonomia) * preço
+                                                    const litrosNecessarios = distancia / autonomiaMedia;
+                                                    const custoEstimado = litrosNecessarios * precoCombustivel;
+
+                                                    return custoEstimado.toFixed(2);
+                                                })()}
+                                            </Typography>
+                                        </Grid>
+                                    </Grid>
+                                    {caminhoesVinculados.length === 0 && (
+                                        <Alert severity="info" sx={{ mt: 2 }}>
+                                            Adicione caminhões na aba "Recursos" para calcular a autonomia média e o custo estimado.
+                                        </Alert>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </Box>
+
+                        {/* Custos Reais (Abastecimentos) */}
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                            <Typography variant="h6">
+                                Abastecimentos Registrados ({custos.length})
+                            </Typography>
+                            <Button
+                                variant="contained"
+                                onClick={() => setOpenAbastecimentoDialog(true)}
+                            >
+                                Registrar Abastecimento
+                            </Button>
+                        </Box>
+
+                        {custos.length === 0 ? (
+                            <Card>
+                                <CardContent>
+                                    <Typography variant="body2" color="text.secondary" align="center">
+                                        Nenhum abastecimento registrado ainda.
+                                    </Typography>
+                                </CardContent>
+                            </Card>
+                        ) : (
+                            <TableContainer component={Paper}>
+                                <Table>
+                                    <TableHead>
+                                        <TableRow>
+                                            <TableCell>Data</TableCell>
+                                            <TableCell>Caminhão</TableCell>
+                                            <TableCell>Litros</TableCell>
+                                            <TableCell>Valor Total</TableCell>
+                                            <TableCell>Observações</TableCell>
+                                        </TableRow>
+                                    </TableHead>
+                                    <TableBody>
+                                        {custos.map((custo: any) => (
+                                            <TableRow key={custo.id}>
+                                                <TableCell>
+                                                    {new Date(custo.data_abastecimento).toLocaleDateString('pt-BR')}
+                                                </TableCell>
+                                                <TableCell>{custo.caminhao?.placa || '-'}</TableCell>
+                                                <TableCell>{custo.litros} L</TableCell>
+                                                <TableCell>R$ {parseFloat(custo.valor_total || 0).toFixed(2)}</TableCell>
+                                                <TableCell>{custo.observacoes || '-'}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </TableContainer>
+                        )}
+
+                        <Dialog
+                            open={openAbastecimentoDialog}
+                            onClose={() => setOpenAbastecimentoDialog(false)}
+                            maxWidth="sm"
+                            fullWidth
+                        >
+                            <DialogTitle>Registrar Abastecimento</DialogTitle>
+                            <DialogContent>
+                                <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                    <TextField
+                                        required
+                                        select
+                                        fullWidth
+                                        label="Caminhão"
+                                        name="caminhao_id"
+                                        value={abastecimentoForm.caminhao_id}
+                                        onChange={handleAbastecimentoChange}
+                                    >
+                                        {caminhoes.map((caminhao: any) => (
+                                            <MenuItem key={caminhao.id} value={caminhao.id}>
+                                                {caminhao.placa} - {caminhao.modelo}
+                                            </MenuItem>
+                                        ))}
+                                    </TextField>
+                                    <TextField
+                                        required
+                                        fullWidth
+                                        type="date"
+                                        label="Data do Abastecimento"
+                                        name="data_abastecimento"
+                                        value={abastecimentoForm.data_abastecimento}
+                                        onChange={handleAbastecimentoChange}
+                                        InputLabelProps={{ shrink: true }}
+                                    />
+                                    <TextField
+                                        required
+                                        fullWidth
+                                        type="number"
+                                        label="Litros"
+                                        name="litros"
+                                        value={abastecimentoForm.litros}
+                                        onChange={handleAbastecimentoChange}
+                                        onFocus={e => e.target.select()}
+                                        inputProps={{ min: 0, step: 0.01 }}
+                                    />
+                                    <TextField
+                                        required
+                                        fullWidth
+                                        type="number"
+                                        label="Valor Total (R$)"
+                                        name="valor_total"
+                                        value={abastecimentoForm.valor_total}
+                                        onChange={handleAbastecimentoChange}
+                                        onFocus={e => e.target.select()}
+                                        inputProps={{ min: 0, step: 0.01 }}
+                                    />
+                                    <TextField
+                                        fullWidth
+                                        multiline
+                                        rows={2}
+                                        label="Observações"
+                                        name="observacoes"
+                                        value={abastecimentoForm.observacoes}
+                                        onChange={handleAbastecimentoChange}
+                                    />
+                                </Box>
+                            </DialogContent>
+                            <DialogActions>
+                                <Button onClick={() => setOpenAbastecimentoDialog(false)}>
+                                    Cancelar
+                                </Button>
+                                <Button
+                                    variant="contained"
+                                    onClick={handleAddAbastecimento}
+                                >
+                                    Registrar
+                                </Button>
+                            </DialogActions>
+                        </Dialog>
+                    </Box>
+                )}
+            </Paper>
+
+            {/* Dialog: Editar Status da Inscrição */}
+            <Dialog
+                open={openEditStatusDialog}
+                onClose={() => setOpenEditStatusDialog(false)}
+                maxWidth="sm"
+                fullWidth
+            >
+                <DialogTitle>Editar Status da Inscrição</DialogTitle>
+                <DialogContent>
+                    {inscricaoSelecionada && (
+                        <>
+                            <Typography variant="body2" color="text.secondary" gutterBottom>
+                                Cidadão: <strong>{inscricaoSelecionada.cidadao?.nome_completo}</strong>
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary" gutterBottom sx={{ mb: 3 }}>
+                                CPF: <strong>{inscricaoSelecionada.cidadao?.cpf}</strong>
+                            </Typography>
+
+                            <FormControl component="fieldset">
+                                <FormLabel component="legend">Novo Status</FormLabel>
+                                <RadioGroup
+                                    value={novoStatus}
+                                    onChange={(e) => setNovoStatus(e.target.value)}
+                                >
+                                    <FormControlLabel
+                                        value="pendente"
+                                        control={<Radio />}
+                                        label="Pendente"
+                                    />
+                                    <FormControlLabel
+                                        value="atendido"
+                                        control={<Radio />}
+                                        label="Atendido"
+                                    />
+                                    <FormControlLabel
+                                        value="faltou"
+                                        control={<Radio />}
+                                        label="Faltou"
+                                    />
+                                </RadioGroup>
+                            </FormControl>
+                        </>
+                    )}
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setOpenEditStatusDialog(false)}>
+                        Cancelar
+                    </Button>
+                    <Button
+                        variant="contained"
+                        onClick={handleAtualizarStatus}
+                    >
+                        Salvar
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+
+            {/* Dialog para Adicionar Funcionário */}
+            <Dialog
+                open={openFuncionarioDialog}
+                onClose={() => {
+                    setOpenFuncionarioDialog(false);
+                    setSelectedFuncionario('');
+                }}
+                maxWidth="sm"
+                fullWidth
+            >
+                <DialogTitle>Adicionar Funcionário à Ação</DialogTitle>
+                <DialogContent>
+                    <TextField
+                        select
+                        fullWidth
+                        label="Selecione o Funcionário"
+                        margin="normal"
+                        value={selectedFuncionario}
+                        onChange={(e) => setSelectedFuncionario(e.target.value)}
+                    >
+                        {funcionariosDisponiveis
+                            .filter((f: any) => !funcionariosAcao.some((af: any) => af.funcionario_id === f.id))
+                            .map((f: any) => (
+                                <MenuItem key={f.id} value={f.id}>
+                                    {f.nome} - {f.cargo} (R$ {Number(f.custo_diario || 0).toFixed(2)})
+                                </MenuItem>
+                            ))
+                        }
+                    </TextField>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => {
+                        setOpenFuncionarioDialog(false);
+                        setSelectedFuncionario('');
+                    }}>
+                        Cancelar
+                    </Button>
+                    <Button
+                        onClick={handleAddFuncionario}
+                        variant="contained"
+                        disabled={!selectedFuncionario}
+                    >
+                        Adicionar
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+        </Container>
+    );
+};
+
+export default GerenciarAcao;
