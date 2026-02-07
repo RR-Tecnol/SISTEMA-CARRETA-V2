@@ -17,7 +17,7 @@ router.get('/', async (req: Request, res: Response) => {
 
         const cursosExames = await CursoExame.findAll({
             where,
-            attributes: ['id', 'nome', 'tipo'], // Apenas campos necessários
+            attributes: ['id', 'nome', 'tipo', 'ativo'],
             order: [['nome', 'ASC']],
         });
 
@@ -100,8 +100,9 @@ router.put('/:id', authenticate, authorizeAdmin, async (req: Request, res: Respo
         }
 
         await cursoExame.update({
-            nome: nome || cursoExame.nome,
-            tipo: tipo || cursoExame.tipo,
+            nome: nome !== undefined ? nome : cursoExame.nome,
+            tipo: tipo !== undefined ? tipo : cursoExame.tipo,
+            ativo: req.body.ativo !== undefined ? req.body.ativo : cursoExame.ativo,
         });
 
         res.json(cursoExame);

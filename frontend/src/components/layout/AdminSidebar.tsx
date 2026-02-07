@@ -8,7 +8,7 @@ import {
     Building2,
     Truck,
     Users,
-    GraduationCap,
+    Stethoscope,
     UserCheck,
     FileText,
     Menu,
@@ -31,7 +31,7 @@ const menuItems: MenuItem[] = [
     { title: 'Instituições', icon: Building2, path: '/admin/instituicoes' },
     { title: 'Caminhões', icon: Truck, path: '/admin/caminhoes' },
     { title: 'Funcionários', icon: Users, path: '/admin/funcionarios' },
-    { title: 'Exames', icon: GraduationCap, path: '/admin/cursos-exames' },
+    { title: 'Exames', icon: Stethoscope, path: '/admin/cursos-exames' },
     { title: 'Cidadãos', icon: UserCheck, path: '/admin/cidadaos' },
     { title: 'Inscrições', icon: FileText, path: '/admin/inscricoes' },
 ];

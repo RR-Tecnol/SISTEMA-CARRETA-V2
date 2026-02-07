@@ -219,7 +219,7 @@ const Funcionarios: React.FC = () => {
                     <DialogTitle sx={{ background: expressoTheme.gradients.primary, color: 'white', fontWeight: 700 }}>
                         {editingFuncionario ? 'Editar Funcionário' : 'Novo Funcionário'}
                     </DialogTitle>
-                    <DialogContent sx={{ mt: 3 }}>
+                    <DialogContent dividers sx={{ pt: 6, px: 3, pb: 3 }}>
                         <Grid container spacing={2}>
                             <Grid item xs={12}>
                                 <TextField fullWidth label="Nome" value={formData.nome} onChange={(e) => setFormData({ ...formData, nome: e.target.value })} />

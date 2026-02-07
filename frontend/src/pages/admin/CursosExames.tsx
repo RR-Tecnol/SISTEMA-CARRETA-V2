@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Typography, Button, Box, TextField, Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress, Grid, IconButton } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Search, X, Activity, Edit, Trash2, Stethoscope } from 'lucide-react';
+import { Plus, Search, X, Activity, Edit, Trash2, Stethoscope, Power } from 'lucide-react';
 import { useSnackbar } from 'notistack';
 import api from '../../services/api';
 import { expressoTheme } from '../../theme/expressoTheme';
@@ -10,7 +10,7 @@ interface ExameSaude {
     id: string;
     nome: string;
     tipo: 'curso' | 'exame';
-    created_at: string;
+    ativo: boolean;
 }
 
 const ExamesSaude: React.FC = () => {
@@ -91,6 +91,17 @@ const ExamesSaude: React.FC = () => {
             enqueueSnackbar(error.response?.data?.error || 'Erro ao excluir exame', { variant: 'error' });
         }
     };
+
+    const handleToggleAtivo = async (exame: ExameSaude) => {
+        try {
+            await api.put(`/cursos-exames/${exame.id}`, { ...exame, ativo: !exame.ativo });
+            enqueueSnackbar(`Exame ${!exame.ativo ? 'ativado' : 'desativado'} com sucesso!`, { variant: 'success' });
+            fetchExames();
+        } catch (error: any) {
+            enqueueSnackbar(error.response?.data?.error || 'Erro ao atualizar status', { variant: 'error' });
+        }
+    };
+
 
     const filteredExames = exames.filter((exame) =>
         exame.nome.toLowerCase().includes(searchTerm.toLowerCase())
@@ -192,56 +203,105 @@ const ExamesSaude: React.FC = () => {
                                     >
                                         <Box
                                             sx={{
-                                                background: 'expressoTheme.colors.cardBackground',
+                                                background: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
                                                 backdropFilter: 'blur(20px)',
                                                 borderRadius: '20px',
-                                                border: '1px solid rgba(255, 255, 255, 0.2)',
+                                                border: '2px solid rgba(255, 255, 255, 0.3)',
                                                 p: 3,
                                                 height: '100%',
                                                 transition: 'all 0.3s ease',
+                                                boxShadow: '0 10px 40px rgba(17, 153, 142, 0.3)',
                                                 '&:hover': {
-                                                    background: 'rgba(255, 255, 255, 0.15)',
-                                                    boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+                                                    background: 'linear-gradient(135deg, #0d7a6f 0%, #2dd36f 100%)',
+                                                    boxShadow: '0 20px 60px rgba(17, 153, 142, 0.5)',
+                                                    transform: 'translateY(-2px)',
                                                 },
                                             }}
                                         >
                                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 2 }}>
                                                 <Box
+                                                    component={motion.div}
+                                                    animate={{
+                                                        scale: [1, 1.05, 1],
+                                                        boxShadow: [
+                                                            '0 4px 20px rgba(17, 153, 142, 0.3)',
+                                                            '0 8px 30px rgba(17, 153, 142, 0.5)',
+                                                            '0 4px 20px rgba(17, 153, 142, 0.3)',
+                                                        ],
+                                                    }}
+                                                    transition={{
+                                                        duration: 2,
+                                                        repeat: Infinity,
+                                                        ease: 'easeInOut',
+                                                    }}
                                                     sx={{
                                                         display: 'inline-flex',
-                                                        padding: 2,
-                                                        borderRadius: '16px',
-                                                        background: expressoTheme.colors.background,
-                                                        boxShadow: '0 8px 32px rgba(17, 153, 142, 0.4)',
+                                                        padding: 2.5,
+                                                        borderRadius: '18px',
+                                                        background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+                                                        boxShadow: '0 4px 20px rgba(17, 153, 142, 0.3)',
+                                                        border: '2px solid rgba(17, 153, 142, 0.2)',
                                                     }}
                                                 >
-                                                    <Activity size={24} color="white" />
+                                                    <Activity size={28} color="#11998e" strokeWidth={2.5} />
                                                 </Box>
                                                 <Box sx={{ display: 'flex', gap: 0.5 }}>
                                                     <IconButton
                                                         size="small"
+                                                        onClick={() => handleToggleAtivo(exame)}
+                                                        sx={{
+                                                            color: exame.ativo ? '#0891b2' : '#ffffff',
+                                                            '&:hover': { background: 'rgba(255,255,255,0.2)' }
+                                                        }}
+                                                        title={exame.ativo ? 'Desativar exame' : 'Ativar exame'}
+                                                    >
+                                                        <Power size={18} />
+                                                    </IconButton>
+                                                    <IconButton
+                                                        size="small"
                                                         onClick={() => handleOpenDialog(exame)}
-                                                        sx={{ color: expressoTheme.colors.primaryDark, '&:hover': { background: 'rgba(255,255,255,0.2)' } }}
+                                                        sx={{ color: '#ffffff', '&:hover': { background: 'rgba(255,255,255,0.2)' } }}
                                                     >
                                                         <Edit size={18} />
                                                     </IconButton>
                                                     <IconButton
                                                         size="small"
                                                         onClick={() => handleDelete(exame.id)}
-                                                        sx={{ color: '#ef4444', '&:hover': { background: 'rgba(239,68,68,0.2)' } }}
+                                                        sx={{ color: '#ffffff', '&:hover': { background: 'rgba(255,68,68,0.3)', color: '#ff6b6b' } }}
                                                     >
                                                         <Trash2 size={18} />
                                                     </IconButton>
                                                 </Box>
                                             </Box>
 
-                                            <Typography variant="h6" sx={{ color: expressoTheme.colors.primaryDark, fontWeight: 700, mb: 1 }}>
+                                            <Typography variant="h6" sx={{ color: '#ffffff', fontWeight: 700, mb: 2, textShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
                                                 {exame.nome}
                                             </Typography>
 
-                                            <Typography sx={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.85rem' }}>
-                                                Cadastrado em: {new Date(exame.created_at).toLocaleDateString('pt-BR')}
-                                            </Typography>
+                                            <Box
+                                                sx={{
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    gap: 0.5,
+                                                    px: 1.5,
+                                                    py: 0.5,
+                                                    borderRadius: '12px',
+                                                    background: exame.ativo ? 'rgba(8, 145, 178, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                                                    border: `1px solid ${exame.ativo ? '#0891b2' : '#ef4444'}`,
+                                                }}
+                                            >
+                                                <Box
+                                                    sx={{
+                                                        width: 6,
+                                                        height: 6,
+                                                        borderRadius: '50%',
+                                                        background: exame.ativo ? '#0891b2' : '#ef4444',
+                                                    }}
+                                                />
+                                                <Typography sx={{ color: exame.ativo ? '#0891b2' : '#ef4444', fontSize: '0.75rem', fontWeight: 600 }}>
+                                                    {exame.ativo ? 'Ativo' : 'Inativo'}
+                                                </Typography>
+                                            </Box>
                                         </Box>
                                     </motion.div>
                                 </Grid>
@@ -255,7 +315,7 @@ const ExamesSaude: React.FC = () => {
                     <DialogTitle sx={{ background: expressoTheme.colors.background, color: expressoTheme.colors.primaryDark, fontWeight: 700 }}>
                         {editingExame ? 'Editar Exame de Saúde' : 'Novo Exame de Saúde'}
                     </DialogTitle>
-                    <DialogContent sx={{ mt: 3 }}>
+                    <DialogContent dividers sx={{ pt: 6, px: 3, pb: 3 }}>
                         <TextField
                             fullWidth
                             label="Nome do Exame"

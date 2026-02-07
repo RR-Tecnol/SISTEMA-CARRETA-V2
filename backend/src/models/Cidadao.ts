@@ -5,6 +5,7 @@ export interface CidadaoAttributes {
     id?: string;
     cpf: string;
     nome_completo: string;
+    nome_mae?: string;
     data_nascimento: Date;
     telefone: string;
     email: string;
@@ -32,6 +33,7 @@ export class Cidadao extends Model<CidadaoAttributes> implements CidadaoAttribut
     public id!: string;
     public cpf!: string;
     public nome_completo!: string;
+    public nome_mae?: string;
     public data_nascimento!: Date;
     public telefone!: string;
     public email!: string;
@@ -74,6 +76,11 @@ Cidadao.init(
         nome_completo: {
             type: DataTypes.STRING,
             allowNull: false,
+        },
+        nome_mae: {
+            type: DataTypes.STRING,
+            allowNull: true,
+            comment: 'Nome da mãe do cidadão',
         },
         data_nascimento: {
             type: DataTypes.DATEONLY,

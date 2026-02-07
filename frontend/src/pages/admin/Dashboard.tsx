@@ -7,7 +7,7 @@ import {
     Building2,
     Truck,
     Users,
-    GraduationCap,
+    Stethoscope,
     UserCheck,
     FileText,
     BarChart3,
@@ -20,7 +20,7 @@ const menuItems = [
     { title: 'Instituições', icon: Building2, path: '/admin/instituicoes', description: 'Parceiros e convênios' },
     { title: 'Caminhões', icon: Truck, path: '/admin/caminhoes', description: 'Frota de veículos' },
     { title: 'Funcionários', icon: Users, path: '/admin/funcionarios', description: 'Equipe e colaboradores' },
-    { title: 'Exames', icon: GraduationCap, path: '/admin/cursos-exames', description: 'Exames de saúde' },
+    { title: 'Exames', icon: Stethoscope, path: '/admin/cursos-exames', description: 'Exames de saúde' },
     { title: 'Cidadãos', icon: UserCheck, path: '/admin/cidadaos', description: 'Cadastro de cidadãos' },
     { title: 'Inscrições', icon: FileText, path: '/admin/inscricoes', description: 'Gerenciar inscrições' },
 ];

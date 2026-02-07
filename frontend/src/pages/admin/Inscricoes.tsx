@@ -26,6 +26,7 @@ const Inscricoes: React.FC = () => {
     // Form data
     const [formData, setFormData] = useState({
         nome_completo: '',
+        nome_mae: '',
         cpf: '',
         data_nascimento: '',
         sexo: '',
@@ -50,6 +51,7 @@ const Inscricoes: React.FC = () => {
         setModalOpen(false);
         setFormData({
             nome_completo: '',
+            nome_mae: '',
             cpf: '',
             data_nascimento: '',
             sexo: '',
@@ -190,6 +192,20 @@ const Inscricoes: React.FC = () => {
                                 label="Nome Completo *"
                                 value={formData.nome_completo}
                                 onChange={(e) => handleChange('nome_completo', e.target.value)}
+                                sx={{
+                                    '& .MuiOutlinedInput-root': {
+                                        borderRadius: systemTruckTheme.borderRadius.medium,
+                                    },
+                                }}
+                            />
+                        </Grid>
+
+                        <Grid item xs={12} sm={6}>
+                            <TextField
+                                fullWidth
+                                label="Nome da Mãe"
+                                value={formData.nome_mae}
+                                onChange={(e) => handleChange('nome_mae', e.target.value)}
                                 sx={{
                                     '& .MuiOutlinedInput-root': {
                                         borderRadius: systemTruckTheme.borderRadius.medium,

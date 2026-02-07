@@ -26,6 +26,7 @@ const Cadastro: React.FC = () => {
     const [formData, setFormData] = useState({
         cpf: '',
         nome_completo: '',
+        nome_mae: '',
         data_nascimento: '',
         telefone: '',
         email: '',
@@ -155,6 +156,16 @@ const Cadastro: React.FC = () => {
                                 label="Nome Completo"
                                 name="nome_completo"
                                 value={formData.nome_completo}
+                                onChange={handleChange}
+                            />
+                        </Grid>
+
+                        <Grid item xs={12} sm={6}>
+                            <TextField
+                                fullWidth
+                                label="Nome da Mãe"
+                                name="nome_mae"
+                                value={formData.nome_mae}
                                 onChange={handleChange}
                             />
                         </Grid>
