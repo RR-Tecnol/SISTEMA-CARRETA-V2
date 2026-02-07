@@ -9,10 +9,6 @@ import {
     MenuItem,
     Box,
     CircularProgress,
-    Tabs,
-    Tab,
-    Card,
-    CardContent,
     Table,
     TableBody,
     TableCell,
@@ -33,12 +29,15 @@ import {
     FormLabel,
 } from '@mui/material';
 import {
-    CheckCircle as CheckIcon,
-    Download as DownloadIcon,
-    PersonAdd as PersonAddIcon,
-    Edit as EditIcon,
-    Delete as DeleteIcon,
-} from '@mui/icons-material';
+    Plus,
+    Trash2,
+    Edit,
+    Download,
+    UserPlus,
+    Truck,
+    Stethoscope,
+    CheckCircle
+} from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useSnackbar } from 'notistack';
 import api from '../../services/api';
@@ -73,6 +72,7 @@ const GerenciarAcao = () => {
 
     // Form state
     const [formData, setFormData] = useState({
+        nome: '',
         instituicao_id: '',
         tipo: '',
         status: '',
@@ -657,252 +657,409 @@ const GerenciarAcao = () => {
 
     return (
         <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-            <Paper elevation={3} sx={{ p: 3 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                    <Typography variant="h4" component="h1">
-                        Gerenciar Ação
+            {/* Header com Gradiente */}
+            <Box sx={{
+                background: 'linear-gradient(135deg, #4682b4 0%, #5b9bd5 100%)',
+                borderRadius: '8px',
+                p: 1.5,
+                mb: 2,
+                position: 'relative',
+                overflow: 'hidden',
+                boxShadow: '0 2px 8px rgba(70, 130, 180, 0.15)'
+            }}>
+                <Box sx={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(255,255,255,0.05)',
+                    backdropFilter: 'blur(10px)'
+                }} />
+                <Box sx={{
+                    position: 'relative',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                }}>
+                    <Typography variant="h6" sx={{
+                        color: '#fff',
+                        fontWeight: 600,
+                        fontSize: '1.25rem',
+                        textShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                    }}>
+                        {formData.nome || 'Nova Ação'}
                     </Typography>
-                    <Button
-                        variant="outlined"
-                        color="error"
+                    <IconButton
                         onClick={handleExcluir}
+                        size="small"
+                        sx={{
+                            color: '#ef4444',
+                            background: 'rgba(255,255,255,0.15)',
+                            '&:hover': {
+                                background: 'rgba(239, 68, 68, 0.2)',
+                                transform: 'scale(1.05)'
+                            },
+                            transition: 'all 0.2s ease'
+                        }}
+                        title="Excluir Ação"
                     >
-                        Excluir Ação
-                    </Button>
+                        <Trash2 size={16} />
+                    </IconButton>
                 </Box>
+            </Box>
 
-                <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)} sx={{ mb: 3 }}>
-                    <Tab label="Informações Básicas" />
-                    <Tab label="Recursos" />
-                    <Tab label="Inscrições" />
-                    <Tab label="Custos" />
-                </Tabs>
+            {/* Tabs Modernas */}
+            <Box sx={{
+                display: 'flex',
+                gap: 0.5,
+                mb: 2,
+                background: 'rgba(70, 130, 180, 0.05)',
+                borderRadius: '8px',
+                p: 0.5,
+                border: '1px solid rgba(70, 130, 180, 0.1)'
+            }}>
+                {['Informações Básicas', 'Recursos', 'Inscrições', 'Custos'].map((label, index) => (
+                    <Box
+                        key={index}
+                        onClick={() => setActiveTab(index)}
+                        sx={{
+                            flex: 1,
+                            py: 0.75,
+                            px: 1.25,
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            textAlign: 'center',
+                            background: activeTab === index
+                                ? 'linear-gradient(135deg, #4682b4 0%, #5b9bd5 100%)'
+                                : 'transparent',
+                            color: activeTab === index ? '#fff' : '#4682b4',
+                            fontSize: '0.875rem',
+                            fontWeight: activeTab === index ? 600 : 500,
+                            transition: 'all 0.3s ease',
+                            '&:hover': {
+                                background: activeTab === index
+                                    ? 'linear-gradient(135deg, #4682b4 0%, #5b9bd5 100%)'
+                                    : 'rgba(70, 130, 180, 0.08)',
+                                transform: 'translateY(-1px)'
+                            }
+                        }}
+                    >
+                        {label}
+                    </Box>
+                ))}
+            </Box>
+
+            <Paper elevation={0} sx={{
+                background: 'transparent',
+                p: 0
+            }}>
 
                 {activeTab === 0 && (
-                    <Box component="form" onSubmit={handleSubmit}>
-                        <Grid container spacing={3}>
-                            <Grid item xs={12} sm={6}>
-                                <TextField
-                                    required
-                                    fullWidth
-                                    select
-                                    label="Instituição"
-                                    name="instituicao_id"
-                                    value={formData.instituicao_id}
-                                    onChange={handleChange}
-                                >
-                                    {instituicoes.map((inst) => (
-                                        <MenuItem key={inst.id} value={inst.id}>
-                                            {inst.razao_social}
-                                        </MenuItem>
-                                    ))}
-                                </TextField>
-                            </Grid>
+                    <Box sx={{
+                        background: 'rgba(70, 130, 180, 0.03)',
+                        backdropFilter: 'blur(10px)',
+                        borderRadius: '12px',
+                        border: '1px solid rgba(70, 130, 180, 0.1)',
+                        p: 3,
+                        mb: 2
+                    }}>
+                        <Box component="form" onSubmit={handleSubmit}>
+                            <Grid container spacing={3}>
+                                <Grid item xs={12}>
+                                    <TextField
+                                        required
+                                        fullWidth
+                                        label="Nome da Ação"
+                                        name="nome"
+                                        value={formData.nome || ''}
+                                        onChange={handleChange}
+                                        placeholder="Ex: Campanha de Hemograma"
+                                        helperText="Nome que identificará esta ação"
+                                    />
+                                </Grid>
 
-                            <Grid item xs={12} sm={6}>
-                                <TextField
-                                    required
-                                    fullWidth
-                                    select
-                                    label="Tipo"
-                                    name="tipo"
-                                    value={formData.tipo}
-                                    onChange={handleChange}
-                                >
-                                    <MenuItem value="curso">Curso</MenuItem>
-                                    <MenuItem value="saude">Saúde</MenuItem>
-                                    <MenuItem value="documentacao">Documentação</MenuItem>
-                                    <MenuItem value="assistencia_social">Assistência Social</MenuItem>
-                                </TextField>
-                            </Grid>
-
-                            <Grid item xs={12} sm={6}>
-                                <TextField
-                                    required
-                                    fullWidth
-                                    select
-                                    label="Status"
-                                    name="status"
-                                    value={formData.status}
-                                    onChange={handleChange}
-                                >
-                                    <MenuItem value="planejada">Planejada</MenuItem>
-                                    <MenuItem value="em_andamento">Em Andamento</MenuItem>
-                                    <MenuItem value="concluida">Concluída</MenuItem>
-                                    <MenuItem value="cancelada">Cancelada</MenuItem>
-                                </TextField>
-                            </Grid>
-
-                            <Grid item xs={12} sm={6}>
-                                <TextField
-                                    required
-                                    fullWidth
-                                    label="Município"
-                                    name="municipio"
-                                    value={formData.municipio}
-                                    onChange={handleChange}
-                                />
-                            </Grid>
-
-                            <Grid item xs={12} sm={6}>
-                                <TextField
-                                    required
-                                    fullWidth
-                                    select
-                                    label="Estado"
-                                    name="estado"
-                                    value={formData.estado}
-                                    onChange={handleChange}
-                                >
-                                    {estados.map((estado) => (
-                                        <MenuItem key={estado} value={estado}>
-                                            {estado}
-                                        </MenuItem>
-                                    ))}
-                                </TextField>
-                            </Grid>
-
-                            <Grid item xs={12} sm={6}>
-                                <TextField
-                                    required
-                                    fullWidth
-                                    type="date"
-                                    label="Data de Início"
-                                    name="data_inicio"
-                                    value={formData.data_inicio}
-                                    onChange={handleChange}
-                                    InputLabelProps={{ shrink: true }}
-                                />
-                            </Grid>
-
-                            <Grid item xs={12} sm={6}>
-                                <TextField
-                                    required
-                                    fullWidth
-                                    type="date"
-                                    label="Data de Fim"
-                                    name="data_fim"
-                                    value={formData.data_fim}
-                                    onChange={handleChange}
-                                    InputLabelProps={{ shrink: true }}
-                                />
-                            </Grid>
-
-                            <Grid item xs={12} sm={6}>
-                                <TextField
-                                    required
-                                    fullWidth
-                                    label="Local de Execução"
-                                    name="local_execucao"
-                                    value={formData.local_execucao}
-                                    onChange={handleChange}
-                                />
-                            </Grid>
-
-                            <Grid item xs={12} sm={6}>
-                                <TextField
-                                    fullWidth
-                                    type="number"
-                                    label="Vagas Disponíveis"
-                                    name="vagas_disponiveis"
-                                    value={formData.vagas_disponiveis}
-                                    onChange={handleChange}
-                                    onFocus={e => e.target.select()}
-                                    inputProps={{ min: 0 }}
-                                />
-                            </Grid>
-
-                            <Grid item xs={12} sm={6}>
-                                <TextField
-                                    fullWidth
-                                    type="number"
-                                    label="Distância (km)"
-                                    name="distancia_km"
-                                    value={formData.distancia_km}
-                                    onChange={handleChange}
-                                    onFocus={e => e.target.select()}
-                                    inputProps={{ min: 0, step: 0.1 }}
-                                />
-                            </Grid>
-
-                            <Grid item xs={12} sm={6}>
-                                <TextField
-                                    fullWidth
-                                    type="number"
-                                    label="Preço Combustível Referência (R$/L)"
-                                    name="preco_combustivel_referencia"
-                                    value={formData.preco_combustivel_referencia}
-                                    onChange={handleChange}
-                                    onFocus={e => e.target.select()}
-                                    inputProps={{ min: 0, step: 0.01 }}
-                                />
-                            </Grid>
-
-                            <Grid item xs={12}>
-                                <TextField
-                                    fullWidth
-                                    multiline
-                                    rows={4}
-                                    label="Descrição"
-                                    name="descricao"
-                                    value={formData.descricao}
-                                    onChange={handleChange}
-                                />
-                            </Grid>
-
-                            <Grid item xs={12}>
-                                <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-                                    <Button
-                                        variant="outlined"
-                                        onClick={() => navigate('/admin/acoes')}
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        required
+                                        fullWidth
+                                        select
+                                        label="Instituição"
+                                        name="instituicao_id"
+                                        value={formData.instituicao_id}
+                                        onChange={handleChange}
                                     >
-                                        Cancelar
-                                    </Button>
-                                    <Button
-                                        type="submit"
-                                        variant="contained"
-                                        startIcon={<CheckIcon />}
+                                        {instituicoes.map((inst) => (
+                                            <MenuItem key={inst.id} value={inst.id}>
+                                                {inst.razao_social}
+                                            </MenuItem>
+                                        ))}
+                                    </TextField>
+                                </Grid>
+
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        required
+                                        fullWidth
+                                        select
+                                        label="Tipo"
+                                        name="tipo"
+                                        value={formData.tipo}
+                                        onChange={handleChange}
                                     >
-                                        Salvar Alterações
-                                    </Button>
-                                </Box>
+                                        <MenuItem value="curso">Curso</MenuItem>
+                                        <MenuItem value="saude">Saúde</MenuItem>
+                                        <MenuItem value="documentacao">Documentação</MenuItem>
+                                        <MenuItem value="assistencia_social">Assistência Social</MenuItem>
+                                    </TextField>
+                                </Grid>
+
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        required
+                                        fullWidth
+                                        select
+                                        label="Status"
+                                        name="status"
+                                        value={formData.status}
+                                        onChange={handleChange}
+                                    >
+                                        <MenuItem value="planejada">Planejada</MenuItem>
+                                        <MenuItem value="em_andamento">Em Andamento</MenuItem>
+                                        <MenuItem value="concluida">Concluída</MenuItem>
+                                        <MenuItem value="cancelada">Cancelada</MenuItem>
+                                    </TextField>
+                                </Grid>
+
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        required
+                                        fullWidth
+                                        label="Município"
+                                        name="municipio"
+                                        value={formData.municipio}
+                                        onChange={handleChange}
+                                    />
+                                </Grid>
+
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        required
+                                        fullWidth
+                                        select
+                                        label="Estado"
+                                        name="estado"
+                                        value={formData.estado}
+                                        onChange={handleChange}
+                                    >
+                                        {estados.map((estado) => (
+                                            <MenuItem key={estado} value={estado}>
+                                                {estado}
+                                            </MenuItem>
+                                        ))}
+                                    </TextField>
+                                </Grid>
+
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        required
+                                        fullWidth
+                                        type="date"
+                                        label="Data de Início"
+                                        name="data_inicio"
+                                        value={formData.data_inicio}
+                                        onChange={handleChange}
+                                        InputLabelProps={{ shrink: true }}
+                                    />
+                                </Grid>
+
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        required
+                                        fullWidth
+                                        type="date"
+                                        label="Data de Fim"
+                                        name="data_fim"
+                                        value={formData.data_fim}
+                                        onChange={handleChange}
+                                        InputLabelProps={{ shrink: true }}
+                                    />
+                                </Grid>
+
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        required
+                                        fullWidth
+                                        label="Local de Execução"
+                                        name="local_execucao"
+                                        value={formData.local_execucao}
+                                        onChange={handleChange}
+                                    />
+                                </Grid>
+
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        fullWidth
+                                        type="number"
+                                        label="Vagas Disponíveis"
+                                        name="vagas_disponiveis"
+                                        value={formData.vagas_disponiveis}
+                                        onChange={handleChange}
+                                        onFocus={e => e.target.select()}
+                                        inputProps={{ min: 0 }}
+                                    />
+                                </Grid>
+
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        fullWidth
+                                        type="number"
+                                        label="Distância (km)"
+                                        name="distancia_km"
+                                        value={formData.distancia_km}
+                                        onChange={handleChange}
+                                        onFocus={e => e.target.select()}
+                                        inputProps={{ min: 0, step: 0.1 }}
+                                    />
+                                </Grid>
+
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        fullWidth
+                                        type="number"
+                                        label="Preço Combustível Referência (R$/L)"
+                                        name="preco_combustivel_referencia"
+                                        value={formData.preco_combustivel_referencia}
+                                        onChange={handleChange}
+                                        onFocus={e => e.target.select()}
+                                        inputProps={{ min: 0, step: 0.01 }}
+                                    />
+                                </Grid>
+
+                                <Grid item xs={12}>
+                                    <TextField
+                                        fullWidth
+                                        multiline
+                                        rows={4}
+                                        label="Descrição"
+                                        name="descricao"
+                                        value={formData.descricao}
+                                        onChange={handleChange}
+                                    />
+                                </Grid>
+
+                                <Grid item xs={12}>
+                                    <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                                        <Button
+                                            variant="outlined"
+                                            onClick={() => navigate('/admin/acoes')}
+                                            sx={{
+                                                borderColor: '#4682b4',
+                                                color: '#4682b4',
+                                                '&:hover': {
+                                                    borderColor: '#5b9bd5',
+                                                    background: 'rgba(70, 130, 180, 0.05)'
+                                                }
+                                            }}
+                                        >
+                                            Cancelar
+                                        </Button>
+                                        <Button
+                                            type="submit"
+                                            variant="contained"
+                                            startIcon={<CheckCircle size={18} />}
+                                            sx={{
+                                                background: 'linear-gradient(135deg, #4682b4 0%, #5b9bd5 100%)',
+                                                color: '#fff',
+                                                fontWeight: 600,
+                                                '&:hover': {
+                                                    background: 'linear-gradient(135deg, #5b9bd5 0%, #4682b4 100%)',
+                                                    transform: 'translateY(-1px)',
+                                                    boxShadow: '0 4px 12px rgba(70, 130, 180, 0.3)'
+                                                },
+                                                transition: 'all 0.2s ease'
+                                            }}
+                                        >
+                                            Salvar Alterações
+                                        </Button>
+                                    </Box>
+                                </Grid>
                             </Grid>
-                        </Grid>
+                        </Box>
                     </Box>
                 )}
 
                 {activeTab === 1 && (
-                    <Box>
+                    <Box sx={{
+                        background: 'rgba(70, 130, 180, 0.03)',
+                        backdropFilter: 'blur(10px)',
+                        borderRadius: '12px',
+                        border: '1px solid rgba(70, 130, 180, 0.1)',
+                        p: 3,
+                        mb: 2
+                    }}>
                         {/* Seção de Caminhões */}
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                            <Typography variant="h6">
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5 }}>
+                            <Typography variant="h6" sx={{
+                                color: '#4682b4',
+                                fontWeight: 600,
+                                fontSize: '1.1rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 1
+                            }}>
+                                <Truck size={20} />
                                 Caminhões Vinculados ({caminhoesVinculados.length})
                             </Typography>
                             <Button
                                 variant="contained"
+                                startIcon={<Plus size={18} />}
                                 onClick={() => setOpenAddCaminhaoDialog(true)}
+                                sx={{
+                                    background: 'linear-gradient(135deg, #4682b4 0%, #5b9bd5 100%)',
+                                    color: '#fff',
+                                    fontWeight: 600,
+                                    textTransform: 'none',
+                                    '&:hover': {
+                                        background: 'linear-gradient(135deg, #5b9bd5 0%, #4682b4 100%)',
+                                        transform: 'translateY(-1px)',
+                                        boxShadow: '0 4px 12px rgba(70, 130, 180, 0.3)'
+                                    },
+                                    transition: 'all 0.2s ease'
+                                }}
                             >
                                 Adicionar Caminhão
                             </Button>
                         </Box>
 
                         {caminhoesVinculados.length === 0 ? (
-                            <Card>
-                                <CardContent>
-                                    <Typography variant="body2" color="text.secondary" align="center">
-                                        Nenhum caminhão vinculado ainda.
-                                    </Typography>
-                                </CardContent>
-                            </Card>
+                            <Box sx={{
+                                background: 'rgba(70, 130, 180, 0.05)',
+                                borderRadius: '8px',
+                                p: 3,
+                                textAlign: 'center',
+                                border: '1px dashed rgba(70, 130, 180, 0.2)'
+                            }}>
+                                <Typography variant="body2" sx={{ color: '#4682b4' }}>
+                                    Nenhum caminhão vinculado ainda.
+                                </Typography>
+                            </Box>
                         ) : (
-                            <TableContainer component={Paper}>
+                            <TableContainer component={Paper} sx={{
+                                borderRadius: '8px',
+                                overflow: 'hidden',
+                                boxShadow: 'none',
+                                border: '1px solid rgba(70, 130, 180, 0.1)'
+                            }}>
                                 <Table>
                                     <TableHead>
-                                        <TableRow>
-                                            <TableCell>Placa</TableCell>
-                                            <TableCell>Modelo</TableCell>
-                                            <TableCell>Status</TableCell>
-                                            <TableCell align="right">Ações</TableCell>
+                                        <TableRow sx={{
+                                            background: 'linear-gradient(135deg, #4682b4 0%, #5b9bd5 100%)'
+                                        }}>
+                                            <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Placa</TableCell>
+                                            <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Modelo</TableCell>
+                                            <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Status</TableCell>
+                                            <TableCell align="right" sx={{ color: '#fff', fontWeight: 600 }}>Ações</TableCell>
                                         </TableRow>
                                     </TableHead>
                                     <TableBody>
@@ -926,13 +1083,18 @@ const GerenciarAcao = () => {
                                                     />
                                                 </TableCell>
                                                 <TableCell align="right">
-                                                    <Button
+                                                    <IconButton
                                                         size="small"
-                                                        color="error"
                                                         onClick={() => handleRemoveCaminhao(caminhao.id)}
+                                                        sx={{
+                                                            color: '#ef4444',
+                                                            '&:hover': {
+                                                                background: 'rgba(239, 68, 68, 0.1)'
+                                                            }
+                                                        }}
                                                     >
-                                                        Remover
-                                                    </Button>
+                                                        <Trash2 size={16} />
+                                                    </IconButton>
                                                 </TableCell>
                                             </TableRow>
                                         ))}
@@ -983,36 +1145,68 @@ const GerenciarAcao = () => {
                         </Dialog>
 
                         {/* Seção de Cursos/Exames */}
-                        <Box sx={{ mt: 4 }}>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                                <Typography variant="h6">
-                                    Cursos/Exames Vinculados ({cursosExamesVinculados.length})
+                        <Box sx={{ mt: 3 }}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5 }}>
+                                <Typography variant="h6" sx={{
+                                    color: '#4682b4',
+                                    fontWeight: 600,
+                                    fontSize: '1.1rem',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 1
+                                }}>
+                                    <Stethoscope size={20} />
+                                    Exames Vinculados ({cursosExamesVinculados.length})
                                 </Typography>
                                 <Button
                                     variant="contained"
+                                    startIcon={<Plus size={18} />}
                                     onClick={() => setOpenAddCursoExameDialog(true)}
+                                    sx={{
+                                        background: 'linear-gradient(135deg, #4682b4 0%, #5b9bd5 100%)',
+                                        color: '#fff',
+                                        fontWeight: 600,
+                                        textTransform: 'none',
+                                        '&:hover': {
+                                            background: 'linear-gradient(135deg, #5b9bd5 0%, #4682b4 100%)',
+                                            transform: 'translateY(-1px)',
+                                            boxShadow: '0 4px 12px rgba(70, 130, 180, 0.3)'
+                                        },
+                                        transition: 'all 0.2s ease'
+                                    }}
                                 >
-                                    Adicionar Curso/Exame
+                                    Adicionar Exame
                                 </Button>
                             </Box>
 
                             {cursosExamesVinculados.length === 0 ? (
-                                <Card>
-                                    <CardContent>
-                                        <Typography variant="body2" color="text.secondary" align="center">
-                                            Nenhum curso/exame vinculado ainda.
-                                        </Typography>
-                                    </CardContent>
-                                </Card>
+                                <Box sx={{
+                                    background: 'rgba(70, 130, 180, 0.05)',
+                                    borderRadius: '8px',
+                                    p: 3,
+                                    textAlign: 'center',
+                                    border: '1px dashed rgba(70, 130, 180, 0.2)'
+                                }}>
+                                    <Typography variant="body2" sx={{ color: '#4682b4' }}>
+                                        Nenhum exame vinculado ainda.
+                                    </Typography>
+                                </Box>
                             ) : (
-                                <TableContainer component={Paper}>
+                                <TableContainer component={Paper} sx={{
+                                    borderRadius: '8px',
+                                    overflow: 'hidden',
+                                    boxShadow: 'none',
+                                    border: '1px solid rgba(70, 130, 180, 0.1)'
+                                }}>
                                     <Table>
                                         <TableHead>
-                                            <TableRow>
-                                                <TableCell>Nome</TableCell>
-                                                <TableCell>Tipo</TableCell>
-                                                <TableCell>Vagas</TableCell>
-                                                <TableCell align="right">Ações</TableCell>
+                                            <TableRow sx={{
+                                                background: 'linear-gradient(135deg, #4682b4 0%, #5b9bd5 100%)'
+                                            }}>
+                                                <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Nome</TableCell>
+                                                <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Tipo</TableCell>
+                                                <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Vagas</TableCell>
+                                                <TableCell align="right" sx={{ color: '#fff', fontWeight: 600 }}>Ações</TableCell>
                                             </TableRow>
                                         </TableHead>
                                         <TableBody>
@@ -1028,13 +1222,18 @@ const GerenciarAcao = () => {
                                                     </TableCell>
                                                     <TableCell>{acaoCurso.vagas}</TableCell>
                                                     <TableCell align="right">
-                                                        <Button
+                                                        <IconButton
                                                             size="small"
-                                                            color="error"
                                                             onClick={() => handleRemoveCursoExame(acaoCurso.id)}
+                                                            sx={{
+                                                                color: '#ef4444',
+                                                                '&:hover': {
+                                                                    background: 'rgba(239, 68, 68, 0.1)'
+                                                                }
+                                                            }}
                                                         >
-                                                            Remover
-                                                        </Button>
+                                                            <Trash2 size={16} />
+                                                        </IconButton>
                                                     </TableCell>
                                                 </TableRow>
                                             ))}
@@ -1049,14 +1248,14 @@ const GerenciarAcao = () => {
                                 maxWidth="sm"
                                 fullWidth
                             >
-                                <DialogTitle>Adicionar Curso/Exame</DialogTitle>
+                                <DialogTitle>Adicionar Exame</DialogTitle>
                                 <DialogContent>
                                     <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
                                         <TextField
                                             required
                                             select
                                             fullWidth
-                                            label="Selecione o Curso/Exame"
+                                            label="Selecione o Exame"
                                             value={selectedCursoExameId}
                                             onChange={(e) => setSelectedCursoExameId(e.target.value)}
                                         >
@@ -1107,41 +1306,99 @@ const GerenciarAcao = () => {
                 )}
 
                 {activeTab === 2 && (
-                    <Box>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                            <Typography variant="h6">
+                    <Box sx={{
+                        background: 'rgba(70, 130, 180, 0.03)',
+                        backdropFilter: 'blur(10px)',
+                        borderRadius: '12px',
+                        border: '1px solid rgba(70, 130, 180, 0.1)',
+                        p: 3,
+                        mb: 2
+                    }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5 }}>
+                            <Typography variant="h6" sx={{
+                                color: '#4682b4',
+                                fontWeight: 600,
+                                fontSize: '1.1rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 1
+                            }}>
+                                <UserPlus size={20} />
                                 Inscrições ({inscricoes.length})
                             </Typography>
                             <Box sx={{ display: 'flex', gap: 1 }}>
                                 <Button
                                     variant="outlined"
-                                    startIcon={<DownloadIcon />}
+                                    size="small"
+                                    startIcon={<Download size={16} />}
                                     onClick={handleExportarCSV}
                                     disabled={inscricoes.length === 0}
+                                    sx={{
+                                        borderColor: '#4682b4',
+                                        color: '#4682b4',
+                                        textTransform: 'none',
+                                        '&:hover': {
+                                            borderColor: '#5b9bd5',
+                                            background: 'rgba(70, 130, 180, 0.05)'
+                                        }
+                                    }}
                                 >
                                     CSV
                                 </Button>
                                 <Button
                                     variant="outlined"
-                                    startIcon={<DownloadIcon />}
+                                    size="small"
+                                    startIcon={<Download size={16} />}
                                     onClick={handleExportarPDF}
                                     disabled={inscricoes.length === 0}
+                                    sx={{
+                                        borderColor: '#4682b4',
+                                        color: '#4682b4',
+                                        textTransform: 'none',
+                                        '&:hover': {
+                                            borderColor: '#5b9bd5',
+                                            background: 'rgba(70, 130, 180, 0.05)'
+                                        }
+                                    }}
                                 >
                                     PDF
                                 </Button>
                                 <Button
                                     variant="outlined"
-                                    startIcon={<DownloadIcon />}
+                                    size="small"
+                                    startIcon={<Download size={16} />}
                                     onClick={handleExportarExcel}
                                     disabled={inscricoes.length === 0}
+                                    sx={{
+                                        borderColor: '#4682b4',
+                                        color: '#4682b4',
+                                        textTransform: 'none',
+                                        '&:hover': {
+                                            borderColor: '#5b9bd5',
+                                            background: 'rgba(70, 130, 180, 0.05)'
+                                        }
+                                    }}
                                 >
                                     Excel
                                 </Button>
                                 <Button
                                     variant="contained"
-                                    startIcon={<PersonAddIcon />}
+                                    size="small"
+                                    startIcon={<UserPlus size={16} />}
                                     onClick={() => setOpenInscricaoDialog(true)}
                                     disabled={cursosExamesVinculados.length === 0}
+                                    sx={{
+                                        background: 'linear-gradient(135deg, #4682b4 0%, #5b9bd5 100%)',
+                                        color: '#fff',
+                                        fontWeight: 600,
+                                        textTransform: 'none',
+                                        '&:hover': {
+                                            background: 'linear-gradient(135deg, #5b9bd5 0%, #4682b4 100%)',
+                                            transform: 'translateY(-1px)',
+                                            boxShadow: '0 4px 12px rgba(70, 130, 180, 0.3)'
+                                        },
+                                        transition: 'all 0.2s ease'
+                                    }}
                                 >
                                     Inscrever Aluno
                                 </Button>
@@ -1155,23 +1412,34 @@ const GerenciarAcao = () => {
                         )}
 
                         {inscricoes.length === 0 ? (
-                            <Card>
-                                <CardContent>
-                                    <Typography variant="body2" color="text.secondary" align="center">
-                                        Nenhuma inscrição registrada ainda.
-                                    </Typography>
-                                </CardContent>
-                            </Card>
+                            <Box sx={{
+                                background: 'rgba(70, 130, 180, 0.05)',
+                                borderRadius: '8px',
+                                p: 3,
+                                textAlign: 'center',
+                                border: '1px dashed rgba(70, 130, 180, 0.2)'
+                            }}>
+                                <Typography variant="body2" sx={{ color: '#4682b4' }}>
+                                    Nenhuma inscrição registrada ainda.
+                                </Typography>
+                            </Box>
                         ) : (
-                            <TableContainer component={Paper}>
+                            <TableContainer component={Paper} sx={{
+                                borderRadius: '8px',
+                                overflow: 'hidden',
+                                boxShadow: 'none',
+                                border: '1px solid rgba(70, 130, 180, 0.1)'
+                            }}>
                                 <Table>
                                     <TableHead>
-                                        <TableRow>
-                                            <TableCell>Cidadão</TableCell>
-                                            <TableCell>CPF</TableCell>
-                                            <TableCell>Data Inscrição</TableCell>
-                                            <TableCell>Status</TableCell>
-                                            <TableCell>Ações</TableCell>
+                                        <TableRow sx={{
+                                            background: 'linear-gradient(135deg, #4682b4 0%, #5b9bd5 100%)'
+                                        }}>
+                                            <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Cidadão</TableCell>
+                                            <TableCell sx={{ color: '#fff', fontWeight: 600 }}>CPF</TableCell>
+                                            <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Data Inscrição</TableCell>
+                                            <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Status</TableCell>
+                                            <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Ações</TableCell>
                                         </TableRow>
                                     </TableHead>
                                     <TableBody>
@@ -1198,8 +1466,14 @@ const GerenciarAcao = () => {
                                                         size="small"
                                                         onClick={() => handleOpenEditStatus(inscricao)}
                                                         title="Editar Status"
+                                                        sx={{
+                                                            color: '#4682b4',
+                                                            '&:hover': {
+                                                                background: 'rgba(70, 130, 180, 0.1)'
+                                                            }
+                                                        }}
                                                     >
-                                                        <EditIcon fontSize="small" />
+                                                        <Edit size={16} />
                                                     </IconButton>
                                                 </TableCell>
                                             </TableRow>
@@ -1217,7 +1491,7 @@ const GerenciarAcao = () => {
                                         required
                                         select
                                         fullWidth
-                                        label="Curso/Exame"
+                                        label="Exame"
                                         value={selectedAcaoCursoId}
                                         onChange={(e) => setSelectedAcaoCursoId(e.target.value)}
                                     >
@@ -1273,137 +1547,181 @@ const GerenciarAcao = () => {
                 )}
 
                 {activeTab === 3 && (
-                    <Box>
+                    <Box sx={{
+                        background: 'rgba(70, 130, 180, 0.03)',
+                        backdropFilter: 'blur(10px)',
+                        borderRadius: '12px',
+                        border: '1px solid rgba(70, 130, 180, 0.1)',
+                        p: 3,
+                        mb: 2
+                    }}>
                         {/* Custos Estimados */}
-                        <Box sx={{ mb: 4 }}>
-                            <Typography variant="h6" sx={{ mb: 2 }}>
+                        <Box sx={{ mb: 3 }}>
+                            <Typography variant="h6" sx={{
+                                color: '#4682b4',
+                                fontWeight: 600,
+                                fontSize: '1.1rem',
+                                mb: 2
+                            }}>
                                 Custos Estimados
                             </Typography>
-                            <Card>
-                                <CardContent>
-                                    <Grid container spacing={2}>
-                                        <Grid item xs={12} sm={6} md={3}>
-                                            <Typography variant="body2" color="text.secondary">
-                                                Distância
-                                            </Typography>
-                                            <Typography variant="h6">
-                                                {String(formData.distancia_km)} km
-                                            </Typography>
-                                        </Grid>
-                                        <Grid item xs={12} sm={6} md={3}>
-                                            <Typography variant="body2" color="text.secondary">
-                                                Preço Combustível
-                                            </Typography>
-                                            <Typography variant="h6">
-                                                R$ {parseFloat(String(formData.preco_combustivel_referencia || 0)).toFixed(2)}/L
-                                            </Typography>
-                                        </Grid>
-                                        <Grid item xs={12} sm={6} md={3}>
-                                            <Typography variant="body2" color="text.secondary">
-                                                Autonomia Média
-                                            </Typography>
-                                            <Typography variant="h6">
-                                                {(() => {
-                                                    if (caminhoesVinculados.length === 0) return '0';
-
-                                                    let somaAutonomia = 0;
-                                                    let count = 0;
-
-                                                    caminhoesVinculados.forEach((cv: any) => {
-                                                        // Campo correto: autonomia_km_litro
-                                                        const autonomiaValue = cv.autonomia_km_litro || cv.caminhao?.autonomia_km_litro || 0;
-                                                        const autonomia = Number(autonomiaValue);
-
-                                                        if (!isNaN(autonomia) && autonomia > 0) {
-                                                            somaAutonomia += autonomia;
-                                                            count++;
-                                                        }
-                                                    });
-
-                                                    if (count === 0) return '0';
-                                                    const media = somaAutonomia / count;
-                                                    return String(media.toFixed(1));
-                                                })()} km/L
-                                            </Typography>
-                                        </Grid>
-                                        <Grid item xs={12} sm={6} md={3}>
-                                            <Typography variant="body2" color="text.secondary">
-                                                Custo Estimado Total
-                                            </Typography>
-                                            <Typography variant="h6" color="primary">
-                                                R$ {(() => {
-                                                    const distancia = Number(formData.distancia_km) || 0;
-                                                    const precoCombustivel = Number(formData.preco_combustivel_referencia) || 0;
-
-                                                    // Calcular autonomia média
-                                                    let somaAutonomia = 0;
-                                                    let count = 0;
-
-                                                    caminhoesVinculados.forEach((cv: any) => {
-                                                        // Campo correto: autonomia_km_litro
-                                                        const autonomiaValue = cv.autonomia_km_litro || cv.caminhao?.autonomia_km_litro || 0;
-                                                        const autonomia = Number(autonomiaValue);
-
-                                                        if (!isNaN(autonomia) && autonomia > 0) {
-                                                            somaAutonomia += autonomia;
-                                                            count++;
-                                                        }
-                                                    });
-
-                                                    if (count === 0) return '0.00';
-
-                                                    const autonomiaMedia = somaAutonomia / count;
-
-                                                    // Cálculo: (distância / autonomia) * preço
-                                                    const litrosNecessarios = distancia / autonomiaMedia;
-                                                    const custoEstimado = litrosNecessarios * precoCombustivel;
-
-                                                    return custoEstimado.toFixed(2);
-                                                })()}
-                                            </Typography>
-                                        </Grid>
+                            <Box sx={{
+                                background: 'linear-gradient(135deg, rgba(70, 130, 180, 0.05) 0%, rgba(91, 155, 213, 0.05) 100%)',
+                                borderRadius: '12px',
+                                border: '1px solid rgba(70, 130, 180, 0.15)',
+                                p: 3
+                            }}>
+                                <Grid container spacing={2}>
+                                    <Grid item xs={12} sm={6} md={3}>
+                                        <Typography variant="body2" color="text.secondary">
+                                            Distância
+                                        </Typography>
+                                        <Typography variant="h6">
+                                            {String(formData.distancia_km)} km
+                                        </Typography>
                                     </Grid>
-                                    {caminhoesVinculados.length === 0 && (
-                                        <Alert severity="info" sx={{ mt: 2 }}>
-                                            Adicione caminhões na aba "Recursos" para calcular a autonomia média e o custo estimado.
-                                        </Alert>
-                                    )}
-                                </CardContent>
-                            </Card>
+                                    <Grid item xs={12} sm={6} md={3}>
+                                        <Typography variant="body2" color="text.secondary">
+                                            Preço Combustível
+                                        </Typography>
+                                        <Typography variant="h6">
+                                            R$ {parseFloat(String(formData.preco_combustivel_referencia || 0)).toFixed(2)}/L
+                                        </Typography>
+                                    </Grid>
+                                    <Grid item xs={12} sm={6} md={3}>
+                                        <Typography variant="body2" color="text.secondary">
+                                            Autonomia Média
+                                        </Typography>
+                                        <Typography variant="h6">
+                                            {(() => {
+                                                if (caminhoesVinculados.length === 0) return '0';
+
+                                                let somaAutonomia = 0;
+                                                let count = 0;
+
+                                                caminhoesVinculados.forEach((cv: any) => {
+                                                    // Campo correto: autonomia_km_litro
+                                                    const autonomiaValue = cv.autonomia_km_litro || cv.caminhao?.autonomia_km_litro || 0;
+                                                    const autonomia = Number(autonomiaValue);
+
+                                                    if (!isNaN(autonomia) && autonomia > 0) {
+                                                        somaAutonomia += autonomia;
+                                                        count++;
+                                                    }
+                                                });
+
+                                                if (count === 0) return '0';
+                                                const media = somaAutonomia / count;
+                                                return String(media.toFixed(1));
+                                            })()} km/L
+                                        </Typography>
+                                    </Grid>
+                                    <Grid item xs={12} sm={6} md={3}>
+                                        <Typography variant="body2" color="text.secondary">
+                                            Custo Estimado Total
+                                        </Typography>
+                                        <Typography variant="h6" color="primary">
+                                            R$ {(() => {
+                                                const distancia = Number(formData.distancia_km) || 0;
+                                                const precoCombustivel = Number(formData.preco_combustivel_referencia) || 0;
+
+                                                // Calcular autonomia média
+                                                let somaAutonomia = 0;
+                                                let count = 0;
+
+                                                caminhoesVinculados.forEach((cv: any) => {
+                                                    // Campo correto: autonomia_km_litro
+                                                    const autonomiaValue = cv.autonomia_km_litro || cv.caminhao?.autonomia_km_litro || 0;
+                                                    const autonomia = Number(autonomiaValue);
+
+                                                    if (!isNaN(autonomia) && autonomia > 0) {
+                                                        somaAutonomia += autonomia;
+                                                        count++;
+                                                    }
+                                                });
+
+                                                if (count === 0) return '0.00';
+
+                                                const autonomiaMedia = somaAutonomia / count;
+
+                                                // Cálculo: (distância / autonomia) * preço
+                                                const litrosNecessarios = distancia / autonomiaMedia;
+                                                const custoEstimado = litrosNecessarios * precoCombustivel;
+
+                                                return custoEstimado.toFixed(2);
+                                            })()}
+                                        </Typography>
+                                    </Grid>
+                                </Grid>
+                                {caminhoesVinculados.length === 0 && (
+                                    <Alert severity="info" sx={{ mt: 2 }}>
+                                        Adicione caminhões na aba "Recursos" para calcular a autonomia média e o custo estimado.
+                                    </Alert>
+                                )}
+                            </Box>
                         </Box>
 
                         {/* Custos Reais (Abastecimentos) */}
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                            <Typography variant="h6">
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5 }}>
+                            <Typography variant="h6" sx={{
+                                color: '#4682b4',
+                                fontWeight: 600,
+                                fontSize: '1.1rem'
+                            }}>
                                 Abastecimentos Registrados ({custos.length})
                             </Typography>
                             <Button
                                 variant="contained"
+                                size="small"
+                                startIcon={<Plus size={16} />}
                                 onClick={() => setOpenAbastecimentoDialog(true)}
+                                sx={{
+                                    background: 'linear-gradient(135deg, #4682b4 0%, #5b9bd5 100%)',
+                                    color: '#fff',
+                                    fontWeight: 600,
+                                    textTransform: 'none',
+                                    '&:hover': {
+                                        background: 'linear-gradient(135deg, #5b9bd5 0%, #4682b4 100%)',
+                                        transform: 'translateY(-1px)',
+                                        boxShadow: '0 4px 12px rgba(70, 130, 180, 0.3)'
+                                    },
+                                    transition: 'all 0.2s ease'
+                                }}
                             >
                                 Registrar Abastecimento
                             </Button>
                         </Box>
 
                         {custos.length === 0 ? (
-                            <Card>
-                                <CardContent>
-                                    <Typography variant="body2" color="text.secondary" align="center">
-                                        Nenhum abastecimento registrado ainda.
-                                    </Typography>
-                                </CardContent>
-                            </Card>
+                            <Box sx={{
+                                background: 'rgba(70, 130, 180, 0.05)',
+                                borderRadius: '8px',
+                                p: 3,
+                                textAlign: 'center',
+                                border: '1px dashed rgba(70, 130, 180, 0.2)'
+                            }}>
+                                <Typography variant="body2" sx={{ color: '#4682b4' }}>
+                                    Nenhum abastecimento registrado ainda.
+                                </Typography>
+                            </Box>
                         ) : (
-                            <TableContainer component={Paper}>
+                            <TableContainer component={Paper} sx={{
+                                borderRadius: '8px',
+                                overflow: 'hidden',
+                                boxShadow: 'none',
+                                border: '1px solid rgba(70, 130, 180, 0.1)'
+                            }}>
                                 <Table>
                                     <TableHead>
-                                        <TableRow>
-                                            <TableCell>Data</TableCell>
-                                            <TableCell>Caminhão</TableCell>
-                                            <TableCell>Litros</TableCell>
-                                            <TableCell>Valor Total</TableCell>
-                                            <TableCell>Observações</TableCell>
-                                            <TableCell align="center">Ações</TableCell>
+                                        <TableRow sx={{
+                                            background: 'linear-gradient(135deg, #4682b4 0%, #5b9bd5 100%)'
+                                        }}>
+                                            <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Data</TableCell>
+                                            <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Caminhão</TableCell>
+                                            <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Litros</TableCell>
+                                            <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Valor Total</TableCell>
+                                            <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Observações</TableCell>
+                                            <TableCell align="center" sx={{ color: '#fff', fontWeight: 600 }}>Ações</TableCell>
                                         </TableRow>
                                     </TableHead>
                                     <TableBody>
@@ -1418,12 +1736,17 @@ const GerenciarAcao = () => {
                                                 <TableCell>{custo.observacoes || '-'}</TableCell>
                                                 <TableCell align="center">
                                                     <IconButton
-                                                        color="error"
                                                         size="small"
                                                         onClick={() => handleDeleteAbastecimento(custo.id)}
                                                         title="Excluir abastecimento"
+                                                        sx={{
+                                                            color: '#ef4444',
+                                                            '&:hover': {
+                                                                background: 'rgba(239, 68, 68, 0.1)'
+                                                            }
+                                                        }}
                                                     >
-                                                        <DeleteIcon />
+                                                        <Trash2 size={16} />
                                                     </IconButton>
                                                 </TableCell>
                                             </TableRow>
@@ -1501,12 +1824,33 @@ const GerenciarAcao = () => {
                                 </Box>
                             </DialogContent>
                             <DialogActions>
-                                <Button onClick={() => setOpenAbastecimentoDialog(false)}>
+                                <Button
+                                    onClick={() => setOpenAbastecimentoDialog(false)}
+                                    sx={{
+                                        color: '#4682b4',
+                                        borderColor: '#4682b4',
+                                        '&:hover': {
+                                            borderColor: '#5b9bd5',
+                                            background: 'rgba(70, 130, 180, 0.05)'
+                                        }
+                                    }}
+                                >
                                     Cancelar
                                 </Button>
                                 <Button
                                     variant="contained"
                                     onClick={handleAddAbastecimento}
+                                    sx={{
+                                        background: 'linear-gradient(135deg, #4682b4 0%, #5b9bd5 100%)',
+                                        color: '#fff',
+                                        fontWeight: 600,
+                                        '&:hover': {
+                                            background: 'linear-gradient(135deg, #5b9bd5 0%, #4682b4 100%)',
+                                            transform: 'translateY(-1px)',
+                                            boxShadow: '0 4px 12px rgba(70, 130, 180, 0.3)'
+                                        },
+                                        transition: 'all 0.2s ease'
+                                    }}
                                 >
                                     Registrar
                                 </Button>
@@ -1514,30 +1858,54 @@ const GerenciarAcao = () => {
                         </Dialog>
 
                         {/* Seção de Funcionários */}
-                        <Box sx={{ mt: 4 }}>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                                <Typography variant="h6">Funcionários Atribuídos</Typography>
+                        <Box sx={{ mt: 3 }}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2.5 }}>
+                                <Typography variant="h6" sx={{
+                                    color: '#4682b4',
+                                    fontWeight: 600,
+                                    fontSize: '1.1rem'
+                                }}>Funcionários Atribuídos</Typography>
                                 <Button
                                     variant="contained"
-                                    startIcon={<PersonAddIcon />}
+                                    size="small"
+                                    startIcon={<UserPlus size={16} />}
                                     onClick={() => {
                                         loadFuncionariosDisponiveis();
                                         setOpenFuncionarioDialog(true);
+                                    }}
+                                    sx={{
+                                        background: 'linear-gradient(135deg, #4682b4 0%, #5b9bd5 100%)',
+                                        color: '#fff',
+                                        fontWeight: 600,
+                                        textTransform: 'none',
+                                        '&:hover': {
+                                            background: 'linear-gradient(135deg, #5b9bd5 0%, #4682b4 100%)',
+                                            transform: 'translateY(-1px)',
+                                            boxShadow: '0 4px 12px rgba(70, 130, 180, 0.3)'
+                                        },
+                                        transition: 'all 0.2s ease'
                                     }}
                                 >
                                     Adicionar Funcionário
                                 </Button>
                             </Box>
 
-                            <TableContainer component={Paper}>
+                            <TableContainer component={Paper} sx={{
+                                borderRadius: '8px',
+                                overflow: 'hidden',
+                                boxShadow: 'none',
+                                border: '1px solid rgba(70, 130, 180, 0.1)'
+                            }}>
                                 <Table>
                                     <TableHead>
-                                        <TableRow>
-                                            <TableCell>Nome</TableCell>
-                                            <TableCell>Cargo</TableCell>
-                                            <TableCell>Especialidade</TableCell>
-                                            <TableCell>Custo por Ação</TableCell>
-                                            <TableCell align="center">Ações</TableCell>
+                                        <TableRow sx={{
+                                            background: 'linear-gradient(135deg, #4682b4 0%, #5b9bd5 100%)'
+                                        }}>
+                                            <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Nome</TableCell>
+                                            <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Cargo</TableCell>
+                                            <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Especialidade</TableCell>
+                                            <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Custo por Ação</TableCell>
+                                            <TableCell align="center" sx={{ color: '#fff', fontWeight: 600 }}>Ações</TableCell>
                                         </TableRow>
                                     </TableHead>
                                     <TableBody>
@@ -1556,12 +1924,17 @@ const GerenciarAcao = () => {
                                                     <TableCell>R$ {Number(af.custo_diario || 0).toFixed(2)}</TableCell>
                                                     <TableCell align="center">
                                                         <IconButton
-                                                            color="error"
                                                             size="small"
                                                             onClick={() => handleRemoveFuncionario(af.id)}
                                                             title="Remover funcionário"
+                                                            sx={{
+                                                                color: '#ef4444',
+                                                                '&:hover': {
+                                                                    background: 'rgba(239, 68, 68, 0.1)'
+                                                                }
+                                                            }}
                                                         >
-                                                            <DeleteIcon />
+                                                            <Trash2 size={16} />
                                                         </IconButton>
                                                     </TableCell>
                                                 </TableRow>
@@ -1603,16 +1976,41 @@ const GerenciarAcao = () => {
                                 </TextField>
                             </DialogContent>
                             <DialogActions>
-                                <Button onClick={() => {
-                                    setOpenFuncionarioDialog(false);
-                                    setSelectedFuncionario('');
-                                }}>
+                                <Button
+                                    onClick={() => {
+                                        setOpenFuncionarioDialog(false);
+                                        setSelectedFuncionario('');
+                                    }}
+                                    sx={{
+                                        color: '#4682b4',
+                                        borderColor: '#4682b4',
+                                        '&:hover': {
+                                            borderColor: '#5b9bd5',
+                                            background: 'rgba(70, 130, 180, 0.05)'
+                                        }
+                                    }}
+                                >
                                     Cancelar
                                 </Button>
                                 <Button
                                     onClick={handleAddFuncionario}
                                     variant="contained"
                                     disabled={!selectedFuncionario}
+                                    sx={{
+                                        background: 'linear-gradient(135deg, #4682b4 0%, #5b9bd5 100%)',
+                                        color: '#fff',
+                                        fontWeight: 600,
+                                        '&:hover': {
+                                            background: 'linear-gradient(135deg, #5b9bd5 0%, #4682b4 100%)',
+                                            transform: 'translateY(-1px)',
+                                            boxShadow: '0 4px 12px rgba(70, 130, 180, 0.3)'
+                                        },
+                                        '&:disabled': {
+                                            background: 'rgba(0, 0, 0, 0.12)',
+                                            color: 'rgba(0, 0, 0, 0.26)'
+                                        },
+                                        transition: 'all 0.2s ease'
+                                    }}
                                 >
                                     Adicionar
                                 </Button>
@@ -1679,7 +2077,7 @@ const GerenciarAcao = () => {
                 </DialogActions>
             </Dialog>
 
-        </Container>
+        </Container >
     );
 };
 

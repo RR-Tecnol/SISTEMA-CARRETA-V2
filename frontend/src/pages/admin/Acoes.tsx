@@ -33,6 +33,7 @@ import { expressoTheme } from '../../theme/expressoTheme';
 interface Acao {
     id: string;
     numero_acao?: number;
+    nome: string;
     tipo: 'curso' | 'saude';
     municipio: string;
     estado: string;
@@ -58,10 +59,12 @@ const Acoes = () => {
     const [filterMunicipio, setFilterMunicipio] = useState('');
     const [filterEstado, setFilterEstado] = useState('');
 
+
     const fetchAcoes = useCallback(async () => {
         try {
             const response = await api.get('/acoes');
-            setAcoes(response.data);
+            // Garantir que sempre seja um array
+            setAcoes(Array.isArray(response.data) ? response.data : []);
         } catch (error: any) {
             enqueueSnackbar(error.response?.data?.error || 'Erro ao carregar ações', { variant: 'error' });
         } finally {
@@ -76,6 +79,7 @@ const Acoes = () => {
     const filteredAcoes = acoes.filter((acao) => {
         const matchesSearch = acao.municipio.toLowerCase().includes(searchTerm.toLowerCase()) ||
             acao.descricao.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            acao.nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             acao.numero_acao?.toString().includes(searchTerm);
         const matchesTipo = !filterTipo || acao.tipo === filterTipo;
         const matchesStatus = !filterStatus || acao.status === filterStatus;
@@ -301,7 +305,7 @@ const Acoes = () => {
                                             </Box>
 
                                             <Typography variant="h6" sx={{ color: expressoTheme.colors.text, fontWeight: 700, mb: 1 }}>
-                                                {acao.numero_acao ? `Ação #${acao.numero_acao}` : 'Nova Ação'}
+                                                {acao.nome || (acao.numero_acao ? `Ação #${acao.numero_acao}` : 'Nova Ação')}
                                             </Typography>
 
                                             <Typography sx={{ color: expressoTheme.colors.textSecondary, fontSize: '0.9rem', mb: 2, minHeight: 40 }}>

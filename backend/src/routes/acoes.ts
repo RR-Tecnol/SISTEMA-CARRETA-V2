@@ -18,6 +18,7 @@ const router = Router();
 
 // Validation schema for creating acao
 const createAcaoSchema = Joi.object({
+    nome: Joi.string().min(3).max(255).required(),
     instituicao_id: Joi.string().uuid().required(),
     tipo: Joi.string().valid('curso', 'saude').required(),
     municipio: Joi.string().required(),

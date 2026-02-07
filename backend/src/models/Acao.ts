@@ -7,6 +7,7 @@ export type AcaoStatus = 'planejada' | 'ativa' | 'concluida';
 export interface AcaoAttributes {
     id: string;
     numero_acao?: number;
+    nome: string;
     instituicao_id: string;
     tipo: AcaoTipo;
     municipio: string;
@@ -26,6 +27,7 @@ export interface AcaoAttributes {
 export class Acao extends Model<AcaoAttributes> implements AcaoAttributes {
     public id!: string;
     public numero_acao?: number;
+    public nome!: string;
     public instituicao_id!: string;
     public tipo!: AcaoTipo;
     public municipio!: string;
@@ -56,6 +58,14 @@ Acao.init(
             type: DataTypes.INTEGER,
             allowNull: true, // Permitir null pois será gerado no hook beforeCreate
             unique: true,
+        },
+        nome: {
+            type: DataTypes.STRING,
+            allowNull: false,
+            validate: {
+                len: [3, 255],
+                notEmpty: true,
+            },
         },
         instituicao_id: {
             type: DataTypes.UUID,

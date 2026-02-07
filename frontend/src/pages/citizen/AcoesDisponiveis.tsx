@@ -24,6 +24,7 @@ import { useSnackbar } from 'notistack';
 
 interface Acao {
     id: string;
+    nome: string;
     tipo: string;
     municipio: string;
     estado: string;

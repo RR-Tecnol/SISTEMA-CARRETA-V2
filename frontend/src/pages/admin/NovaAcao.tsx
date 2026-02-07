@@ -57,6 +57,7 @@ const NovaAcao = () => {
     const [cursosExamesSelecionados, setCursosExamesSelecionados] = useState<CursoExameSelecionado[]>([]);
 
     const [formData, setFormData] = useState({
+        nome: '',
         instituicao_id: '',
         tipo: 'curso' as 'curso' | 'saude',
         municipio: '',
@@ -298,6 +299,24 @@ const NovaAcao = () => {
                                     </Box>
 
                                     <Grid container spacing={2}>
+                                        <Grid item xs={12}>
+                                            <TextField
+                                                required
+                                                fullWidth
+                                                label="Nome da Ação"
+                                                name="nome"
+                                                value={formData.nome}
+                                                onChange={handleChange}
+                                                placeholder="Ex: Campanha de Hemograma"
+                                                helperText="Nome que identificará esta ação"
+                                                sx={{
+                                                    '& .MuiOutlinedInput-root': {
+                                                        borderRadius: systemTruckTheme.borderRadius.medium,
+                                                    },
+                                                }}
+                                            />
+                                        </Grid>
+
                                         <Grid item xs={12}>
                                             <TextField
                                                 required
