@@ -171,8 +171,25 @@ export const AdminSidebar: React.FC = () => {
                             >
                                 System Truck
                             </Box>
-                            <Box sx={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.9)', fontWeight: 500 }}>
+                            <Box sx={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.9)', fontWeight: 500, mb: 1 }}>
                                 Sistema de Gestão
+                            </Box>
+                            <Box
+                                sx={{
+                                    fontSize: '0.65rem',
+                                    color: 'rgba(255,255,255,0.7)',
+                                    fontWeight: 400,
+                                    fontStyle: 'italic',
+                                    letterSpacing: '0.3px',
+                                    mt: 0.5,
+                                    opacity: 0.85,
+                                    transition: 'opacity 0.3s ease',
+                                    '&:hover': {
+                                        opacity: 1
+                                    }
+                                }}
+                            >
+                                Developed by RR Tecnol
                             </Box>
                         </Box>
                     </motion.div>
