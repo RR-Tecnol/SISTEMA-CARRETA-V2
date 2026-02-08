@@ -96,8 +96,8 @@ const Estoque: React.FC = () => {
     });
 
     // Estados para caminhões e ações
-    const [_caminhoes, setCaminhoes] = useState<any[]>([]);
-    const [_acoes, setAcoes] = useState<any[]>([]);
+    const [caminhoes, setCaminhoes] = useState<any[]>([]);
+    const [acoes, setAcoes] = useState<any[]>([]);
 
     useEffect(() => {
         carregarDados();
@@ -1040,7 +1040,7 @@ const Estoque: React.FC = () => {
                                                     '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
                                                 }}
                                             >
-                                                {_caminhoes.map((caminhao) => (
+                                                {caminhoes.map((caminhao) => (
                                                     <MenuItem key={caminhao.id} value={caminhao.id}>
                                                         {caminhao.placa} - {caminhao.modelo}
                                                     </MenuItem>
@@ -1066,7 +1066,7 @@ const Estoque: React.FC = () => {
                                                         '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
                                                     }}
                                                 >
-                                                    {_caminhoes.map((caminhao) => (
+                                                    {caminhoes.map((caminhao) => (
                                                         <MenuItem key={caminhao.id} value={caminhao.id}>
                                                             {caminhao.placa}
                                                         </MenuItem>
@@ -1088,7 +1088,7 @@ const Estoque: React.FC = () => {
                                                         '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
                                                     }}
                                                 >
-                                                    {_acoes.map((acao) => (
+                                                    {acoes.map((acao) => (
                                                         <MenuItem key={acao.id} value={acao.id}>
                                                             {acao.nome}
                                                         </MenuItem>
@@ -1115,7 +1115,7 @@ const Estoque: React.FC = () => {
                                                         '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
                                                     }}
                                                 >
-                                                    {_caminhoes.map((caminhao) => (
+                                                    {caminhoes.map((caminhao) => (
                                                         <MenuItem key={caminhao.id} value={caminhao.id}>
                                                             {caminhao.placa}
                                                         </MenuItem>
@@ -1137,7 +1137,7 @@ const Estoque: React.FC = () => {
                                                         '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
                                                     }}
                                                 >
-                                                    {_caminhoes.filter(c => c.id !== formMovimentacao.origem).map((caminhao) => (
+                                                    {caminhoes.filter(c => c.id !== formMovimentacao.origem).map((caminhao) => (
                                                         <MenuItem key={caminhao.id} value={caminhao.id}>
                                                             {caminhao.placa}
                                                         </MenuItem>
@@ -1163,7 +1163,7 @@ const Estoque: React.FC = () => {
                                                     '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
                                                 }}
                                             >
-                                                {_caminhoes.map((caminhao) => (
+                                                {caminhoes.map((caminhao) => (
                                                     <MenuItem key={caminhao.id} value={caminhao.id}>
                                                         {caminhao.placa} - {caminhao.modelo}
                                                     </MenuItem>
@@ -1321,7 +1321,7 @@ const Estoque: React.FC = () => {
             {/* Conteúdo da Tab Estoque por Caminhão */}
             {tabAtual === 1 && (
                 <Grid container spacing={3}>
-                    {_caminhoes.length === 0 ? (
+                    {caminhoes.length === 0 ? (
                         <Grid item xs={12}>
                             <Card sx={{ p: 4, textAlign: 'center' }}>
                                 <Typography variant="h6" color="textSecondary">
@@ -1330,7 +1330,7 @@ const Estoque: React.FC = () => {
                             </Card>
                         </Grid>
                     ) : (
-                        _caminhoes.map((caminhao) => (
+                        caminhoes.map((caminhao) => (
                             <Grid item xs={12} md={6} lg={4} key={caminhao.id}>
                                 <motion.div
                                     initial={{ opacity: 0, scale: 0.9 }}
@@ -1416,3 +1416,4 @@ const Estoque: React.FC = () => {
 };
 
 export default Estoque;
+
