@@ -73,6 +73,11 @@ const Estoque: React.FC = () => {
     const [tabAtual, setTabAtual] = useState(0); // 0 = Estoque Central, 1 = Estoque por Caminhão
     const [_estoquePorCaminhao, setEstoquePorCaminhao] = useState<any[]>([]);
 
+    // Estados para modal de estoque do caminhão
+    const [modalEstoqueCaminhao, setModalEstoqueCaminhao] = useState(false);
+    const [caminhaoSelecionado, setCaminhaoSelecionado] = useState<any>(null);
+    const [estoqueCaminhaoAtual, setEstoqueCaminhaoAtual] = useState<any[]>([]);
+
     // Estados do formulário de insumo
     const [formInsumo, setFormInsumo] = useState<Partial<Insumo>>({
         nome: '',
@@ -1391,9 +1396,9 @@ const Estoque: React.FC = () => {
                                                     try {
                                                         const { listarEstoqueCaminhao } = await import('../../services/estoque');
                                                         const estoque = await listarEstoqueCaminhao(caminhao.id);
-                                                        setEstoquePorCaminhao(estoque);
-                                                        // TODO: Abrir modal com detalhes
-                                                        console.log('Estoque do caminhão:', estoque);
+                                                        setEstoqueCaminhaoAtual(estoque);
+                                                        setCaminhaoSelecionado(caminhao);
+                                                        setModalEstoqueCaminhao(true);
                                                     } catch (error) {
                                                         console.error('Erro ao carregar estoque:', error);
                                                     }
@@ -1418,6 +1423,81 @@ const Estoque: React.FC = () => {
                 </Grid>
             )}
         </Box>
+
+        {/* Modal de Estoque do Caminhão */ }
+    <Dialog
+        open={modalEstoqueCaminhao}
+        onClose={() => setModalEstoqueCaminhao(false)}
+        maxWidth="md"
+        fullWidth
+    >
+        <DialogTitle sx={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <LocalShipping />
+                <Box>
+                    <Typography variant="h6">
+                        Estoque do Caminhão
+                    </Typography>
+                    {caminhaoSelecionado && (
+                        <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                            {caminhaoSelecionado.placa} - {caminhaoSelecionado.modelo}
+                        </Typography>
+                    )}
+                </Box>
+            </Box>
+        </DialogTitle>
+        <DialogContent sx={{ mt: 2 }}>
+            {estoqueCaminhaoAtual.length === 0 ? (
+                <Box sx={{ textAlign: 'center', py: 4 }}>
+                    <Typography color="text.secondary">
+                        Nenhum insumo no estoque deste caminhão
+                    </Typography>
+                </Box>
+            ) : (
+                <TableContainer>
+                    <Table>
+                        <TableHead>
+                            <TableRow>
+                                <TableCell><strong>Insumo</strong></TableCell>
+                                <TableCell><strong>Categoria</strong></TableCell>
+                                <TableCell align="right"><strong>Quantidade</strong></TableCell>
+                                <TableCell><strong>Unidade</strong></TableCell>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {estoqueCaminhaoAtual.map((item: any) => (
+                                <TableRow key={item.id}>
+                                    <TableCell>{item.insumo?.nome || 'N/A'}</TableCell>
+                                    <TableCell>
+                                        <Chip
+                                            label={item.insumo?.categoria || 'N/A'}
+                                            size="small"
+                                            sx={{
+                                                backgroundColor: getCategoriaColor(item.insumo?.categoria),
+                                                color: 'white',
+                                                fontWeight: 500,
+                                            }}
+                                        />
+                                    </TableCell>
+                                    <TableCell align="right">
+                                        <Typography fontWeight={600}>
+                                            {item.quantidade}
+                                        </Typography>
+                                    </TableCell>
+                                    <TableCell>{item.insumo?.unidade || 'N/A'}</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+            )}
+        </DialogContent>
+        <DialogActions>
+            <Button onClick={() => setModalEstoqueCaminhao(false)} variant="outlined">
+                Fechar
+            </Button>
+        </DialogActions>
+    </Dialog>
     );
 };
 
