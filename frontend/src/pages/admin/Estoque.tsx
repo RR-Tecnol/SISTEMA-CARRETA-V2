@@ -28,6 +28,7 @@ import {
     Tabs,
     Tab,
 } from '@mui/material';
+import { LocalShipping } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import {
     Package,
@@ -55,6 +56,17 @@ import {
     exportarRelatorio,
 } from '../../services/estoque';
 import axios from 'axios';
+
+// Função auxiliar para cores das categorias
+const getCategoriaColor = (categoria: string) => {
+    const cores: Record<string, string> = {
+        'EPI': '#3498db',
+        'FERRAMENTAS': '#e74c3c',
+        'MATERIAIS': '#2ecc71',
+        'OUTROS': '#95a5a6',
+    };
+    return cores[categoria] || '#95a5a6';
+};
 
 const Estoque: React.FC = () => {
     const [insumos, setInsumos] = useState<Insumo[]>([]);
