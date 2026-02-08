@@ -63,6 +63,9 @@ const getCategoriaColor = (categoria: string) => {
         'EPI': '#3498db',
         'FERRAMENTAS': '#e74c3c',
         'MATERIAIS': '#2ecc71',
+        'MEDICAMENTO': '#9b59b6',
+        'MATERIAL_DESCARTAVEL': '#f39c12',
+        'EQUIPAMENTO': '#1abc9c',
         'OUTROS': '#95a5a6',
     };
     return cores[categoria] || '#95a5a6';
