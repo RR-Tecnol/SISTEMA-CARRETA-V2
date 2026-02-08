@@ -366,6 +366,8 @@ const GerenciarAcao = () => {
                 data_vencimento: '',
                 observacoes: ''
             });
+            // Recarregar lista de custos
+            loadCustos();
         } catch (error: any) {
             console.error('Erro ao registrar despesa:', error);
             enqueueSnackbar(error.response?.data?.error || 'Erro ao registrar despesa', { variant: 'error' });

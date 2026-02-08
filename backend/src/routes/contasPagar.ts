@@ -69,6 +69,7 @@ router.get('/', authenticate, async (req: Request, res: Response) => {
             };
         }
 
+
         const offset = (Number(page) - 1) * Number(limit);
 
         const { rows: contas, count } = await ContaPagar.findAndCountAll({
@@ -76,6 +77,13 @@ router.get('/', authenticate, async (req: Request, res: Response) => {
             limit: Number(limit),
             offset,
             order: [['data_vencimento', 'DESC']],
+            include: [
+                {
+                    association: 'caminhao',
+                    attributes: ['id', 'placa', 'modelo'],
+                    required: false
+                }
+            ]
         });
 
         res.json({
