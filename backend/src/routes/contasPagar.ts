@@ -51,6 +51,7 @@ router.get('/', authenticate, async (req: Request, res: Response) => {
             data_inicio,
             data_fim,
             recorrente,
+            acao_id,
             page = 1,
             limit = 20
         } = req.query;
@@ -60,6 +61,7 @@ router.get('/', authenticate, async (req: Request, res: Response) => {
         if (status) where.status = status;
         if (tipo_conta) where.tipo_conta = tipo_conta;
         if (recorrente !== undefined) where.recorrente = recorrente === 'true';
+        if (acao_id) where.acao_id = acao_id;
 
         if (data_inicio && data_fim) {
             where.data_vencimento = {
