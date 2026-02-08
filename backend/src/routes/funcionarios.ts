@@ -9,18 +9,24 @@ const router = Router();
 const funcionarioSchema = Joi.object({
     nome: Joi.string().required(),
     cargo: Joi.string().required(),
-    especialidade: Joi.string().allow(null, ''),
-    custo_diario: Joi.number().precision(2).min(0).required(),
-    status: Joi.string().valid('ativo', 'inativo').optional(),
+    cpf: Joi.string().allow(null, '').optional(),
+    telefone: Joi.string().allow(null, '').optional(),
+    email: Joi.string().email().allow(null, '').optional(),
+    especialidade: Joi.string().allow(null, '').optional(),
+    custo_diaria: Joi.number().precision(2).min(0).required(),
+    ativo: Joi.boolean().optional(),
 });
 
 // Schema para atualização - campos opcionais
 const updateFuncionarioSchema = Joi.object({
     nome: Joi.string().optional(),
     cargo: Joi.string().optional(),
+    cpf: Joi.string().allow(null, '').optional(),
+    telefone: Joi.string().allow(null, '').optional(),
+    email: Joi.string().email().allow(null, '').optional(),
     especialidade: Joi.string().allow(null, '').optional(),
-    custo_diario: Joi.number().precision(2).min(0).optional(),
-    status: Joi.string().valid('ativo', 'inativo').optional(),
+    custo_diaria: Joi.number().precision(2).min(0).optional(),
+    ativo: Joi.boolean().optional(),
 });
 
 router.get('/', authenticate, authorizeAdmin, async (_req: Request, res: Response) => {

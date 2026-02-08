@@ -136,14 +136,20 @@ const ExamesSaude: React.FC = () => {
                                 startIcon={<Plus size={20} />}
                                 onClick={() => handleOpenDialog()}
                                 sx={{
-                                    background: expressoTheme.colors.background,
-                                    color: expressoTheme.colors.primaryDark,
+                                    background: 'linear-gradient(135deg, #4682b4 0%, #5b9bd5 100%)',
+                                    color: '#fff',
                                     px: 3,
                                     py: 1.5,
                                     borderRadius: '12px',
                                     textTransform: 'none',
                                     fontWeight: 600,
-                                    boxShadow: '0 8px 32px rgba(17, 153, 142, 0.4)',
+                                    boxShadow: '0 4px 12px rgba(70, 130, 180, 0.3)',
+                                    '&:hover': {
+                                        background: 'linear-gradient(135deg, #5b9bd5 0%, #4682b4 100%)',
+                                        transform: 'translateY(-2px)',
+                                        boxShadow: '0 6px 16px rgba(70, 130, 180, 0.4)',
+                                    },
+                                    transition: 'all 0.2s ease'
                                 }}
                             >
                                 Novo Exame
@@ -337,10 +343,16 @@ const ExamesSaude: React.FC = () => {
                             onClick={handleSubmit}
                             variant="contained"
                             sx={{
-                                background: expressoTheme.colors.background,
-                                color: expressoTheme.colors.primaryDark,
+                                background: 'linear-gradient(135deg, #4682b4 0%, #5b9bd5 100%)',
+                                color: '#fff',
                                 fontWeight: 600,
                                 px: 3,
+                                '&:hover': {
+                                    background: 'linear-gradient(135deg, #5b9bd5 0%, #4682b4 100%)',
+                                    transform: 'translateY(-1px)',
+                                    boxShadow: '0 4px 12px rgba(70, 130, 180, 0.3)',
+                                },
+                                transition: 'all 0.2s ease'
                             }}
                         >
                             {editingExame ? 'Atualizar' : 'Cadastrar'}

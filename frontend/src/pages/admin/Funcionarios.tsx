@@ -204,7 +204,7 @@ const Funcionarios: React.FC = () => {
                                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                                 <DollarSign size={16} color={expressoTheme.colors.primaryDark} />
                                                 <Typography sx={{ color: expressoTheme.colors.primaryDark, fontSize: '0.9rem', fontWeight: 600 }}>
-                                                    R$ {func.custo_diaria.toFixed(2)}/dia
+                                                    R$ {Number(func.custo_diaria).toFixed(2)}/dia
                                                 </Typography>
                                             </Box>
                                         </Box>
@@ -240,7 +240,24 @@ const Funcionarios: React.FC = () => {
                                 <TextField fullWidth label="Especialidade" value={formData.especialidade} onChange={(e) => setFormData({ ...formData, especialidade: e.target.value })} />
                             </Grid>
                             <Grid item xs={12}>
-                                <TextField fullWidth label="Custo Diária (R$)" type="number" value={formData.custo_diaria} onChange={(e) => setFormData({ ...formData, custo_diaria: Number(e.target.value) })} />
+                                <TextField
+                                    fullWidth
+                                    label="Custo Diária (R$)"
+                                    type="number"
+                                    value={formData.custo_diaria}
+                                    onChange={(e) => setFormData({ ...formData, custo_diaria: Number(e.target.value) })}
+                                    onFocus={(e) => {
+                                        if (formData.custo_diaria === 0) {
+                                            setFormData({ ...formData, custo_diaria: '' as any });
+                                        }
+                                        e.target.select();
+                                    }}
+                                    onBlur={(e) => {
+                                        if (e.target.value === '') {
+                                            setFormData({ ...formData, custo_diaria: 0 });
+                                        }
+                                    }}
+                                />
                             </Grid>
                         </Grid>
                     </DialogContent>

@@ -212,21 +212,26 @@ router.get('/:id', async (req: Request, res: Response) => {
 router.get('/:id/funcionarios', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const acao = await Acao.findByPk(id, {
+
+        const vinculos = await AcaoFuncionario.findAll({
+            where: { acao_id: id },
             include: [
                 {
                     model: Funcionario,
-                    as: 'funcionarios',
+                    as: 'funcionario',
                 },
             ],
         });
 
-        if (!acao) {
-            res.status(404).json({ error: 'Ação não encontrada' });
-            return;
-        }
+        // Mapear para incluir dados da junção
+        const funcionariosComCusto = vinculos.map((vinculo: any) => ({
+            ...vinculo.funcionario.toJSON(),
+            valor_diaria: vinculo.valor_diaria,
+            dias_trabalhados: vinculo.dias_trabalhados,
+            acao_funcionario_id: vinculo.id,
+        }));
 
-        res.json((acao as any).funcionarios || []);
+        res.json(funcionariosComCusto);
     } catch (error) {
         console.error('Error fetching action employees:', error);
         res.status(500).json({ error: 'Erro ao buscar funcionários da ação' });
@@ -490,7 +495,9 @@ router.post('/:id/funcionarios', authenticate, authorizeAdmin, async (req: Reque
 
         await AcaoFuncionario.create({
             acao_id: id,
-            funcionario_id
+            funcionario_id,
+            valor_diaria: func.custo_diaria,
+            dias_trabalhados: 1
         } as any);
 
         res.status(201).json({ message: 'Funcionário vinculado com sucesso' });
@@ -526,6 +533,46 @@ router.delete('/:id/funcionarios/:funcionarioId', authenticate, authorizeAdmin, 
     } catch (error) {
         console.error('Error unlinking funcionario:', error);
         res.status(500).json({ error: 'Erro ao desvincular funcionário' });
+    }
+});
+
+/**
+ * PUT /api/acoes/:id/funcionarios/:funcionarioId
+ * Atualizar dias trabalhados do funcionário
+ */
+router.put('/:id/funcionarios/:funcionarioId', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+    try {
+        const { id, funcionarioId } = req.params;
+        const { dias_trabalhados } = req.body;
+
+        // Validação
+        if (!dias_trabalhados || dias_trabalhados < 1) {
+            res.status(400).json({ error: 'Dias trabalhados deve ser maior ou igual a 1' });
+            return;
+        }
+
+        if (!Number.isInteger(Number(dias_trabalhados))) {
+            res.status(400).json({ error: 'Dias trabalhados deve ser um número inteiro' });
+            return;
+        }
+
+        const link = await AcaoFuncionario.findOne({
+            where: {
+                acao_id: id,
+                funcionario_id: funcionarioId
+            }
+        });
+
+        if (!link) {
+            res.status(404).json({ error: 'Vínculo não encontrado' });
+            return;
+        }
+
+        await link.update({ dias_trabalhados: Number(dias_trabalhados) });
+        res.json({ message: 'Dias trabalhados atualizado com sucesso', data: link });
+    } catch (error) {
+        console.error('Error updating dias_trabalhados:', error);
+        res.status(500).json({ error: 'Erro ao atualizar dias trabalhados' });
     }
 });
 

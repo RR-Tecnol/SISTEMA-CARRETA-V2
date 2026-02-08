@@ -68,6 +68,7 @@ const ContasPagar = () => {
     const [showFilters, setShowFilters] = useState(false);
     const [showModal, setShowModal] = useState(false);
     const [editingConta, setEditingConta] = useState<ContaPagar | null>(null);
+    const [acoes, setAcoes] = useState<Array<{ id: string; nome: string }>>([]);
 
     // Filtros
     const [filterTipo, setFilterTipo] = useState('');
@@ -140,9 +141,25 @@ const ContasPagar = () => {
         }
     }, [enqueueSnackbar]);
 
+    const fetchAcoes = useCallback(async () => {
+        try {
+            const response = await api.get('/acoes');
+            // A API retorna formato diferente com/sem paginação
+            // Com paginação: { acoes: [...], pagination: {...} }
+            // Sem paginação: [...]
+            const acoesData = Array.isArray(response.data)
+                ? response.data
+                : (Array.isArray(response.data.acoes) ? response.data.acoes : []);
+            setAcoes(acoesData.map((acao: any) => ({ id: acao.id, nome: acao.nome })));
+        } catch (error: any) {
+            console.error('Erro ao carregar ações:', error);
+        }
+    }, []);
+
     useEffect(() => {
         fetchContas();
-    }, [fetchContas]);
+        fetchAcoes();
+    }, [fetchContas, fetchAcoes]);
 
     const filteredContas = contas.filter((conta) => {
         const matchesSearch = conta.descricao.toLowerCase().includes(searchTerm.toLowerCase());
@@ -911,8 +928,13 @@ const ContasPagar = () => {
                                     fullWidth
                                     label="Valor (R$)"
                                     type="number"
-                                    value={formData.valor}
-                                    onChange={(e) => setFormData({ ...formData, valor: Number(e.target.value) })}
+                                    value={formData.valor || ''}
+                                    onChange={(e) => setFormData({ ...formData, valor: Number(e.target.value) || 0 })}
+                                    onFocus={() => {
+                                        if (formData.valor === 0) {
+                                            setFormData({ ...formData, valor: '' as any });
+                                        }
+                                    }}
                                     InputProps={{
                                         startAdornment: (
                                             <InputAdornment position="start">
@@ -938,6 +960,27 @@ const ContasPagar = () => {
                                         ),
                                     }}
                                 />
+                            </Grid>
+
+                            {/* Vincular a Ação (opcional) */}
+                            <Grid item xs={12}>
+                                <TextField
+                                    select
+                                    fullWidth
+                                    label="Vincular a Ação (opcional)"
+                                    value={formData.acao_id}
+                                    onChange={(e) => setFormData({ ...formData, acao_id: e.target.value })}
+                                    helperText="Vincule esta conta a uma ação específica para rastreamento de custos"
+                                >
+                                    <MenuItem value="">
+                                        <em>Nenhuma ação</em>
+                                    </MenuItem>
+                                    {acoes.map((acao) => (
+                                        <MenuItem key={acao.id} value={acao.id}>
+                                            {acao.nome}
+                                        </MenuItem>
+                                    ))}
+                                </TextField>
                             </Grid>
 
                             {/* Cidade e Status */}

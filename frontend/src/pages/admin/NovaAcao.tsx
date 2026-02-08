@@ -19,7 +19,6 @@ import {
     X,
     Save,
     ArrowLeft,
-    GraduationCap,
     Activity,
     Users,
     Trash2,
@@ -59,7 +58,7 @@ const NovaAcao = () => {
     const [formData, setFormData] = useState({
         nome: '',
         instituicao_id: '',
-        tipo: 'curso' as 'curso' | 'saude',
+        tipo: 'saude' as 'saude',
         municipio: '',
         estado: '',
         data_inicio: '',
@@ -86,15 +85,14 @@ const NovaAcao = () => {
         }
     }, [enqueueSnackbar]);
 
-    const loadCursosExames = useCallback(async (tipo: 'curso' | 'saude') => {
+    const loadCursosExames = useCallback(async () => {
         try {
             setLoadingCursosExames(true);
-            const tipoParam = tipo === 'curso' ? 'curso' : 'exame';
-            const response = await api.get(`/cursos-exames?tipo=${tipoParam}`);
+            const response = await api.get('/cursos-exames?tipo=exame');
             setCursosExames(response.data);
         } catch (error: any) {
             enqueueSnackbar(
-                error.response?.data?.error || 'Erro ao carregar cursos/exames',
+                error.response?.data?.error || 'Erro ao carregar exames',
                 { variant: 'error' }
             );
         } finally {
@@ -107,10 +105,8 @@ const NovaAcao = () => {
     }, [loadInstituicoes]);
 
     useEffect(() => {
-        if (formData.tipo) {
-            loadCursosExames(formData.tipo);
-        }
-    }, [formData.tipo, loadCursosExames]);
+        loadCursosExames();
+    }, [loadCursosExames]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -118,10 +114,6 @@ const NovaAcao = () => {
             ...formData,
             [name]: name === 'vagas_disponiveis' ? parseInt(value) || 0 : value,
         });
-
-        if (name === 'tipo') {
-            setCursosExamesSelecionados([]);
-        }
     };
 
     const handleAddCursoExame = () => {
@@ -154,7 +146,7 @@ const NovaAcao = () => {
         }
 
         if (cursosExamesSelecionados.length === 0) {
-            enqueueSnackbar('Selecione pelo menos um curso/exame', { variant: 'error' });
+            enqueueSnackbar('Selecione pelo menos um exame', { variant: 'error' });
             return;
         }
 
@@ -265,10 +257,10 @@ const NovaAcao = () => {
                                 mb: 0.5,
                             }}
                         >
-                            Nova Ação
+                            Nova Ação de Saúde
                         </Typography>
                         <Typography sx={{ color: systemTruckTheme.colors.textSecondary }}>
-                            Cadastre uma nova ação de curso ou saúde
+                            Cadastre uma nova ação de exames de saúde
                         </Typography>
                     </Box>
                 </motion.div>
@@ -340,27 +332,7 @@ const NovaAcao = () => {
                                             </TextField>
                                         </Grid>
 
-                                        <Grid item xs={12} sm={6}>
-                                            <TextField
-                                                required
-                                                select
-                                                fullWidth
-                                                label="Tipo"
-                                                name="tipo"
-                                                value={formData.tipo}
-                                                onChange={handleChange}
-                                                sx={{
-                                                    '& .MuiOutlinedInput-root': {
-                                                        borderRadius: systemTruckTheme.borderRadius.medium,
-                                                    },
-                                                }}
-                                            >
-                                                <MenuItem value="curso">Curso</MenuItem>
-                                                <MenuItem value="saude">Saúde</MenuItem>
-                                            </TextField>
-                                        </Grid>
-
-                                        <Grid item xs={12} sm={6}>
+                                        <Grid item xs={12}>
                                             <TextField
                                                 required
                                                 select
@@ -403,13 +375,9 @@ const NovaAcao = () => {
                                 >
                                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                            {formData.tipo === 'curso' ? (
-                                                <GraduationCap size={24} color={systemTruckTheme.colors.primary} />
-                                            ) : (
-                                                <Activity size={24} color={systemTruckTheme.colors.primary} />
-                                            )}
+                                            <Activity size={24} color={systemTruckTheme.colors.primary} />
                                             <Typography variant="h6" sx={{ fontWeight: 700, color: systemTruckTheme.colors.primaryDark }}>
-                                                {formData.tipo === 'curso' ? 'Cursos Oferecidos' : 'Exames Oferecidos'}
+                                                Exames Oferecidos
                                             </Typography>
                                         </Box>
                                         <Button
@@ -428,7 +396,7 @@ const NovaAcao = () => {
                                                 },
                                             }}
                                         >
-                                            Adicionar {formData.tipo === 'curso' ? 'Curso' : 'Exame'}
+                                            Adicionar Exame
                                         </Button>
                                     </Box>
 
@@ -436,10 +404,10 @@ const NovaAcao = () => {
                                         <Box sx={{ textAlign: 'center', py: 4 }}>
                                             <Users size={48} color={systemTruckTheme.colors.textLight} style={{ marginBottom: 16 }} />
                                             <Typography sx={{ color: systemTruckTheme.colors.textSecondary }}>
-                                                Nenhum {formData.tipo === 'curso' ? 'curso' : 'exame'} adicionado ainda.
+                                                Nenhum exame adicionado ainda.
                                             </Typography>
                                             <Typography sx={{ color: systemTruckTheme.colors.textLight, fontSize: '0.875rem' }}>
-                                                Clique em "Adicionar" para começar.
+                                                Clique em "Adicionar Exame" para começar.
                                             </Typography>
                                         </Box>
                                     ) : (
@@ -467,7 +435,7 @@ const NovaAcao = () => {
                                                                             required
                                                                             select
                                                                             fullWidth
-                                                                            label={formData.tipo === 'curso' ? 'Curso' : 'Exame'}
+                                                                            label="Exame"
                                                                             value={item.curso_exame_id}
                                                                             onChange={(e) => handleCursoExameChange(index, 'curso_exame_id', e.target.value)}
                                                                             disabled={loadingCursosExames}
@@ -496,8 +464,13 @@ const NovaAcao = () => {
                                                                             fullWidth
                                                                             type="number"
                                                                             label="Vagas"
-                                                                            value={item.vagas}
+                                                                            value={item.vagas || ''}
                                                                             onChange={(e) => handleCursoExameChange(index, 'vagas', e.target.value)}
+                                                                            onFocus={() => {
+                                                                                if (item.vagas === 0) {
+                                                                                    handleCursoExameChange(index, 'vagas', '');
+                                                                                }
+                                                                            }}
                                                                             inputProps={{ min: 0 }}
                                                                             sx={{
                                                                                 '& .MuiOutlinedInput-root': {
@@ -659,8 +632,13 @@ const NovaAcao = () => {
                                                 type="number"
                                                 label="Vagas Disponíveis"
                                                 name="vagas_disponiveis"
-                                                value={formData.vagas_disponiveis}
+                                                value={formData.vagas_disponiveis || ''}
                                                 onChange={handleChange}
+                                                onFocus={() => {
+                                                    if (formData.vagas_disponiveis === 0) {
+                                                        setFormData({ ...formData, vagas_disponiveis: '' as any });
+                                                    }
+                                                }}
                                                 inputProps={{ min: 0 }}
                                                 sx={{
                                                     '& .MuiOutlinedInput-root': {
@@ -676,9 +654,13 @@ const NovaAcao = () => {
                                                 type="number"
                                                 label="Distância (km)"
                                                 name="distancia_km"
-                                                value={formData.distancia_km}
+                                                value={formData.distancia_km || ''}
                                                 onChange={(e) => setFormData({ ...formData, distancia_km: e.target.value === '' ? 0 : parseFloat(e.target.value) })}
-                                                onFocus={e => e.target.select()}
+                                                onFocus={() => {
+                                                    if (formData.distancia_km === 0) {
+                                                        setFormData({ ...formData, distancia_km: '' as any });
+                                                    }
+                                                }}
                                                 inputProps={{ min: 0 }}
                                                 sx={{
                                                     '& .MuiOutlinedInput-root': {
@@ -694,9 +676,13 @@ const NovaAcao = () => {
                                                 type="number"
                                                 label="Preço Combustível (R$/L)"
                                                 name="preco_combustivel_referencia"
-                                                value={formData.preco_combustivel_referencia}
+                                                value={formData.preco_combustivel_referencia || ''}
                                                 onChange={(e) => setFormData({ ...formData, preco_combustivel_referencia: e.target.value === '' ? 0 : parseFloat(e.target.value) })}
-                                                onFocus={e => e.target.select()}
+                                                onFocus={() => {
+                                                    if (formData.preco_combustivel_referencia === 0) {
+                                                        setFormData({ ...formData, preco_combustivel_referencia: '' as any });
+                                                    }
+                                                }}
                                                 inputProps={{ step: "0.01", min: 0 }}
                                                 sx={{
                                                     '& .MuiOutlinedInput-root': {

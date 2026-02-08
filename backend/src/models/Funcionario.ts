@@ -5,18 +5,24 @@ export interface FuncionarioAttributes {
     id: string;
     nome: string;
     cargo: string;
+    cpf?: string;
+    telefone?: string;
+    email?: string;
     especialidade?: string;
-    custo_diario: number;
-    status: 'ativo' | 'inativo';
+    custo_diaria: number;
+    ativo: boolean;
 }
 
 export class Funcionario extends Model<FuncionarioAttributes> implements FuncionarioAttributes {
     public id!: string;
     public nome!: string;
     public cargo!: string;
+    public cpf?: string;
+    public telefone?: string;
+    public email?: string;
     public especialidade?: string;
-    public custo_diario!: number;
-    public status!: 'ativo' | 'inativo';
+    public custo_diaria!: number;
+    public ativo!: boolean;
 
     public readonly created_at!: Date;
     public readonly updated_at!: Date;
@@ -37,22 +43,31 @@ Funcionario.init(
             type: DataTypes.STRING,
             allowNull: false,
         },
+        cpf: {
+            type: DataTypes.STRING,
+            allowNull: true,
+        },
+        telefone: {
+            type: DataTypes.STRING,
+            allowNull: true,
+        },
+        email: {
+            type: DataTypes.STRING,
+            allowNull: true,
+        },
         especialidade: {
             type: DataTypes.STRING,
             allowNull: true,
         },
-        custo_diario: {
+        custo_diaria: {
             type: DataTypes.DECIMAL(10, 2),
             allowNull: false,
             defaultValue: 0.00,
         },
-        status: {
-            type: DataTypes.STRING,
+        ativo: {
+            type: DataTypes.BOOLEAN,
             allowNull: false,
-            defaultValue: 'ativo',
-            validate: {
-                isIn: [['ativo', 'inativo']],
-            },
+            defaultValue: true,
         },
     },
     {

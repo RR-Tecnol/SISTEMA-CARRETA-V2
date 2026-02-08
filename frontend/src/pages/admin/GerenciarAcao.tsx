@@ -180,9 +180,9 @@ const GerenciarAcao = () => {
     const loadFuncionariosDisponiveis = useCallback(async () => {
         try {
             const response = await api.get('/funcionarios');
-            setFuncionariosDisponiveis(response.data.filter((f: any) => f.status === 'ativo'));
+            setFuncionariosDisponiveis(response.data.filter((f: any) => f.ativo === true));
         } catch (error: any) {
-            enqueueSnackbar('Erro ao carregar funcionários dispon�veis', { variant: 'error' });
+            enqueueSnackbar('Erro ao carregar funcionários disponíveis', { variant: 'error' });
         }
     }, [enqueueSnackbar]);
 
@@ -1618,7 +1618,7 @@ const GerenciarAcao = () => {
                                     </Grid>
                                     <Grid item xs={12} sm={6} md={3}>
                                         <Typography variant="body2" color="text.secondary">
-                                            Custo Estimado Total
+                                            Custo Estimado de Combustível
                                         </Typography>
                                         <Typography variant="h6" color="primary">
                                             R$ {(() => {
@@ -1651,6 +1651,106 @@ const GerenciarAcao = () => {
                                                 return custoEstimado.toFixed(2);
                                             })()}
                                         </Typography>
+                                    </Grid>
+                                    <Grid item xs={12} sm={6} md={3}>
+                                        <Typography variant="body2" color="text.secondary">
+                                            Custo com Funcionários
+                                        </Typography>
+                                        <Typography variant="h6" sx={{ color: '#4682b4', fontWeight: 600 }}>
+                                            R$ {(() => {
+                                                const custoFuncionarios = funcionariosAcao.reduce((total: number, func: any) => {
+                                                    const valorDiaria = Number(func.valor_diaria) || 0;
+                                                    const diasTrabalhados = Number(func.dias_trabalhados) || 1;
+                                                    return total + (valorDiaria * diasTrabalhados);
+                                                }, 0);
+                                                return custoFuncionarios.toFixed(2);
+                                            })()}
+                                        </Typography>
+                                    </Grid>
+                                    <Grid item xs={12}>
+                                        <Box sx={{
+                                            background: 'linear-gradient(135deg, #4682b4 0%, #5b9bd5 100%)',
+                                            borderRadius: '12px',
+                                            p: 3,
+                                            mt: 2,
+                                            boxShadow: '0 4px 12px rgba(70, 130, 180, 0.3)'
+                                        }}>
+                                            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 1 }}>
+                                                Custo Total Estimado da Ação
+                                            </Typography>
+                                            <Typography variant="h4" sx={{ color: '#fff', fontWeight: 700, mb: 2 }}>
+                                                R$ {(() => {
+                                                    // Custo de combustível
+                                                    const distancia = Number(formData.distancia_km) || 0;
+                                                    const precoCombustivel = Number(formData.preco_combustivel_referencia) || 0;
+                                                    let somaAutonomia = 0;
+                                                    let count = 0;
+                                                    caminhoesVinculados.forEach((cv: any) => {
+                                                        const autonomiaValue = cv.autonomia_km_litro || cv.caminhao?.autonomia_km_litro || 0;
+                                                        const autonomia = Number(autonomiaValue);
+                                                        if (!isNaN(autonomia) && autonomia > 0) {
+                                                            somaAutonomia += autonomia;
+                                                            count++;
+                                                        }
+                                                    });
+                                                    const autonomiaMedia = count > 0 ? somaAutonomia / count : 0;
+                                                    const litrosNecessarios = autonomiaMedia > 0 ? distancia / autonomiaMedia : 0;
+                                                    const custoCombustivel = litrosNecessarios * precoCombustivel;
+
+                                                    // Custo de funcionários
+                                                    const custoFuncionarios = funcionariosAcao.reduce((total: number, func: any) => {
+                                                        const valorDiaria = Number(func.valor_diaria) || 0;
+                                                        const diasTrabalhados = Number(func.dias_trabalhados) || 1;
+                                                        return total + (valorDiaria * diasTrabalhados);
+                                                    }, 0);
+
+                                                    const custoTotal = custoCombustivel + custoFuncionarios;
+                                                    return custoTotal.toFixed(2);
+                                                })()}
+                                            </Typography>
+                                            <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+                                                <Box>
+                                                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.8)' }}>
+                                                        • Combustível
+                                                    </Typography>
+                                                    <Typography variant="body2" sx={{ color: '#fff', fontWeight: 600 }}>
+                                                        R$ {(() => {
+                                                            const distancia = Number(formData.distancia_km) || 0;
+                                                            const precoCombustivel = Number(formData.preco_combustivel_referencia) || 0;
+                                                            let somaAutonomia = 0;
+                                                            let count = 0;
+                                                            caminhoesVinculados.forEach((cv: any) => {
+                                                                const autonomiaValue = cv.autonomia_km_litro || cv.caminhao?.autonomia_km_litro || 0;
+                                                                const autonomia = Number(autonomiaValue);
+                                                                if (!isNaN(autonomia) && autonomia > 0) {
+                                                                    somaAutonomia += autonomia;
+                                                                    count++;
+                                                                }
+                                                            });
+                                                            const autonomiaMedia = count > 0 ? somaAutonomia / count : 0;
+                                                            const litrosNecessarios = autonomiaMedia > 0 ? distancia / autonomiaMedia : 0;
+                                                            const custoCombustivel = litrosNecessarios * precoCombustivel;
+                                                            return custoCombustivel.toFixed(2);
+                                                        })()}
+                                                    </Typography>
+                                                </Box>
+                                                <Box>
+                                                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.8)' }}>
+                                                        • Funcionários
+                                                    </Typography>
+                                                    <Typography variant="body2" sx={{ color: '#fff', fontWeight: 600 }}>
+                                                        R$ {(() => {
+                                                            const custoFuncionarios = funcionariosAcao.reduce((total: number, func: any) => {
+                                                                const valorDiaria = Number(func.valor_diaria) || 0;
+                                                                const diasTrabalhados = Number(func.dias_trabalhados) || 1;
+                                                                return total + (valorDiaria * diasTrabalhados);
+                                                            }, 0);
+                                                            return custoFuncionarios.toFixed(2);
+                                                        })()}
+                                                    </Typography>
+                                                </Box>
+                                            </Box>
+                                        </Box>
                                     </Grid>
                                 </Grid>
                                 {caminhoesVinculados.length === 0 && (
@@ -1904,14 +2004,16 @@ const GerenciarAcao = () => {
                                             <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Nome</TableCell>
                                             <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Cargo</TableCell>
                                             <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Especialidade</TableCell>
-                                            <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Custo por Ação</TableCell>
+                                            <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Diária (R$)</TableCell>
+                                            <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Dias Trab.</TableCell>
+                                            <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Custo Total</TableCell>
                                             <TableCell align="center" sx={{ color: '#fff', fontWeight: 600 }}>Ações</TableCell>
                                         </TableRow>
                                     </TableHead>
                                     <TableBody>
                                         {funcionariosAcao.length === 0 ? (
                                             <TableRow>
-                                                <TableCell colSpan={5} align="center">
+                                                <TableCell colSpan={7} align="center">
                                                     Nenhum funcionário atribuído a esta ação
                                                 </TableCell>
                                             </TableRow>
@@ -1921,7 +2023,52 @@ const GerenciarAcao = () => {
                                                     <TableCell>{af.nome || 'N/A'}</TableCell>
                                                     <TableCell>{af.cargo || 'N/A'}</TableCell>
                                                     <TableCell>{af.especialidade || '-'}</TableCell>
-                                                    <TableCell>R$ {Number(af.custo_diario || 0).toFixed(2)}</TableCell>
+                                                    <TableCell>R$ {Number(af.valor_diaria || 0).toFixed(2)}</TableCell>
+                                                    <TableCell>
+                                                        <TextField
+                                                            type="number"
+                                                            size="small"
+                                                            defaultValue={af.dias_trabalhados || 1}
+                                                            onBlur={async (e) => {
+                                                                const newDias = Number(e.target.value);
+                                                                // Se vazio, restaura para 1
+                                                                if (e.target.value === '' || newDias < 1) {
+                                                                    e.target.value = '1';
+                                                                    return;
+                                                                }
+                                                                // Valida se é inteiro
+                                                                if (!Number.isInteger(newDias)) {
+                                                                    enqueueSnackbar('Dias trabalhados deve ser um número inteiro', { variant: 'error' });
+                                                                    e.target.value = String(af.dias_trabalhados || 1);
+                                                                    return;
+                                                                }
+                                                                // Se diferente do valor atual, atualiza
+                                                                if (newDias !== af.dias_trabalhados) {
+                                                                    try {
+                                                                        await api.put(`/acoes/${id}/funcionarios/${af.id}`, {
+                                                                            dias_trabalhados: newDias
+                                                                        });
+                                                                        loadFuncionariosAcao();
+                                                                        enqueueSnackbar('Dias trabalhados atualizado!', { variant: 'success' });
+                                                                    } catch (error: any) {
+                                                                        enqueueSnackbar(error.response?.data?.error || 'Erro ao atualizar', { variant: 'error' });
+                                                                        e.target.value = String(af.dias_trabalhados || 1);
+                                                                    }
+                                                                }
+                                                            }}
+                                                            onKeyDown={(e) => {
+                                                                // Permite Enter para salvar
+                                                                if (e.key === 'Enter') {
+                                                                    e.currentTarget.blur();
+                                                                }
+                                                            }}
+                                                            inputProps={{ min: 1, step: 1 }}
+                                                            sx={{ width: '70px' }}
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell sx={{ fontWeight: 600, color: '#4682b4' }}>
+                                                        R$ {(Number(af.valor_diaria || 0) * Number(af.dias_trabalhados || 1)).toFixed(2)}
+                                                    </TableCell>
                                                     <TableCell align="center">
                                                         <IconButton
                                                             size="small"
@@ -1969,7 +2116,7 @@ const GerenciarAcao = () => {
                                         .filter((f: any) => !funcionariosAcao.some((af: any) => af.funcionario_id === f.id))
                                         .map((f: any) => (
                                             <MenuItem key={f.id} value={f.id}>
-                                                {f.nome} - {f.cargo} (R$ {Number(f.custo_diario || 0).toFixed(2)})
+                                                {f.nome} - {f.cargo} (R$ {Number(f.custo_diaria || 0).toFixed(2)})
                                             </MenuItem>
                                         ))
                                     }
