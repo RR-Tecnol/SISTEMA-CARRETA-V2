@@ -71,7 +71,7 @@ const Estoque: React.FC = () => {
     const [movimentacoesHistorico, setMovimentacoesHistorico] = useState<any[]>([]);
     const [modoEdicao, setModoEdicao] = useState(false);
     const [tabAtual, setTabAtual] = useState(0); // 0 = Estoque Central, 1 = Estoque por Caminhão
-    const [estoquePorCaminhao, setEstoquePorCaminhao] = useState<any[]>([]);
+    const [_estoquePorCaminhao, setEstoquePorCaminhao] = useState<any[]>([]);
 
     // Estados do formulário de insumo
     const [formInsumo, setFormInsumo] = useState<Partial<Insumo>>({
