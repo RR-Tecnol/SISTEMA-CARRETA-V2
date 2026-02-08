@@ -24,6 +24,10 @@ export interface ContaPagarAttributes {
     comprovante_url?: string;
     recorrente: boolean;
     observacoes?: string;
+    // Campos para relatórios
+    acao_id?: string;
+    cidade?: string;
+    caminhao_id?: string;
 }
 
 export class ContaPagar extends Model<ContaPagarAttributes> implements ContaPagarAttributes {
@@ -38,6 +42,10 @@ export class ContaPagar extends Model<ContaPagarAttributes> implements ContaPaga
     public comprovante_url?: string;
     public recorrente!: boolean;
     public observacoes?: string;
+    // Campos para relatórios
+    public acao_id?: string;
+    public cidade?: string;
+    public caminhao_id?: string;
 
     public readonly created_at!: Date;
     public readonly updated_at!: Date;
@@ -73,11 +81,11 @@ ContaPagar.init(
             allowNull: false,
         },
         data_vencimento: {
-            type: DataTypes.DATE,
+            type: DataTypes.DATEONLY,
             allowNull: false,
         },
         data_pagamento: {
-            type: DataTypes.DATE,
+            type: DataTypes.DATEONLY,
             allowNull: true,
         },
         status: {
@@ -99,6 +107,21 @@ ContaPagar.init(
         observacoes: {
             type: DataTypes.TEXT,
             allowNull: true,
+        },
+        acao_id: {
+            type: DataTypes.UUID,
+            allowNull: true,
+            comment: 'ID da ação relacionada (para relatórios por ação)',
+        },
+        cidade: {
+            type: DataTypes.STRING(100),
+            allowNull: true,
+            comment: 'Cidade onde ocorreu o custo (para relatórios por cidade)',
+        },
+        caminhao_id: {
+            type: DataTypes.UUID,
+            allowNull: true,
+            comment: 'ID do caminhão relacionado (para custos de estrada)',
         },
     },
     {

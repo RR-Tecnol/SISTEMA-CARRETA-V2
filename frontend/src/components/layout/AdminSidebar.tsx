@@ -15,6 +15,8 @@ import {
     X,
     ChevronRight,
     LayoutDashboard,
+    DollarSign,
+    Package,
 } from 'lucide-react';
 import { systemTruckTheme } from '../../theme/systemTruckTheme';
 
@@ -28,6 +30,8 @@ const menuItems: MenuItem[] = [
     { title: 'Dashboard', icon: LayoutDashboard, path: '/admin' },
     { title: 'Relatórios e BI', icon: BarChart3, path: '/admin/relatorios' },
     { title: 'Ações', icon: Activity, path: '/admin/acoes' },
+    { title: 'Contas a Pagar', icon: DollarSign, path: '/admin/contas-pagar' },
+    { title: 'Estoque', icon: Package, path: '/admin/estoque' },
     { title: 'Instituições', icon: Building2, path: '/admin/instituicoes' },
     { title: 'Caminhões', icon: Truck, path: '/admin/caminhoes' },
     { title: 'Funcionários', icon: Users, path: '/admin/funcionarios' },
@@ -171,25 +175,26 @@ export const AdminSidebar: React.FC = () => {
                             >
                                 System Truck
                             </Box>
-                            <Box sx={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.9)', fontWeight: 500, mb: 1 }}>
-                                Sistema de Gestão
-                            </Box>
                             <Box
                                 sx={{
-                                    fontSize: '0.65rem',
-                                    color: 'rgba(255,255,255,0.7)',
-                                    fontWeight: 400,
+                                    fontSize: '0.5rem',
+                                    color: 'rgba(255,255,255,0.4)',
+                                    fontWeight: 300,
                                     fontStyle: 'italic',
-                                    letterSpacing: '0.3px',
-                                    mt: 0.5,
-                                    opacity: 0.85,
+                                    letterSpacing: '0.8px',
+                                    mb: 1,
+                                    opacity: 0.6,
+                                    textAlign: 'right',
                                     transition: 'opacity 0.3s ease',
                                     '&:hover': {
-                                        opacity: 1
+                                        opacity: 0.85
                                     }
                                 }}
                             >
                                 Developed by RR Tecnol
+                            </Box>
+                            <Box sx={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.9)', fontWeight: 500 }}>
+                                Sistema de Gestão
                             </Box>
                         </Box>
                     </motion.div>
@@ -220,8 +225,8 @@ export const AdminSidebar: React.FC = () => {
                                         display: 'flex',
                                         alignItems: 'center',
                                         gap: 2,
-                                        p: 1.5,
-                                        mb: 0.5,
+                                        p: 1,
+                                        mb: 0.75,
                                         borderRadius: systemTruckTheme.borderRadius.medium,
                                         cursor: 'pointer',
                                         position: 'relative',
@@ -253,17 +258,17 @@ export const AdminSidebar: React.FC = () => {
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',
-                                            width: 40,
-                                            height: 40,
+                                            width: 32,
+                                            height: 32,
                                             borderRadius: systemTruckTheme.borderRadius.small,
                                             background: active ? 'rgba(255,255,255,0.2)' : systemTruckTheme.colors.cardHover,
                                             transition: 'all 0.3s ease',
                                         }}
                                     >
-                                        <Icon size={20} />
+                                        <Icon size={18} />
                                     </Box>
 
-                                    <Box sx={{ flex: 1, fontSize: '0.95rem' }}>{item.title}</Box>
+                                    <Box sx={{ flex: 1, fontSize: '0.9rem' }}>{item.title}</Box>
 
                                     {active && (
                                         <motion.div

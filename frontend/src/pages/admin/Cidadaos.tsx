@@ -199,7 +199,7 @@ const Cidadaos: React.FC = () => {
                                 const sequentialId = (page - 1) * 12 + index + 1;
 
                                 return (
-                                    <Grid item xs={12} sm={6} md={4} key={cidadao.id}>
+                                    <Grid item xs={12} sm={6} md={3} key={cidadao.id}>
                                         <motion.div
                                             initial={{ opacity: 0, y: 20 }}
                                             animate={{ opacity: 1, y: 0 }}
@@ -212,7 +212,7 @@ const Cidadaos: React.FC = () => {
                                                     background: systemTruckTheme.colors.cardBackground,
                                                     borderRadius: systemTruckTheme.borderRadius.large,
                                                     border: `1px solid ${systemTruckTheme.colors.border}`,
-                                                    p: 3,
+                                                    p: 2,
                                                     height: '100%',
                                                     transition: 'all 0.3s ease',
                                                     boxShadow: systemTruckTheme.shadows.card,
@@ -224,21 +224,21 @@ const Cidadaos: React.FC = () => {
                                                 }}
                                             >
                                                 {/* Header with Avatar and ID */}
-                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
                                                     <Avatar
                                                         src={cidadao.foto_perfil ? `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${cidadao.foto_perfil}` : undefined}
                                                         sx={{
-                                                            width: 56,
-                                                            height: 56,
+                                                            width: 44,
+                                                            height: 44,
                                                             background: systemTruckTheme.gradients.primary,
-                                                            fontSize: '1.2rem',
+                                                            fontSize: '1rem',
                                                             fontWeight: 700,
                                                         }}
                                                     >
                                                         {!cidadao.foto_perfil && getInitials(cidadao.nome_completo)}
                                                     </Avatar>
                                                     <Box sx={{ flex: 1 }}>
-                                                        <Typography variant="h6" sx={{ color: systemTruckTheme.colors.text, fontWeight: 700, fontSize: '1rem' }}>
+                                                        <Typography variant="h6" sx={{ color: systemTruckTheme.colors.text, fontWeight: 700, fontSize: '0.9rem' }}>
                                                             {cidadao.nome_completo}
                                                         </Typography>
                                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
@@ -255,7 +255,7 @@ const Cidadaos: React.FC = () => {
                                                     label={cidadao.cpf}
                                                     size="small"
                                                     sx={{
-                                                        mb: 2,
+                                                        mb: 1.5,
                                                         background: systemTruckTheme.colors.cardHover,
                                                         color: systemTruckTheme.colors.text,
                                                         fontWeight: 600,
@@ -264,10 +264,10 @@ const Cidadaos: React.FC = () => {
                                                 />
 
                                                 {/* Contact Info */}
-                                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 2 }}>
+                                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75, mb: 1.5 }}>
                                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                                         <Phone size={16} color={systemTruckTheme.colors.primary} />
-                                                        <Typography sx={{ color: systemTruckTheme.colors.textSecondary, fontSize: '0.85rem', fontWeight: 700 }}>
+                                                        <Typography sx={{ color: systemTruckTheme.colors.textSecondary, fontSize: '0.8rem', fontWeight: 700 }}>
                                                             {cidadao.telefone || 'Não informado'}
                                                         </Typography>
                                                     </Box>
@@ -276,7 +276,7 @@ const Cidadaos: React.FC = () => {
                                                         <Typography
                                                             sx={{
                                                                 color: systemTruckTheme.colors.textSecondary,
-                                                                fontSize: '0.85rem',
+                                                                fontSize: '0.8rem',
                                                                 fontWeight: 700,
                                                                 overflow: 'hidden',
                                                                 textOverflow: 'ellipsis',
@@ -288,14 +288,14 @@ const Cidadaos: React.FC = () => {
                                                     </Box>
                                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                                         <MapPin size={16} color={systemTruckTheme.colors.primary} />
-                                                        <Typography sx={{ color: systemTruckTheme.colors.textSecondary, fontSize: '0.85rem', fontWeight: 700 }}>
+                                                        <Typography sx={{ color: systemTruckTheme.colors.textSecondary, fontSize: '0.8rem', fontWeight: 700 }}>
                                                             {cidadao.municipio}/{cidadao.estado}
                                                         </Typography>
                                                     </Box>
                                                 </Box>
 
                                                 {/* Actions */}
-                                                <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+                                                <Box sx={{ display: 'flex', gap: 1, mt: 1.5 }}>
                                                     <Button
                                                         fullWidth
                                                         variant="outlined"
@@ -368,7 +368,7 @@ const Cidadaos: React.FC = () => {
             <Dialog
                 open={detailsOpen}
                 onClose={() => setDetailsOpen(false)}
-                maxWidth="md"
+                maxWidth="sm"
                 fullWidth
                 PaperProps={{
                     sx: {

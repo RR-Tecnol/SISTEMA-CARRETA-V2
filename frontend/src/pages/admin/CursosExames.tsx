@@ -193,7 +193,7 @@ const ExamesSaude: React.FC = () => {
                             </Grid>
                         ) : (
                             filteredExames.map((exame, index) => (
-                                <Grid item xs={12} sm={6} md={4} lg={3} key={exame.id}>
+                                <Grid item xs={12} sm={6} md={4} lg={2.4} key={exame.id}>
                                     <motion.div
                                         initial={{ opacity: 0, y: 20 }}
                                         animate={{ opacity: 1, y: 0 }}
@@ -207,7 +207,7 @@ const ExamesSaude: React.FC = () => {
                                                 backdropFilter: 'blur(20px)',
                                                 borderRadius: '20px',
                                                 border: '2px solid rgba(255, 255, 255, 0.3)',
-                                                p: 3,
+                                                p: 2,
                                                 height: '100%',
                                                 transition: 'all 0.3s ease',
                                                 boxShadow: '0 10px 40px rgba(17, 153, 142, 0.3)',
@@ -236,14 +236,14 @@ const ExamesSaude: React.FC = () => {
                                                     }}
                                                     sx={{
                                                         display: 'inline-flex',
-                                                        padding: 2.5,
+                                                        padding: 1.8,
                                                         borderRadius: '18px',
                                                         background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
                                                         boxShadow: '0 4px 20px rgba(17, 153, 142, 0.3)',
                                                         border: '2px solid rgba(17, 153, 142, 0.2)',
                                                     }}
                                                 >
-                                                    <Activity size={28} color="#11998e" strokeWidth={2.5} />
+                                                    <Activity size={22} color="#11998e" strokeWidth={2.5} />
                                                 </Box>
                                                 <Box sx={{ display: 'flex', gap: 0.5 }}>
                                                     <IconButton
@@ -274,7 +274,7 @@ const ExamesSaude: React.FC = () => {
                                                 </Box>
                                             </Box>
 
-                                            <Typography variant="h6" sx={{ color: '#ffffff', fontWeight: 700, mb: 2, textShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+                                            <Typography variant="h6" sx={{ color: '#ffffff', fontWeight: 700, mb: 1.5, fontSize: '1rem', textShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
                                                 {exame.nome}
                                             </Typography>
 

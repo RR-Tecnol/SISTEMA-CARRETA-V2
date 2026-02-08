@@ -62,7 +62,7 @@ Caminhao.init(
             allowNull: false,
             defaultValue: 'disponivel',
             validate: {
-                isIn: [['disponivel', 'em_uso', 'manutencao']],
+                isIn: [['disponivel', 'em_manutencao', 'em_acao']],
             },
         },
     },

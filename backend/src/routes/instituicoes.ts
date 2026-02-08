@@ -11,12 +11,25 @@ const router = Router();
 router.get('/', authenticate, authorizeAdmin, async (_req: Request, res: Response) => {
     try {
         const instituicoes = await Instituicao.findAll({
-            attributes: ['id', 'razao_social', 'cnpj', 'responsavel_nome', 'responsavel_email', 'responsavel_tel', 'created_at'],
             where: { ativo: true },
             order: [['razao_social', 'ASC']],
         });
 
-        res.json(instituicoes);
+        // Mapear campos para o formato esperado pelo frontend
+        const instituicoesFormatadas = instituicoes.map(inst => ({
+            id: inst.id,
+            razao_social: inst.razao_social,
+            cnpj: inst.cnpj,
+            responsavel: inst.responsavel_nome,
+            telefone: inst.responsavel_tel,
+            email: inst.responsavel_email,
+            endereco: inst.endereco_completo,
+            // Extrair cidade e estado do endereço completo (formato: "Rua X, Cidade/UF")
+            cidade: inst.endereco_completo?.split(',').pop()?.split('/')[0]?.trim() || '',
+            estado: inst.endereco_completo?.split('/').pop()?.trim() || '',
+        }));
+
+        res.json(instituicoesFormatadas);
     } catch (error) {
         console.error('Error fetching instituicoes:', error);
         res.status(500).json({ error: 'Erro ao buscar instituições' });

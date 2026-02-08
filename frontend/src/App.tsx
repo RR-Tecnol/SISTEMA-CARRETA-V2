@@ -29,6 +29,8 @@ import CursosExames from './pages/admin/CursosExames';
 import Cidadaos from './pages/admin/Cidadaos';
 import Inscricoes from './pages/admin/Inscricoes';
 import MeuPerfilAdmin from './pages/admin/MeuPerfil';
+import ContasPagar from './pages/admin/ContasPagar';
+import Estoque from './pages/admin/Estoque';
 
 // Layout
 import PublicLayout from './components/layout/PublicLayout';
@@ -72,6 +74,8 @@ function App() {
                 <Route path="cursos-exames" element={<CursosExames />} />
                 <Route path="cidadaos" element={<Cidadaos />} />
                 <Route path="inscricoes" element={<Inscricoes />} />
+                <Route path="contas-pagar" element={<ContasPagar />} />
+                <Route path="estoque" element={<Estoque />} />
             </Route>
         </Routes>
     );

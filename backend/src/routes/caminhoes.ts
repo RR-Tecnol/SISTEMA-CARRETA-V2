@@ -11,6 +11,7 @@ const caminhaoSchema = Joi.object({
     modelo: Joi.string().required(),
     ano: Joi.number().integer().min(1900).max(new Date().getFullYear() + 1).required(),
     autonomia_km_litro: Joi.number().precision(2).min(0).required(),
+    capacidade_litros: Joi.number().integer().min(0).required(),
     status: Joi.string().valid('disponivel', 'em_manutencao', 'em_acao').optional(),
 });
 
@@ -20,6 +21,7 @@ const updateCaminhaoSchema = Joi.object({
     modelo: Joi.string().optional(),
     ano: Joi.number().integer().min(1900).max(new Date().getFullYear() + 1).optional(),
     autonomia_km_litro: Joi.number().precision(2).min(0).optional(),
+    capacidade_litros: Joi.number().integer().min(0).optional(),
     status: Joi.string().valid('disponivel', 'em_manutencao', 'em_acao').optional(),
 });
 

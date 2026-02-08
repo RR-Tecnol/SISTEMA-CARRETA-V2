@@ -11,8 +11,9 @@ interface Caminhao {
     placa: string;
     modelo: string;
     ano: number;
-    capacidade: number;
-    status: 'disponivel' | 'em_uso' | 'manutencao';
+    autonomia_km_litro: number;
+    capacidade_litros: number;
+    status: 'disponivel' | 'em_manutencao' | 'em_acao';
 }
 
 const Caminhoes: React.FC = () => {
@@ -22,7 +23,7 @@ const Caminhoes: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [openDialog, setOpenDialog] = useState(false);
     const [editingCaminhao, setEditingCaminhao] = useState<Caminhao | null>(null);
-    const [formData, setFormData] = useState<{ placa: string; modelo: string; ano: number; capacidade: number; status: 'disponivel' | 'em_uso' | 'manutencao' }>({ placa: '', modelo: '', ano: new Date().getFullYear(), capacidade: 0, status: 'disponivel' });
+    const [formData, setFormData] = useState<{ placa: string; modelo: string; ano: number; autonomia_km_litro: number; capacidade_litros: number; status: 'disponivel' | 'em_manutencao' | 'em_acao' }>({ placa: '', modelo: '', ano: new Date().getFullYear(), autonomia_km_litro: 0, capacidade_litros: 0, status: 'disponivel' });
 
     useEffect(() => {
         fetchCaminhoes();
@@ -42,10 +43,10 @@ const Caminhoes: React.FC = () => {
     const handleOpenDialog = (caminhao?: Caminhao) => {
         if (caminhao) {
             setEditingCaminhao(caminhao);
-            setFormData({ placa: caminhao.placa, modelo: caminhao.modelo, ano: caminhao.ano, capacidade: caminhao.capacidade, status: caminhao.status });
+            setFormData({ placa: caminhao.placa, modelo: caminhao.modelo, ano: caminhao.ano, autonomia_km_litro: caminhao.autonomia_km_litro, capacidade_litros: caminhao.capacidade_litros, status: caminhao.status });
         } else {
             setEditingCaminhao(null);
-            setFormData({ placa: '', modelo: '', ano: new Date().getFullYear(), capacidade: 0, status: 'disponivel' });
+            setFormData({ placa: '', modelo: '', ano: new Date().getFullYear(), autonomia_km_litro: 0, capacidade_litros: 0, status: 'disponivel' });
         }
         setOpenDialog(true);
     };
@@ -74,8 +75,8 @@ const Caminhoes: React.FC = () => {
     const getStatusConfig = (status: string) => {
         switch (status) {
             case 'disponivel': return { label: 'Disponível', color: expressoTheme.colors.success, icon: CheckCircle };
-            case 'em_uso': return { label: 'Em Uso', color: expressoTheme.colors.warning, icon: Truck };
-            case 'manutencao': return { label: 'Manutenção', color: expressoTheme.colors.danger, icon: XCircle };
+            case 'em_acao': return { label: 'Em Ação', color: expressoTheme.colors.warning, icon: Truck };
+            case 'em_manutencao': return { label: 'Manutenção', color: expressoTheme.colors.danger, icon: XCircle };
             default: return { label: status, color: expressoTheme.colors.textSecondary, icon: Truck };
         }
     };
@@ -154,7 +155,7 @@ const Caminhoes: React.FC = () => {
                             const statusConfig = getStatusConfig(caminhao.status);
                             const StatusIcon = statusConfig.icon;
                             return (
-                                <Grid item xs={12} sm={6} md={4} key={caminhao.id}>
+                                <Grid item xs={12} sm={6} md={3} key={caminhao.id}>
                                     <motion.div
                                         initial={{ opacity: 0, y: 20 }}
                                         animate={{ opacity: 1, y: 0 }}
@@ -167,7 +168,7 @@ const Caminhoes: React.FC = () => {
                                                 background: expressoTheme.colors.cardBackground,
                                                 borderRadius: expressoTheme.borderRadius.large,
                                                 border: `1px solid ${expressoTheme.colors.border}`,
-                                                p: 3,
+                                                p: 2,
                                                 height: '100%',
                                                 transition: 'all 0.3s ease',
                                                 boxShadow: expressoTheme.shadows.card,
@@ -178,10 +179,21 @@ const Caminhoes: React.FC = () => {
                                                 },
                                             }}
                                         >
-                                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 2 }}>
-                                                <Box sx={{ display: 'inline-flex', padding: 1.5, borderRadius: expressoTheme.borderRadius.medium, background: expressoTheme.gradients.primary, boxShadow: expressoTheme.shadows.button }}>
-                                                    <Truck size={24} color="white" />
-                                                </Box>
+                                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 1.5 }}>
+                                                <motion.div
+                                                    animate={{
+                                                        scale: [1, 1.1, 1],
+                                                    }}
+                                                    transition={{
+                                                        duration: 2,
+                                                        repeat: Infinity,
+                                                        ease: "easeInOut"
+                                                    }}
+                                                >
+                                                    <Box sx={{ display: 'inline-flex', padding: 1, borderRadius: expressoTheme.borderRadius.medium, background: expressoTheme.gradients.primary, boxShadow: expressoTheme.shadows.button }}>
+                                                        <Truck size={20} color="white" />
+                                                    </Box>
+                                                </motion.div>
                                                 <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
                                                     <Chip
                                                         icon={<StatusIcon size={16} />}
@@ -199,16 +211,16 @@ const Caminhoes: React.FC = () => {
                                                 </Box>
                                             </Box>
 
-                                            <Typography variant="h6" sx={{ color: expressoTheme.colors.text, fontWeight: 700, mb: 0.5 }}>
+                                            <Typography variant="h6" sx={{ color: expressoTheme.colors.text, fontWeight: 700, mb: 0.5, fontSize: '1rem' }}>
                                                 {caminhao.placa}
                                             </Typography>
 
-                                            <Typography sx={{ color: expressoTheme.colors.textSecondary, fontSize: '0.9rem', mb: 1 }}>
+                                            <Typography sx={{ color: expressoTheme.colors.textSecondary, fontSize: '0.85rem', mb: 0.5 }}>
                                                 {caminhao.modelo} - {caminhao.ano}
                                             </Typography>
 
-                                            <Typography sx={{ color: expressoTheme.colors.textSecondary, fontSize: '0.85rem' }}>
-                                                Capacidade: {caminhao.capacidade} kg
+                                            <Typography sx={{ color: expressoTheme.colors.textSecondary, fontSize: '0.8rem' }}>
+                                                Autonomia: {caminhao.autonomia_km_litro} km/l | Tanque: {caminhao.capacidade_litros}L
                                             </Typography>
                                         </Box>
                                     </motion.div>
@@ -222,8 +234,8 @@ const Caminhoes: React.FC = () => {
                     <DialogTitle sx={{ background: expressoTheme.gradients.primary, color: 'white', fontWeight: 700 }}>
                         {editingCaminhao ? 'Editar Caminhão' : 'Novo Caminhão'}
                     </DialogTitle>
-                    <DialogContent sx={{ mt: 3 }}>
-                        <Grid container spacing={2}>
+                    <DialogContent sx={{ pt: 3 }}>
+                        <Grid container spacing={2} sx={{ mt: 1 }}>
                             <Grid item xs={12}>
                                 <TextField fullWidth label="Placa" value={formData.placa} onChange={(e) => setFormData({ ...formData, placa: e.target.value })} />
                             </Grid>
@@ -234,13 +246,16 @@ const Caminhoes: React.FC = () => {
                                 <TextField fullWidth label="Ano" type="number" value={formData.ano} onChange={(e) => setFormData({ ...formData, ano: Number(e.target.value) })} />
                             </Grid>
                             <Grid item xs={6}>
-                                <TextField fullWidth label="Capacidade (kg)" type="number" value={formData.capacidade} onChange={(e) => setFormData({ ...formData, capacidade: Number(e.target.value) })} />
+                                <TextField fullWidth label="Autonomia (km/l)" type="number" value={formData.autonomia_km_litro} onChange={(e) => setFormData({ ...formData, autonomia_km_litro: Number(e.target.value) })} />
+                            </Grid>
+                            <Grid item xs={12}>
+                                <TextField fullWidth label="Capacidade do Tanque (litros)" type="number" value={formData.capacidade_litros} onChange={(e) => setFormData({ ...formData, capacidade_litros: Number(e.target.value) })} />
                             </Grid>
                             <Grid item xs={12}>
                                 <TextField select fullWidth label="Status" value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value as any })} SelectProps={{ native: true }}>
                                     <option value="disponivel">Disponível</option>
-                                    <option value="em_uso">Em Uso</option>
-                                    <option value="manutencao">Manutenção</option>
+                                    <option value="em_acao">Em Ação</option>
+                                    <option value="em_manutencao">Manutenção</option>
                                 </TextField>
                             </Grid>
                         </Grid>

@@ -202,10 +202,17 @@ const Acoes = () => {
                                 startIcon={<Filter size={18} />}
                                 onClick={() => setShowFilters(!showFilters)}
                                 sx={{
-                                    color: expressoTheme.colors.text,
+                                    background: expressoTheme.gradients.primary,
+                                    color: 'white',
                                     textTransform: 'none',
-                                    background: showFilters ? expressoTheme.colors.cardHover : 'transparent',
-                                    '&:hover': { background: expressoTheme.colors.cardHover }
+                                    px: 2,
+                                    py: 1,
+                                    borderRadius: expressoTheme.borderRadius.medium,
+                                    fontWeight: 600,
+                                    boxShadow: expressoTheme.shadows.button,
+                                    '&:hover': {
+                                        background: expressoTheme.colors.primaryDark,
+                                    }
                                 }}
                             >
                                 Filtros Avançados
@@ -263,7 +270,7 @@ const Acoes = () => {
                             </Grid>
                         ) : (
                             filteredAcoes.map((acao, index) => (
-                                <Grid item xs={12} sm={6} md={4} key={acao.id}>
+                                <Grid item xs={12} sm={6} md={3} key={acao.id}>
                                     <motion.div
                                         initial={{ opacity: 0, y: 20 }}
                                         animate={{ opacity: 1, y: 0 }}
@@ -276,7 +283,7 @@ const Acoes = () => {
                                                 background: expressoTheme.colors.cardBackground,
                                                 borderRadius: expressoTheme.borderRadius.large,
                                                 border: `1px solid ${expressoTheme.colors.border}`,
-                                                p: 3,
+                                                p: 2,
                                                 height: '100%',
                                                 cursor: 'pointer',
                                                 transition: 'all 0.3s ease',
@@ -289,9 +296,20 @@ const Acoes = () => {
                                             }}
                                             onClick={() => navigate(`/admin/acoes/${acao.id}`)}
                                         >
-                                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 2 }}>
-                                                <Box sx={{ display: 'inline-flex', padding: 1.5, borderRadius: expressoTheme.borderRadius.medium, background: expressoTheme.gradients.primary, boxShadow: expressoTheme.shadows.button }}>
-                                                    <Activity size={24} color="white" />
+                                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 1.5 }}>
+                                                <Box sx={{
+                                                    display: 'inline-flex',
+                                                    padding: 1.2,
+                                                    borderRadius: expressoTheme.borderRadius.medium,
+                                                    background: expressoTheme.gradients.primary,
+                                                    boxShadow: expressoTheme.shadows.button,
+                                                    '@keyframes pulse': {
+                                                        '0%, 100%': { transform: 'scale(1)', opacity: 1 },
+                                                        '50%': { transform: 'scale(1.05)', opacity: 0.9 }
+                                                    },
+                                                    animation: 'pulse 2s ease-in-out infinite'
+                                                }}>
+                                                    <Activity size={20} color="white" />
                                                 </Box>
                                                 <Chip
                                                     label={getStatusLabel(acao.status)}
@@ -304,30 +322,30 @@ const Acoes = () => {
                                                 />
                                             </Box>
 
-                                            <Typography variant="h6" sx={{ color: expressoTheme.colors.text, fontWeight: 700, mb: 1 }}>
+                                            <Typography variant="h6" sx={{ color: expressoTheme.colors.text, fontWeight: 700, mb: 0.25, fontSize: '1rem' }}>
                                                 {acao.nome || (acao.numero_acao ? `Ação #${acao.numero_acao}` : 'Nova Ação')}
                                             </Typography>
 
-                                            <Typography sx={{ color: expressoTheme.colors.textSecondary, fontSize: '0.9rem', mb: 2, minHeight: 40 }}>
+                                            <Typography sx={{ color: expressoTheme.colors.textSecondary, fontSize: '0.85rem', mb: 0.8, minHeight: 20 }}>
                                                 {acao.descricao.length > 80 ? `${acao.descricao.substring(0, 80)}...` : acao.descricao}
                                             </Typography>
 
                                             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                    <MapPin size={16} color={expressoTheme.colors.primary} />
-                                                    <Typography sx={{ color: expressoTheme.colors.textSecondary, fontSize: '0.85rem' }}>
+                                                    <MapPin size={14} color={expressoTheme.colors.primary} />
+                                                    <Typography sx={{ color: expressoTheme.colors.textSecondary, fontSize: '0.8rem' }}>
                                                         {acao.municipio}/{acao.estado}
                                                     </Typography>
                                                 </Box>
                                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                    <Calendar size={16} color={expressoTheme.colors.primary} />
-                                                    <Typography sx={{ color: expressoTheme.colors.textSecondary, fontSize: '0.85rem' }}>
+                                                    <Calendar size={14} color={expressoTheme.colors.primary} />
+                                                    <Typography sx={{ color: expressoTheme.colors.textSecondary, fontSize: '0.8rem' }}>
                                                         {new Date(acao.data_inicio).toLocaleDateString('pt-BR')} - {new Date(acao.data_fim).toLocaleDateString('pt-BR')}
                                                     </Typography>
                                                 </Box>
                                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                    <Users size={16} color={expressoTheme.colors.primary} />
-                                                    <Typography sx={{ color: expressoTheme.colors.textSecondary, fontSize: '0.85rem' }}>
+                                                    <Users size={14} color={expressoTheme.colors.primary} />
+                                                    <Typography sx={{ color: expressoTheme.colors.textSecondary, fontSize: '0.8rem' }}>
                                                         {acao.vagas_disponiveis} vagas disponíveis
                                                     </Typography>
                                                 </Box>
@@ -337,7 +355,7 @@ const Acoes = () => {
                                                 fullWidth
                                                 startIcon={<Eye size={18} />}
                                                 sx={{
-                                                    mt: 2,
+                                                    mt: 1.5,
                                                     color: expressoTheme.colors.primary,
                                                     borderColor: expressoTheme.colors.primary,
                                                     textTransform: 'none',

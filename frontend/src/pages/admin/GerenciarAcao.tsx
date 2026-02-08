@@ -244,6 +244,7 @@ const GerenciarAcao = () => {
         try {
             await api.put(`/acoes/${id}`, formData);
             enqueueSnackbar('Ação atualizada com sucesso!', { variant: 'success' });
+            navigate('/admin/acoes');
         } catch (error: any) {
             enqueueSnackbar(
                 error.response?.data?.error || 'Erro ao atualizar ação',
@@ -825,9 +826,8 @@ const GerenciarAcao = () => {
                                         onChange={handleChange}
                                     >
                                         <MenuItem value="planejada">Planejada</MenuItem>
-                                        <MenuItem value="em_andamento">Em Andamento</MenuItem>
+                                        <MenuItem value="ativa">Ativa</MenuItem>
                                         <MenuItem value="concluida">Concluída</MenuItem>
-                                        <MenuItem value="cancelada">Cancelada</MenuItem>
                                     </TextField>
                                 </Grid>
 

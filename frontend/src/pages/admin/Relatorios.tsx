@@ -33,7 +33,7 @@ const Relatorios: React.FC = () => {
     });
 
     // Estados dos filtros de ações
-    const [filterNumeroAcao, setFilterNumeroAcao] = useState('');
+    const [filterNomeAcao, setFilterNomeAcao] = useState('');
     const [filterTipo, setFilterTipo] = useState('');
     const [filterStatus, setFilterStatus] = useState('');
     const [filterMunicipio, setFilterMunicipio] = useState('');
@@ -92,7 +92,7 @@ const Relatorios: React.FC = () => {
     };
 
     const filteredAcoes = acoes.filter((acao: any) => {
-        const matchesNumeroAcao = !filterNumeroAcao || (acao.numero_acao && acao.numero_acao.toString() === filterNumeroAcao);
+        const matchesNomeAcao = !filterNomeAcao || (acao.nome && acao.nome.toLowerCase().includes(filterNomeAcao.toLowerCase()));
         const matchesTipo = !filterTipo || acao.tipo === filterTipo;
         const matchesStatus = !filterStatus || acao.status === filterStatus;
         const matchesMunicipio = !filterMunicipio || acao.municipio.toLowerCase().includes(filterMunicipio.toLowerCase());
@@ -103,12 +103,12 @@ const Relatorios: React.FC = () => {
         const matchesCustoMin = !filterCustoMin || custo >= parseFloat(filterCustoMin);
         const matchesCustoMax = !filterCustoMax || custo <= parseFloat(filterCustoMax);
 
-        return matchesNumeroAcao && matchesTipo && matchesStatus && matchesMunicipio && matchesEstado &&
+        return matchesNomeAcao && matchesTipo && matchesStatus && matchesMunicipio && matchesEstado &&
             matchesDataInicio && matchesDataFim && matchesCustoMin && matchesCustoMax;
     });
 
     const clearFilters = () => {
-        setFilterNumeroAcao('');
+        setFilterNomeAcao('');
         setFilterTipo('');
         setFilterStatus('');
         setFilterMunicipio('');
@@ -119,10 +119,10 @@ const Relatorios: React.FC = () => {
         setFilterCustoMax('');
     };
 
-    const hasActiveFilters = filterNumeroAcao || filterTipo || filterStatus || filterMunicipio || filterEstado ||
+    const hasActiveFilters = filterNomeAcao || filterTipo || filterStatus || filterMunicipio || filterEstado ||
         filterDataInicio || filterDataFim || filterCustoMin || filterCustoMax;
 
-    const activeFilterCount = [filterNumeroAcao, filterTipo, filterStatus, filterMunicipio, filterEstado,
+    const activeFilterCount = [filterNomeAcao, filterTipo, filterStatus, filterMunicipio, filterEstado,
         filterDataInicio, filterDataFim, filterCustoMin, filterCustoMax].filter(Boolean).length;
 
     const totalCusto = filteredAcoes.reduce((acc, acao: any) => acc + (acao.resumo_financeiro?.custo_total || 0), 0);
@@ -156,15 +156,15 @@ const Relatorios: React.FC = () => {
 
     if (loading) {
         return (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: expressoTheme.colors.background }}>
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: '#f5f7fa' }}>
                 <CircularProgress sx={{ color: expressoTheme.colors.primaryDark }} size={60} />
             </Box>
         );
     }
 
     return (
-        <Box sx={{ minHeight: '100vh', background: expressoTheme.colors.background, position: 'relative', overflow: 'hidden', '&::before': { content: '""', position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'radial-gradient(circle at 20% 50%, rgba(250, 112, 154, 0.3), transparent 50%)' } }}>
-            <Container maxWidth="xl" sx={{ py: 4, position: 'relative', zIndex: 1 }}>
+        <Box sx={{ minHeight: '100vh', background: '#f5f7fa', py: 4 }}>
+            <Container maxWidth="xl" sx={{ py: 4 }}>
                 {/* Header */}
                 <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
@@ -172,7 +172,7 @@ const Relatorios: React.FC = () => {
                             <Typography variant="h4" sx={{ fontWeight: 700, color: expressoTheme.colors.primaryDark, mb: 0.5 }}>
                                 Relatórios e Business Intelligence
                             </Typography>
-                            <Typography sx={{ color: 'rgba(255,255,255,0.8)' }}>
+                            <Typography sx={{ color: '#64748b' }}>
                                 Análise completa de custos, atendimentos e métricas
                             </Typography>
                         </Box>
@@ -182,7 +182,7 @@ const Relatorios: React.FC = () => {
                                 size="small"
                                 value={filtros.mes}
                                 onChange={(e) => setFiltros({ ...filtros, mes: Number(e.target.value) })}
-                                sx={{ minWidth: 120, '& .MuiOutlinedInput-root': { background: 'rgba(255,255,255,0.9)', borderRadius: '8px', '& fieldset': { border: 'none' } } }}
+                                sx={{ minWidth: 120, '& .MuiOutlinedInput-root': { background: 'white', borderRadius: '8px', '& fieldset': { borderColor: '#e2e8f0' } } }}
                             >
                                 {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
                                     <MenuItem key={m} value={m}>
@@ -195,7 +195,7 @@ const Relatorios: React.FC = () => {
                                 size="small"
                                 value={filtros.ano}
                                 onChange={(e) => setFiltros({ ...filtros, ano: Number(e.target.value) })}
-                                sx={{ minWidth: 100, '& .MuiOutlinedInput-root': { background: 'rgba(255,255,255,0.9)', borderRadius: '8px', '& fieldset': { border: 'none' } } }}
+                                sx={{ minWidth: 100, '& .MuiOutlinedInput-root': { background: 'white', borderRadius: '8px', '& fieldset': { borderColor: '#e2e8f0' } } }}
                             >
                                 {[2024, 2025, 2026].map(y => (
                                     <MenuItem key={y} value={y}>{y}</MenuItem>
@@ -203,7 +203,7 @@ const Relatorios: React.FC = () => {
                             </TextField>
                             <Button
                                 onClick={carregarTodosDados}
-                                sx={{ minWidth: 'auto', p: 1.5, background: 'rgba(255,255,255,0.2)', color: expressoTheme.colors.primaryDark, borderRadius: '8px', '&:hover': { background: 'rgba(255,255,255,0.3)' } }}
+                                sx={{ minWidth: 'auto', p: 1.5, background: 'white', color: expressoTheme.colors.primaryDark, borderRadius: '8px', border: '1px solid #e2e8f0', '&:hover': { background: '#f1f5f9' } }}
                             >
                                 <RefreshCw size={20} />
                             </Button>
@@ -213,13 +213,13 @@ const Relatorios: React.FC = () => {
 
                 {/* Filtros de Ações */}
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-                    <Box sx={{ background: 'rgba(255, 255, 255, 0.1)', backdropFilter: 'blur(20px)', borderRadius: '20px', border: '1px solid rgba(255, 255, 255, 0.2)', p: 3, mb: 3 }}>
+                    <Box sx={{ background: 'white', borderRadius: '20px', border: '1px solid #e2e8f0', p: 3, mb: 3, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                            <Button startIcon={<Filter size={18} />} onClick={() => setShowFilters(!showFilters)} sx={{ color: expressoTheme.colors.primaryDark, textTransform: 'none', background: showFilters ? 'rgba(255,255,255,0.2)' : 'transparent', '&:hover': { background: 'rgba(255,255,255,0.15)' } }}>
+                            <Button startIcon={<Filter size={18} />} onClick={() => setShowFilters(!showFilters)} sx={{ color: 'white', textTransform: 'none', background: expressoTheme.gradients.primary, '&:hover': { background: expressoTheme.colors.primaryDark } }}>
                                 Filtros de Ações{hasActiveFilters && ` (${activeFilterCount})`}
                             </Button>
                             {hasActiveFilters && (
-                                <Button startIcon={<X size={18} />} onClick={clearFilters} sx={{ color: expressoTheme.colors.primaryDark, textTransform: 'none', '&:hover': { background: 'rgba(255,255,255,0.15)' } }}>
+                                <Button startIcon={<X size={18} />} onClick={clearFilters} sx={{ color: expressoTheme.colors.primaryDark, textTransform: 'none', '&:hover': { background: '#f1f5f9' } }}>
                                     Limpar
                                 </Button>
                             )}
@@ -228,17 +228,17 @@ const Relatorios: React.FC = () => {
                         <Collapse in={showFilters}>
                             <Grid container spacing={2} sx={{ mt: 1 }}>
                                 <Grid item xs={12} sm={6} md={3}>
-                                    <TextField fullWidth label="Número da Ação" value={filterNumeroAcao} onChange={(e) => setFilterNumeroAcao(e.target.value)} size="small" sx={{ '& .MuiOutlinedInput-root': { background: 'rgba(255, 255, 255, 0.9)', borderRadius: '8px', '& fieldset': { border: 'none' } } }} />
+                                    <TextField fullWidth label="Nome da Ação" value={filterNomeAcao} onChange={(e) => setFilterNomeAcao(e.target.value)} size="small" sx={{ '& .MuiOutlinedInput-root': { background: 'white', borderRadius: '8px', '& fieldset': { borderColor: '#e2e8f0' } } }} />
                                 </Grid>
                                 <Grid item xs={12} sm={6} md={3}>
-                                    <TextField select fullWidth label="Tipo" value={filterTipo} onChange={(e) => setFilterTipo(e.target.value)} size="small" sx={{ '& .MuiOutlinedInput-root': { background: 'rgba(255, 255, 255, 0.9)', borderRadius: '8px', '& fieldset': { border: 'none' } } }}>
+                                    <TextField select fullWidth label="Tipo" value={filterTipo} onChange={(e) => setFilterTipo(e.target.value)} size="small" sx={{ '& .MuiOutlinedInput-root': { background: 'white', borderRadius: '8px', '& fieldset': { borderColor: '#e2e8f0' } } }}>
                                         <MenuItem value="">Todos</MenuItem>
                                         <MenuItem value="curso">Curso</MenuItem>
                                         <MenuItem value="saude">Saúde</MenuItem>
                                     </TextField>
                                 </Grid>
                                 <Grid item xs={12} sm={6} md={3}>
-                                    <TextField select fullWidth label="Status" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} size="small" sx={{ '& .MuiOutlinedInput-root': { background: 'rgba(255, 255, 255, 0.9)', borderRadius: '8px', '& fieldset': { border: 'none' } } }}>
+                                    <TextField select fullWidth label="Status" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} size="small" sx={{ '& .MuiOutlinedInput-root': { background: 'white', borderRadius: '8px', '& fieldset': { borderColor: '#e2e8f0' } } }}>
                                         <MenuItem value="">Todos</MenuItem>
                                         <MenuItem value="planejada">Planejada</MenuItem>
                                         <MenuItem value="ativa">Ativa</MenuItem>
@@ -246,13 +246,13 @@ const Relatorios: React.FC = () => {
                                     </TextField>
                                 </Grid>
                                 <Grid item xs={12} sm={6} md={3}>
-                                    <TextField fullWidth label="Município" value={filterMunicipio} onChange={(e) => setFilterMunicipio(e.target.value)} size="small" sx={{ '& .MuiOutlinedInput-root': { background: 'rgba(255, 255, 255, 0.9)', borderRadius: '8px', '& fieldset': { border: 'none' } } }} />
+                                    <TextField fullWidth label="Município" value={filterMunicipio} onChange={(e) => setFilterMunicipio(e.target.value)} size="small" sx={{ '& .MuiOutlinedInput-root': { background: 'white', borderRadius: '8px', '& fieldset': { borderColor: '#e2e8f0' } } }} />
                                 </Grid>
                             </Grid>
                         </Collapse>
 
                         {hasActiveFilters && (
-                            <Box sx={{ mt: 2, p: 2, background: 'rgba(255,255,255,0.15)', borderRadius: '12px' }}>
+                            <Box sx={{ mt: 2, p: 2, background: '#f1f5f9', borderRadius: '12px' }}>
                                 <Typography sx={{ fontWeight: 600, color: expressoTheme.colors.primaryDark, fontSize: '0.9rem' }}>
                                     📊 Mostrando {filteredAcoes.length} de {acoes.length} ações
                                 </Typography>
@@ -273,14 +273,14 @@ const Relatorios: React.FC = () => {
                     ].map((card, index) => {
                         const Icon = card.icon;
                         return (
-                            <Grid item xs={12} sm={6} md={4} lg={2} key={index}>
+                            <Grid item xs={12} sm={6} md={4} lg={1.7} key={index}>
                                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + index * 0.05 }} whileHover={{ scale: 1.05, y: -5 }}>
-                                    <Box sx={{ background: 'rgba(255, 255, 255, 0.1)', backdropFilter: 'blur(20px)', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.2)', p: 2.5, position: 'relative', overflow: 'hidden' }}>
-                                        <Box sx={{ display: 'inline-flex', padding: 1.5, borderRadius: '12px', background: card.gradient, boxShadow: '0 8px 32px rgba(0,0,0,0.2)', mb: 1.5 }}>
-                                            <Icon size={24} color="white" />
+                                    <Box sx={{ background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', p: 2, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                                        <Box sx={{ display: 'inline-flex', padding: 1.2, borderRadius: '12px', background: card.gradient, boxShadow: '0 8px 32px rgba(0,0,0,0.2)', mb: 1.2 }}>
+                                            <Icon size={20} color="white" />
                                         </Box>
-                                        <Typography sx={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.8rem', mb: 0.5 }}>{card.label}</Typography>
-                                        <Typography variant="h6" sx={{ color: expressoTheme.colors.primaryDark, fontWeight: 700 }}>{card.value}</Typography>
+                                        <Typography sx={{ color: '#64748b', fontSize: '0.75rem', mb: 0.5 }}>{card.label}</Typography>
+                                        <Typography variant="h6" sx={{ color: expressoTheme.colors.primaryDark, fontWeight: 700, fontSize: '1rem' }}>{card.value}</Typography>
                                     </Box>
                                 </motion.div>
                             </Grid>
@@ -292,15 +292,15 @@ const Relatorios: React.FC = () => {
                 <Grid container spacing={3} sx={{ mb: 3 }}>
                     <Grid item xs={12} md={8}>
                         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
-                            <Box sx={{ background: 'rgba(255, 255, 255, 0.1)', backdropFilter: 'blur(20px)', borderRadius: '20px', border: '1px solid rgba(255, 255, 255, 0.2)', p: 3, height: 400 }}>
+                            <Box sx={{ background: 'white', borderRadius: '20px', border: '1px solid #e2e8f0', p: 3, height: 400, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
                                 <Typography variant="h6" sx={{ color: expressoTheme.colors.primaryDark, fontWeight: 600, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
                                     <BarChart3 size={20} /> Custos por Município
                                 </Typography>
                                 <ResponsiveContainer width="100%" height="85%">
                                     <BarChart data={dataCustos}>
                                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.2)" />
-                                        <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} interval={0} tick={{ fontSize: 11, fill: 'white' }} />
-                                        <YAxis tick={{ fill: 'white' }} />
+                                        <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} interval={0} tick={{ fontSize: 11, fill: '#1e293b' }} />
+                                        <YAxis tick={{ fill: '#1e293b' }} />
                                         <Tooltip contentStyle={{ background: 'rgba(0,0,0,0.8)', border: 'none', borderRadius: '8px', color: expressoTheme.colors.primaryDark }} />
                                         <Bar dataKey="custo" name="Custo Total (R$)" fill="#667eea" radius={[8, 8, 0, 0]} />
                                     </BarChart>
@@ -311,7 +311,7 @@ const Relatorios: React.FC = () => {
 
                     <Grid item xs={12} md={4}>
                         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
-                            <Box sx={{ background: 'rgba(255, 255, 255, 0.1)', backdropFilter: 'blur(20px)', borderRadius: '20px', border: '1px solid rgba(255, 255, 255, 0.2)', p: 3, height: 400 }}>
+                            <Box sx={{ background: 'white', borderRadius: '20px', border: '1px solid #e2e8f0', p: 3, height: 400, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
                                 <Typography variant="h6" sx={{ color: expressoTheme.colors.primaryDark, fontWeight: 600, mb: 2 }}>Distribuição de Atendimentos</Typography>
                                 <ResponsiveContainer width="100%" height="85%">
                                     <PieChart>
@@ -332,7 +332,7 @@ const Relatorios: React.FC = () => {
                 <Grid container spacing={3} sx={{ mb: 3 }}>
                     <Grid item xs={12} md={6}>
                         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}>
-                            <Box sx={{ background: 'rgba(255, 255, 255, 0.1)', backdropFilter: 'blur(20px)', borderRadius: '20px', border: '1px solid rgba(255, 255, 255, 0.2)', p: 3, height: 400 }}>
+                            <Box sx={{ background: 'white', borderRadius: '20px', border: '1px solid #e2e8f0', p: 3, height: 400, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
                                 <Typography variant="h6" sx={{ color: expressoTheme.colors.primaryDark, fontWeight: 600, mb: 2 }}>📊 Exames por Tipo</Typography>
                                 <ResponsiveContainer width="100%" height="85%">
                                     <BarChart data={examesPorTipo}>
@@ -343,8 +343,8 @@ const Relatorios: React.FC = () => {
                                             </linearGradient>
                                         </defs>
                                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.2)" />
-                                        <XAxis dataKey="nome_exame" tick={{ fontSize: 10, fill: 'white' }} angle={-15} textAnchor="end" height={80} />
-                                        <YAxis tick={{ fill: 'white' }} />
+                                        <XAxis dataKey="nome_exame" tick={{ fontSize: 10, fill: '#1e293b' }} angle={-15} textAnchor="end" height={80} />
+                                        <YAxis tick={{ fill: '#1e293b' }} />
                                         <Tooltip contentStyle={{ background: 'rgba(0,0,0,0.8)', border: 'none', borderRadius: '8px' }} />
                                         <Bar dataKey="quantidade" fill="url(#colorBar)" radius={[8, 8, 0, 0]} />
                                     </BarChart>
@@ -355,7 +355,7 @@ const Relatorios: React.FC = () => {
 
                     <Grid item xs={12} md={6}>
                         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }}>
-                            <Box sx={{ background: 'rgba(255, 255, 255, 0.1)', backdropFilter: 'blur(20px)', borderRadius: '20px', border: '1px solid rgba(255, 255, 255, 0.2)', p: 3, height: 400 }}>
+                            <Box sx={{ background: 'white', borderRadius: '20px', border: '1px solid #e2e8f0', p: 3, height: 400, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
                                 <Typography variant="h6" sx={{ color: expressoTheme.colors.primaryDark, fontWeight: 600, mb: 2 }}>🗺️ Exames por Cidade</Typography>
                                 <ResponsiveContainer width="100%" height="85%">
                                     <PieChart>
@@ -376,7 +376,7 @@ const Relatorios: React.FC = () => {
                 <Grid container spacing={3}>
                     <Grid item xs={12} md={4}>
                         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9 }}>
-                            <Box sx={{ background: 'rgba(255, 255, 255, 0.1)', backdropFilter: 'blur(20px)', borderRadius: '20px', border: '1px solid rgba(255, 255, 255, 0.2)', p: 3, height: 400 }}>
+                            <Box sx={{ background: 'white', borderRadius: '20px', border: '1px solid #e2e8f0', p: 3, height: 400, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
                                 <Typography variant="h6" sx={{ color: expressoTheme.colors.primaryDark, fontWeight: 600, mb: 2 }}>👥 Distribuição por Gênero</Typography>
                                 <ResponsiveContainer width="100%" height="85%">
                                     <PieChart>
@@ -394,7 +394,7 @@ const Relatorios: React.FC = () => {
 
                     <Grid item xs={12} md={8}>
                         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.0 }}>
-                            <Box sx={{ background: 'rgba(255, 255, 255, 0.1)', backdropFilter: 'blur(20px)', borderRadius: '20px', border: '1px solid rgba(255, 255, 255, 0.2)', p: 3, height: 400 }}>
+                            <Box sx={{ background: 'white', borderRadius: '20px', border: '1px solid #e2e8f0', p: 3, height: 400, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
                                 <Typography variant="h6" sx={{ color: expressoTheme.colors.primaryDark, fontWeight: 600, mb: 2 }}>📈 Distribuição por Faixa Etária</Typography>
                                 <ResponsiveContainer width="100%" height="85%">
                                     <BarChart data={examesPorIdade}>
@@ -405,8 +405,8 @@ const Relatorios: React.FC = () => {
                                             </linearGradient>
                                         </defs>
                                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.2)" />
-                                        <XAxis dataKey="faixa_etaria" tick={{ fill: 'white' }} />
-                                        <YAxis tick={{ fill: 'white' }} />
+                                        <XAxis dataKey="faixa_etaria" tick={{ fill: '#1e293b' }} />
+                                        <YAxis tick={{ fill: '#1e293b' }} />
                                         <Tooltip contentStyle={{ background: 'rgba(0,0,0,0.8)', border: 'none', borderRadius: '8px' }} />
                                         <Bar dataKey="quantidade" fill="url(#colorAge)" radius={[8, 8, 0, 0]} />
                                     </BarChart>

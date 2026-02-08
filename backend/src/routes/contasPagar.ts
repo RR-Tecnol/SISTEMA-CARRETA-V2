@@ -83,8 +83,11 @@ router.get('/', authenticate, async (req: Request, res: Response) => {
             totalPages: Math.ceil(count / Number(limit)),
         });
     } catch (error: any) {
-        console.error('Erro ao listar contas:', error);
-        res.status(500).json({ error: 'Erro ao listar contas a pagar' });
+        console.error('❌ ERRO ao listar contas:', error.message);
+        res.status(500).json({
+            error: 'Erro ao listar contas a pagar',
+            details: error.message
+        });
     }
 });
 
@@ -282,6 +285,178 @@ router.get('/relatorio/mensal', authenticate, async (req: Request, res: Response
     } catch (error: any) {
         console.error('Erro ao gerar relatório:', error);
         res.status(500).json({ error: 'Erro ao gerar relatório mensal' });
+    }
+});
+
+/**
+ * GET /api/contas-pagar/relatorios/por-acao
+ * Relatório de custos por ação
+ */
+router.get('/relatorios/por-acao', authenticate, async (req: Request, res: Response) => {
+    try {
+        const { acao_id } = req.query;
+
+        const where: any = {};
+        if (acao_id) {
+            where.acao_id = acao_id;
+        }
+
+        const contas = await ContaPagar.findAll({
+            where,
+            order: [['data_vencimento', 'DESC']],
+        });
+
+        // Agrupar por ação
+        const relatorio: any = {};
+        contas.forEach(conta => {
+            const acaoId = conta.acao_id || 'sem_acao';
+            if (!relatorio[acaoId]) {
+                relatorio[acaoId] = {
+                    acao_id: acaoId,
+                    total: 0,
+                    contas: [],
+                };
+            }
+            relatorio[acaoId].total += Number(conta.valor);
+            relatorio[acaoId].contas.push(conta);
+        });
+
+        res.json({
+            success: true,
+            relatorio: Object.values(relatorio),
+        });
+    } catch (error: any) {
+        console.error('Erro ao gerar relatório por ação:', error);
+        res.status(500).json({ error: 'Erro ao gerar relatório por ação' });
+    }
+});
+
+/**
+ * GET /api/contas-pagar/relatorios/por-cidade
+ * Relatório de custos por cidade
+ */
+router.get('/relatorios/por-cidade', authenticate, async (req: Request, res: Response) => {
+    try {
+        const { cidade } = req.query;
+
+        const where: any = {};
+        if (cidade) {
+            where.cidade = { [Op.iLike]: `%${cidade}%` };
+        }
+
+        const contas = await ContaPagar.findAll({
+            where,
+            order: [['cidade', 'ASC'], ['data_vencimento', 'DESC']],
+        });
+
+        // Agrupar por cidade
+        const relatorio: any = {};
+        contas.forEach(conta => {
+            const cidadeNome = conta.cidade || 'sem_cidade';
+            if (!relatorio[cidadeNome]) {
+                relatorio[cidadeNome] = {
+                    cidade: cidadeNome,
+                    total: 0,
+                    contas: [],
+                };
+            }
+            relatorio[cidadeNome].total += Number(conta.valor);
+            relatorio[cidadeNome].contas.push(conta);
+        });
+
+        res.json({
+            success: true,
+            relatorio: Object.values(relatorio),
+        });
+    } catch (error: any) {
+        console.error('Erro ao gerar relatório por cidade:', error);
+        res.status(500).json({ error: 'Erro ao gerar relatório por cidade' });
+    }
+});
+
+/**
+ * GET /api/contas-pagar/relatorios/exportar
+ * Exportar relatório em diferentes formatos (XLSX, CSV)
+ */
+router.get('/relatorios/exportar', authenticate, async (req: Request, res: Response) => {
+    try {
+        const { formato = 'xlsx', periodo, tipo_conta, status, cidade } = req.query;
+
+        const where: any = {};
+
+        if (periodo) {
+            const [ano, mes] = (periodo as string).split('-');
+            const startDate = new Date(parseInt(ano), parseInt(mes) - 1, 1);
+            const endDate = new Date(parseInt(ano), parseInt(mes), 0);
+            where.data_vencimento = {
+                [Op.between]: [startDate, endDate],
+            };
+        }
+
+        if (tipo_conta) where.tipo_conta = tipo_conta;
+        if (status) where.status = status;
+        if (cidade) where.cidade = { [Op.iLike]: `%${cidade}%` };
+
+        const contas = await ContaPagar.findAll({
+            where,
+            order: [['data_vencimento', 'DESC']],
+        });
+
+        if (formato === 'xlsx') {
+            const XLSX = require('xlsx');
+
+            const data = contas.map(conta => ({
+                'Tipo': conta.tipo_conta,
+                'Descrição': conta.descricao,
+                'Valor': Number(conta.valor),
+                'Vencimento': new Date(conta.data_vencimento).toLocaleDateString('pt-BR'),
+                'Status': conta.status,
+                'Cidade': conta.cidade || '-',
+                'Recorrente': conta.recorrente ? 'Sim' : 'Não',
+            }));
+
+            const worksheet = XLSX.utils.json_to_sheet(data);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Contas a Pagar');
+
+            const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+
+            res.setHeader('Content-Disposition', `attachment; filename=contas-pagar-${periodo || 'todos'}.xlsx`);
+            res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            res.send(buffer);
+        } else if (formato === 'csv') {
+            const data = contas.map(conta => ({
+                tipo: conta.tipo_conta,
+                descricao: conta.descricao,
+                valor: Number(conta.valor),
+                vencimento: new Date(conta.data_vencimento).toLocaleDateString('pt-BR'),
+                status: conta.status,
+                cidade: conta.cidade || '-',
+                recorrente: conta.recorrente ? 'Sim' : 'Não',
+            }));
+
+            const csv = [
+                ['Tipo', 'Descrição', 'Valor', 'Vencimento', 'Status', 'Cidade', 'Recorrente'],
+                ...data.map(row => [
+                    row.tipo,
+                    row.descricao,
+                    row.valor.toString(),
+                    row.vencimento,
+                    row.status,
+                    row.cidade,
+                    row.recorrente,
+                ]),
+            ].map(row => row.join(',')).join('\n');
+
+            res.setHeader('Content-Disposition', `attachment; filename=contas-pagar-${periodo || 'todos'}.csv`);
+            res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+            res.send('\uFEFF' + csv); // BOM para UTF-8
+        } else {
+            res.status(400).json({ error: 'Formato não suportado. Use xlsx ou csv' });
+        }
+    } catch (error: any) {
+        console.error('Erro ao exportar relatório:', error);
+        res.status(500).json({ error: 'Erro ao exportar relatório' });
     }
 });
 

@@ -1,73 +1,156 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import {
+    Container,
+    Typography,
+    Button,
+    Box,
+    CircularProgress,
+    TextField,
+    Grid,
+    MenuItem,
+    InputAdornment,
+    Collapse,
+    IconButton,
+    Chip,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+} from '@mui/material';
+import { useSnackbar } from 'notistack';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    Plus, Calendar, DollarSign,
-    AlertCircle, CheckCircle, Clock, XCircle, Search, Trash2, Edit
+    Plus,
+    Search,
+    Filter,
+    X,
+    Calendar,
+    DollarSign,
+    Clock,
+    CheckCircle,
+    AlertCircle,
+    XCircle,
+    Edit,
+    Trash2,
+    FileText,
+
+    Truck,
+    Wrench,
+    Droplet,
+    Fuel,
+    MapPin,
 } from 'lucide-react';
-import contasPagarService, { ContaPagar, ContasPagarFilters } from '../../services/contasPagar';
-import './ContasPagar.css';
+import api from '../../services/api';
+import { expressoTheme } from '../../theme/expressoTheme';
 
-const ContasPagar: React.FC = () => {
+interface ContaPagar {
+    id: string;
+    tipo_conta: string;
+    tipo_espontaneo?: string;
+    descricao: string;
+    valor: number;
+    data_vencimento: string;
+    data_pagamento?: string;
+    status: 'pendente' | 'paga' | 'vencida' | 'cancelada';
+    comprovante_url?: string;
+    recorrente: boolean;
+    observacoes?: string;
+    acao_id?: string;
+    cidade?: string;
+    caminhao_id?: string;
+}
+
+const ContasPagar = () => {
+    const { enqueueSnackbar } = useSnackbar();
     const [contas, setContas] = useState<ContaPagar[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [, setShowModal] = useState(false);
-    const [, setEditingConta] = useState<ContaPagar | null>(null);
-    const [filtros, setFiltros] = useState<ContasPagarFilters>({});
+    const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
-    const [page, setPage] = useState(1);
-    const [totalPages, setTotalPages] = useState(1);
+    const [showFilters, setShowFilters] = useState(false);
+    const [showModal, setShowModal] = useState(false);
+    const [editingConta, setEditingConta] = useState<ContaPagar | null>(null);
 
+    // Filtros
+    const [filterTipo, setFilterTipo] = useState('');
+    const [filterStatus, setFilterStatus] = useState('');
+    const [filterCidade, setFilterCidade] = useState('');
+
+    // Form Data
+    const [formData, setFormData] = useState<{
+        tipo_conta: string;
+        tipo_espontaneo: string;
+        descricao: string;
+        valor: number;
+        data_vencimento: string;
+        status: 'pendente' | 'paga' | 'vencida' | 'cancelada';
+        recorrente: boolean;
+        observacoes: string;
+        acao_id: string;
+        cidade: string;
+        caminhao_id: string;
+    }>({
+        tipo_conta: '',
+        tipo_espontaneo: '',
+        descricao: '',
+        valor: 0,
+        data_vencimento: '',
+        status: 'pendente',
+        recorrente: false,
+        observacoes: '',
+        acao_id: '',
+        cidade: '',
+        caminhao_id: '',
+    });
+
+    // Tipos de conta com ícones e cores (foco em custos de estrada)
     const tiposConta = [
-        { value: 'agua', label: '💧 Água', color: '#3B82F6' },
-        { value: 'energia', label: '⚡ Energia', color: '#F59E0B' },
-        { value: 'aluguel', label: '🏠 Aluguel', color: '#8B5CF6' },
-        { value: 'internet', label: '🌐 Internet', color: '#10B981' },
-        { value: 'telefone', label: '📱 Telefone', color: '#06B6D4' },
-        { value: 'pneu_furado', label: '🛞 Pneu Furado', color: '#EF4444' },
-        { value: 'troca_oleo', label: '🛢️ Troca de Óleo', color: '#F97316' },
-        { value: 'abastecimento', label: '⛽ Abastecimento', color: '#14B8A6' },
-        { value: 'manutencao_mecanica', label: '🔧 Manutenção Mecânica', color: '#6366F1' },
-        { value: 'reboque', label: '🚛 Reboque', color: '#EC4899' },
-        { value: 'lavagem', label: '🧼 Lavagem', color: '#06B6D4' },
-        { value: 'pedagio', label: '🛣️ Pedágio', color: '#84CC16' },
-        { value: 'espontaneo', label: '✨ Espontâneo', color: '#A855F7' },
-        { value: 'outros', label: '📦 Outros', color: '#64748B' },
+        // Custos de Estrada (Prioridade)
+        { value: 'pneu_furado', label: '🛞 Pneu Furado', color: '#DC3545', icon: AlertCircle, categoria: 'estrada' },
+        { value: 'troca_oleo', label: '🛢️ Troca de Óleo', color: '#F97316', icon: Droplet, categoria: 'estrada' },
+        { value: 'abastecimento', label: '⛽ Abastecimento', color: '#10B981', icon: Fuel, categoria: 'estrada' },
+        { value: 'manutencao_mecanica', label: '🔧 Manutenção Mecânica', color: '#6366F1', icon: Wrench, categoria: 'estrada' },
+        { value: 'reboque', label: '🚛 Reboque', color: '#EC4899', icon: Truck, categoria: 'estrada' },
+        { value: 'lavagem', label: '🧼 Lavagem', color: '#06B6D4', icon: Droplet, categoria: 'estrada' },
+        { value: 'pedagio', label: '🛣️ Pedágio', color: '#84CC16', icon: MapPin, categoria: 'estrada' },
+        // Contas Habituais
+        { value: 'agua', label: '💧 Água', color: '#3B82F6', icon: Droplet, categoria: 'habitual' },
+        { value: 'energia', label: '⚡ Energia', color: '#F59E0B', icon: AlertCircle, categoria: 'habitual' },
+        { value: 'aluguel', label: '🏠 Aluguel', color: '#8B5CF6', icon: FileText, categoria: 'habitual' },
+        { value: 'internet', label: '🌐 Internet', color: '#10B981', icon: FileText, categoria: 'habitual' },
+        { value: 'telefone', label: '📱 Telefone', color: '#06B6D4', icon: FileText, categoria: 'habitual' },
+        // Outros
+        { value: 'espontaneo', label: '✨ Personalizado', color: '#A855F7', icon: FileText, categoria: 'outros' },
+        { value: 'outros', label: '📦 Outros', color: '#64748B', icon: FileText, categoria: 'outros' },
     ];
 
     const statusConfig = {
-        pendente: { icon: Clock, color: '#F59E0B', label: 'Pendente', bg: 'rgba(245, 158, 11, 0.1)' },
-        paga: { icon: CheckCircle, color: '#10B981', label: 'Paga', bg: 'rgba(16, 185, 129, 0.1)' },
-        vencida: { icon: AlertCircle, color: '#EF4444', label: 'Vencida', bg: 'rgba(239, 68, 68, 0.1)' },
-        cancelada: { icon: XCircle, color: '#6B7280', label: 'Cancelada', bg: 'rgba(107, 114, 128, 0.1)' },
+        pendente: { icon: Clock, color: expressoTheme.colors.warning, label: 'Pendente', bg: 'rgba(255, 193, 7, 0.1)' },
+        paga: { icon: CheckCircle, color: expressoTheme.colors.success, label: 'Paga', bg: 'rgba(40, 167, 69, 0.1)' },
+        vencida: { icon: AlertCircle, color: expressoTheme.colors.danger, label: 'Vencida', bg: 'rgba(220, 53, 69, 0.1)' },
+        cancelada: { icon: XCircle, color: expressoTheme.colors.textSecondary, label: 'Cancelada', bg: 'rgba(108, 117, 125, 0.1)' },
     };
 
-    useEffect(() => {
-        carregarContas();
-    }, [filtros, page]);
-
-    const carregarContas = async () => {
-        setLoading(true);
+    const fetchContas = useCallback(async () => {
         try {
-            const response = await contasPagarService.listar({ ...filtros, page });
-            setContas(response.contas);
-            setTotalPages(response.totalPages);
-        } catch (error) {
-            console.error('Erro ao carregar contas:', error);
+            const response = await api.get('/contas-pagar');
+            setContas(Array.isArray(response.data.contas) ? response.data.contas : []);
+        } catch (error: any) {
+            enqueueSnackbar(error.response?.data?.error || 'Erro ao carregar contas', { variant: 'error' });
         } finally {
             setLoading(false);
         }
-    };
+    }, [enqueueSnackbar]);
 
-    const handleDelete = async (id: string) => {
-        if (!window.confirm('Tem certeza que deseja deletar esta conta?')) return;
+    useEffect(() => {
+        fetchContas();
+    }, [fetchContas]);
 
-        try {
-            await contasPagarService.deletar(id);
-            carregarContas();
-        } catch (error) {
-            console.error('Erro ao deletar conta:', error);
-        }
-    };
+    const filteredContas = contas.filter((conta) => {
+        const matchesSearch = conta.descricao.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesTipo = !filterTipo || conta.tipo_conta === filterTipo;
+        const matchesStatus = !filterStatus || conta.status === filterStatus;
+        const matchesCidade = !filterCidade || conta.cidade?.toLowerCase().includes(filterCidade.toLowerCase());
+        return matchesSearch && matchesTipo && matchesStatus && matchesCidade;
+    });
 
     const getTotalPorStatus = (status: string) => {
         return contas
@@ -75,291 +158,885 @@ const ContasPagar: React.FC = () => {
             .reduce((sum, c) => sum + Number(c.valor), 0);
     };
 
-    const containerVariants = {
-        hidden: { opacity: 0 },
-        visible: {
-            opacity: 1,
-            transition: {
-                staggerChildren: 0.1
+    const handleOpenDialog = (conta?: ContaPagar) => {
+        if (conta) {
+            setEditingConta(conta);
+            setFormData({
+                tipo_conta: conta.tipo_conta,
+                tipo_espontaneo: conta.tipo_espontaneo || '',
+                descricao: conta.descricao,
+                valor: conta.valor,
+                data_vencimento: conta.data_vencimento.split('T')[0],
+                status: conta.status,
+                recorrente: conta.recorrente,
+                observacoes: conta.observacoes || '',
+                acao_id: conta.acao_id || '',
+                cidade: conta.cidade || '',
+                caminhao_id: conta.caminhao_id || '',
+            });
+        } else {
+            setEditingConta(null);
+            setFormData({
+                tipo_conta: '',
+                tipo_espontaneo: '',
+                descricao: '',
+                valor: 0,
+                data_vencimento: '',
+                status: 'pendente',
+                recorrente: false,
+                observacoes: '',
+                acao_id: '',
+                cidade: '',
+                caminhao_id: '',
+            });
+        }
+        setShowModal(true);
+    };
+
+    const handleSave = async () => {
+        try {
+            if (editingConta) {
+                await api.put(`/contas-pagar/${editingConta.id}`, formData);
+                enqueueSnackbar('Conta atualizada com sucesso!', { variant: 'success' });
+            } else {
+                await api.post('/contas-pagar', formData);
+                enqueueSnackbar('Conta criada com sucesso!', { variant: 'success' });
             }
+            setShowModal(false);
+            fetchContas();
+        } catch (error: any) {
+            enqueueSnackbar(error.response?.data?.error || 'Erro ao salvar conta', { variant: 'error' });
         }
     };
 
-    const itemVariants = {
-        hidden: { y: 20, opacity: 0 },
-        visible: {
-            y: 0,
-            opacity: 1,
-            transition: {
-                type: 'spring' as const,
-                stiffness: 100
-            }
+    const handleDelete = async (id: string) => {
+        if (!window.confirm('Tem certeza que deseja deletar esta conta?')) return;
+        try {
+            await api.delete(`/contas-pagar/${id}`);
+            enqueueSnackbar('Conta deletada com sucesso!', { variant: 'success' });
+            fetchContas();
+        } catch (error: any) {
+            enqueueSnackbar(error.response?.data?.error || 'Erro ao deletar conta', { variant: 'error' });
         }
     };
+
+    const clearFilters = () => {
+        setFilterTipo('');
+        setFilterStatus('');
+        setFilterCidade('');
+        setSearchTerm('');
+    };
+
+    const hasActiveFilters = filterTipo || filterStatus || filterCidade;
+
+    if (loading) {
+        return (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: expressoTheme.colors.background }}>
+                <CircularProgress sx={{ color: expressoTheme.colors.primary }} size={60} />
+            </Box>
+        );
+    }
 
     return (
-        <div className="contas-pagar-container">
-            {/* Header com Glassmorphism */}
-            <motion.div
-                className="header-glass"
-                initial={{ y: -50, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ type: 'spring', stiffness: 100 }}
-            >
-                <div className="header-content">
-                    <div className="header-title">
-                        <motion.div
-                            className="icon-wrapper"
-                            whileHover={{ rotate: 360, scale: 1.1 }}
-                            transition={{ duration: 0.5 }}
-                        >
-                            <DollarSign size={32} />
+        <Box sx={{ minHeight: '100vh', background: expressoTheme.colors.background, py: 4 }}>
+            <Container maxWidth="xl">
+                {/* Header */}
+                <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+                        <Box>
+                            <Typography variant="h4" sx={{ fontWeight: 700, color: expressoTheme.colors.primaryDark, mb: 0.5 }}>
+                                Contas a Pagar
+                            </Typography>
+                            <Typography sx={{ color: expressoTheme.colors.textSecondary }}>
+                                Gestão de custos de estrada e despesas operacionais
+                            </Typography>
+                        </Box>
+                        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                            <Button
+                                variant="contained"
+                                startIcon={<Plus size={20} />}
+                                onClick={() => handleOpenDialog()}
+                                sx={{
+                                    background: expressoTheme.gradients.primary,
+                                    color: 'white',
+                                    px: 3,
+                                    py: 1.5,
+                                    borderRadius: expressoTheme.borderRadius.medium,
+                                    textTransform: 'none',
+                                    fontWeight: 600,
+                                    boxShadow: expressoTheme.shadows.button,
+                                    '&:hover': {
+                                        background: expressoTheme.colors.primaryDark,
+                                    }
+                                }}
+                            >
+                                Nova Conta
+                            </Button>
                         </motion.div>
-                        <div>
-                            <h1>Contas a Pagar</h1>
-                            <p>Gestão financeira inteligente</p>
-                        </div>
-                    </div>
-                    <motion.button
-                        className="btn-primary"
-                        onClick={() => setShowModal(true)}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                    >
-                        <Plus size={20} />
-                        Nova Conta
-                    </motion.button>
-                </div>
-            </motion.div>
+                    </Box>
+                </motion.div>
 
-            {/* Cards de Resumo com Animação */}
-            <motion.div
-                className="summary-cards"
-                variants={containerVariants}
-                initial="hidden"
-                animate="visible"
-            >
-                {Object.entries(statusConfig).map(([status, config]) => {
-                    const Icon = config.icon;
-                    const total = getTotalPorStatus(status);
+                {/* Cards de Resumo */}
+                <Grid container spacing={3} sx={{ mb: 3 }}>
+                    <AnimatePresence>
+                        {Object.entries(statusConfig).map(([status, config], index) => {
+                            const Icon = config.icon;
+                            const total = getTotalPorStatus(status);
+                            return (
+                                <Grid item xs={12} sm={6} md={3} key={status}>
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: index * 0.1 }}
+                                        whileHover={{ y: -5, scale: 1.02 }}
+                                    >
+                                        <Box
+                                            sx={{
+                                                background: expressoTheme.colors.cardBackground,
+                                                borderRadius: expressoTheme.borderRadius.large,
+                                                border: `1px solid ${expressoTheme.colors.border}`,
+                                                borderLeft: `4px solid ${config.color}`,
+                                                p: 2.5,
+                                                boxShadow: expressoTheme.shadows.card,
+                                                transition: 'all 0.3s ease',
+                                                '&:hover': {
+                                                    boxShadow: expressoTheme.shadows.cardHover,
+                                                },
+                                            }}
+                                        >
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1.5 }}>
+                                                <Box sx={{ display: 'inline-flex', padding: 1, borderRadius: expressoTheme.borderRadius.medium, background: config.bg }}>
+                                                    <Icon size={24} color={config.color} />
+                                                </Box>
+                                                <Typography sx={{ color: expressoTheme.colors.textSecondary, fontSize: '0.9rem', fontWeight: 600 }}>
+                                                    {config.label}
+                                                </Typography>
+                                            </Box>
+                                            <Typography variant="h5" sx={{ color: expressoTheme.colors.text, fontWeight: 700 }}>
+                                                R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                            </Typography>
+                                        </Box>
+                                    </motion.div>
+                                </Grid>
+                            );
+                        })}
+                    </AnimatePresence>
+                </Grid>
 
-                    return (
-                        <motion.div
-                            key={status}
-                            className="summary-card"
-                            variants={itemVariants}
-                            whileHover={{ y: -5, boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}
-                            style={{
-                                background: `linear - gradient(135deg, ${config.bg} 0 %, ${config.color}20 100 %)`,
-                                borderLeft: `4px solid ${config.color} `
-                            }}
-                        >
-                            <div className="card-icon" style={{ color: config.color }}>
-                                <Icon size={24} />
-                            </div>
-                            <div className="card-content">
-                                <span className="card-label">{config.label}</span>
-                                <motion.span
-                                    className="card-value"
-                                    key={total}
-                                    initial={{ scale: 1.5, opacity: 0 }}
-                                    animate={{ scale: 1, opacity: 1 }}
-                                >
-                                    R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                                </motion.span>
-                            </div>
-                        </motion.div>
-                    );
-                })}
-            </motion.div>
+                {/* Seção de Relatórios */}
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+                    <Box sx={{ background: expressoTheme.colors.cardBackground, borderRadius: expressoTheme.borderRadius.large, border: `1px solid ${expressoTheme.colors.border}`, p: 3, mb: 3, boxShadow: expressoTheme.shadows.card }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                <Box sx={{ display: 'inline-flex', padding: 1.5, borderRadius: expressoTheme.borderRadius.medium, background: expressoTheme.gradients.primary }}>
+                                    <FileText size={24} color="white" />
+                                </Box>
+                                <Box>
+                                    <Typography variant="h6" sx={{ fontWeight: 700, color: expressoTheme.colors.text }}>
+                                        Relatórios e Exportação
+                                    </Typography>
+                                    <Typography sx={{ color: expressoTheme.colors.textSecondary, fontSize: '0.85rem' }}>
+                                        Exporte dados em múltiplos formatos
+                                    </Typography>
+                                </Box>
+                            </Box>
+                        </Box>
 
-            {/* Filtros Avançados */}
-            <motion.div
-                className="filters-section"
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                transition={{ delay: 0.3 }}
-            >
-                <div className="filters-grid">
-                    <div className="filter-group">
-                        <Search size={18} />
-                        <input
-                            type="text"
-                            placeholder="Buscar por descrição..."
+                        <Grid container spacing={2}>
+                            <Grid item xs={12} sm={6} md={3}>
+                                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                                    <Button
+                                        fullWidth
+                                        variant="outlined"
+                                        startIcon={<FileText size={18} />}
+                                        onClick={async () => {
+                                            try {
+                                                const periodo = new Date().toISOString().slice(0, 7);
+                                                const response = await api.get(`/contas-pagar/relatorios/exportar?formato=xlsx&periodo=${periodo}`, {
+                                                    responseType: 'blob',
+                                                });
+                                                const url = window.URL.createObjectURL(new Blob([response.data]));
+                                                const link = document.createElement('a');
+                                                link.href = url;
+                                                link.setAttribute('download', `contas-pagar-${periodo}.xlsx`);
+                                                document.body.appendChild(link);
+                                                link.click();
+                                                link.remove();
+                                                enqueueSnackbar('Relatório XLSX exportado com sucesso!', { variant: 'success' });
+                                            } catch (error: any) {
+                                                enqueueSnackbar('Erro ao exportar relatório', { variant: 'error' });
+                                            }
+                                        }}
+                                        sx={{
+                                            borderColor: expressoTheme.colors.primary,
+                                            color: expressoTheme.colors.primary,
+                                            textTransform: 'none',
+                                            fontWeight: 600,
+                                            py: 1.5,
+                                            '&:hover': {
+                                                borderColor: expressoTheme.colors.primaryDark,
+                                                background: `${expressoTheme.colors.primary}10`,
+                                            }
+                                        }}
+                                    >
+                                        Exportar XLSX
+                                    </Button>
+                                </motion.div>
+                            </Grid>
+                            <Grid item xs={12} sm={6} md={3}>
+                                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                                    <Button
+                                        fullWidth
+                                        variant="outlined"
+                                        startIcon={<FileText size={18} />}
+                                        onClick={async () => {
+                                            try {
+                                                const periodo = new Date().toISOString().slice(0, 7);
+                                                const response = await api.get(`/contas-pagar/relatorios/exportar?formato=csv&periodo=${periodo}`, {
+                                                    responseType: 'blob',
+                                                });
+                                                const url = window.URL.createObjectURL(new Blob([response.data]));
+                                                const link = document.createElement('a');
+                                                link.href = url;
+                                                link.setAttribute('download', `contas-pagar-${periodo}.csv`);
+                                                document.body.appendChild(link);
+                                                link.click();
+                                                link.remove();
+                                                enqueueSnackbar('Relatório CSV exportado com sucesso!', { variant: 'success' });
+                                            } catch (error: any) {
+                                                enqueueSnackbar('Erro ao exportar relatório', { variant: 'error' });
+                                            }
+                                        }}
+                                        sx={{
+                                            borderColor: expressoTheme.colors.success,
+                                            color: expressoTheme.colors.success,
+                                            textTransform: 'none',
+                                            fontWeight: 600,
+                                            py: 1.5,
+                                            '&:hover': {
+                                                borderColor: expressoTheme.colors.success,
+                                                background: `${expressoTheme.colors.success}10`,
+                                            }
+                                        }}
+                                    >
+                                        Exportar CSV
+                                    </Button>
+                                </motion.div>
+                            </Grid>
+                            <Grid item xs={12} sm={6} md={3}>
+                                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                                    <Button
+                                        fullWidth
+                                        variant="outlined"
+                                        startIcon={<MapPin size={18} />}
+                                        onClick={async () => {
+                                            try {
+                                                const response = await api.get('/contas-pagar/relatorios/por-cidade');
+                                                console.log('Relatório por cidade:', response.data);
+                                                enqueueSnackbar('Relatório por cidade gerado!', { variant: 'info' });
+                                            } catch (error: any) {
+                                                enqueueSnackbar('Erro ao gerar relatório', { variant: 'error' });
+                                            }
+                                        }}
+                                        sx={{
+                                            borderColor: expressoTheme.colors.warning,
+                                            color: expressoTheme.colors.warning,
+                                            textTransform: 'none',
+                                            fontWeight: 600,
+                                            py: 1.5,
+                                            '&:hover': {
+                                                borderColor: expressoTheme.colors.warning,
+                                                background: `${expressoTheme.colors.warning}10`,
+                                            }
+                                        }}
+                                    >
+                                        Por Cidade
+                                    </Button>
+                                </motion.div>
+                            </Grid>
+                            <Grid item xs={12} sm={6} md={3}>
+                                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                                    <Button
+                                        fullWidth
+                                        variant="outlined"
+                                        startIcon={<Truck size={18} />}
+                                        onClick={async () => {
+                                            try {
+                                                const response = await api.get('/contas-pagar/relatorios/por-acao');
+                                                console.log('Relatório por ação:', response.data);
+                                                enqueueSnackbar('Relatório por ação gerado!', { variant: 'info' });
+                                            } catch (error: any) {
+                                                enqueueSnackbar('Erro ao gerar relatório', { variant: 'error' });
+                                            }
+                                        }}
+                                        sx={{
+                                            borderColor: expressoTheme.colors.danger,
+                                            color: expressoTheme.colors.danger,
+                                            textTransform: 'none',
+                                            fontWeight: 600,
+                                            py: 1.5,
+                                            '&:hover': {
+                                                borderColor: expressoTheme.colors.danger,
+                                                background: `${expressoTheme.colors.danger}10`,
+                                            }
+                                        }}
+                                    >
+                                        Por Ação
+                                    </Button>
+                                </motion.div>
+                            </Grid>
+                        </Grid>
+                    </Box>
+                </motion.div>
+
+                {/* Barra de Pesquisa e Filtros */}
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+                    <Box sx={{ background: expressoTheme.colors.cardBackground, borderRadius: expressoTheme.borderRadius.large, border: `1px solid ${expressoTheme.colors.border}`, p: 3, mb: 3, boxShadow: expressoTheme.shadows.card }}>
+                        <TextField
+                            fullWidth
+                            placeholder="Pesquisar contas..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="filter-input"
+                            sx={{
+                                mb: 2,
+                                '& .MuiOutlinedInput-root': {
+                                    borderRadius: expressoTheme.borderRadius.medium,
+                                    '&:hover fieldset': {
+                                        borderColor: expressoTheme.colors.primary,
+                                    },
+                                },
+                            }}
+                            InputProps={{
+                                startAdornment: (
+                                    <InputAdornment position="start">
+                                        <Search size={20} color={expressoTheme.colors.textSecondary} />
+                                    </InputAdornment>
+                                ),
+                                endAdornment: searchTerm && (
+                                    <InputAdornment position="end">
+                                        <IconButton size="small" onClick={() => setSearchTerm('')}>
+                                            <X size={18} />
+                                        </IconButton>
+                                    </InputAdornment>
+                                ),
+                            }}
                         />
-                    </div>
 
-                    <select
-                        className="filter-select"
-                        value={filtros.status || ''}
-                        onChange={(e) => setFiltros({ ...filtros, status: e.target.value })}
-                    >
-                        <option value="">Todos os Status</option>
-                        {Object.entries(statusConfig).map(([status, config]) => (
-                            <option key={status} value={status}>{config.label}</option>
-                        ))}
-                    </select>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Button
+                                startIcon={<Filter size={18} />}
+                                onClick={() => setShowFilters(!showFilters)}
+                                sx={{
+                                    background: expressoTheme.gradients.primary,
+                                    color: 'white',
+                                    textTransform: 'none',
+                                    px: 2,
+                                    py: 1,
+                                    borderRadius: expressoTheme.borderRadius.medium,
+                                    fontWeight: 600,
+                                    boxShadow: expressoTheme.shadows.button,
+                                    '&:hover': {
+                                        background: expressoTheme.colors.primaryDark,
+                                    }
+                                }}
+                            >
+                                Filtros Avançados
+                            </Button>
+                            {hasActiveFilters && (
+                                <Button
+                                    startIcon={<X size={18} />}
+                                    onClick={clearFilters}
+                                    sx={{ color: expressoTheme.colors.textSecondary, textTransform: 'none' }}
+                                >
+                                    Limpar Filtros
+                                </Button>
+                            )}
+                        </Box>
 
-                    <select
-                        className="filter-select"
-                        value={filtros.tipo_conta || ''}
-                        onChange={(e) => setFiltros({ ...filtros, tipo_conta: e.target.value })}
-                    >
-                        <option value="">Todos os Tipos</option>
-                        {tiposConta.map(tipo => (
-                            <option key={tipo.value} value={tipo.value}>{tipo.label}</option>
-                        ))}
-                    </select>
-                </div>
-            </motion.div>
-
-            {/* Tabela com Animações */}
-            <motion.div
-                className="table-container"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-            >
-                <AnimatePresence mode="wait">
-                    {loading ? (
-                        <motion.div
-                            key="loading"
-                            className="loading-state"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                        >
-                            <div className="loading-spinner" />
-                            <p>Carregando contas...</p>
-                        </motion.div>
-                    ) : (
-                        <motion.table
-                            key="table"
-                            className="modern-table"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                        >
-                            <thead>
-                                <tr>
-                                    <th>Status</th>
-                                    <th>Tipo</th>
-                                    <th>Descrição</th>
-                                    <th>Vencimento</th>
-                                    <th>Valor</th>
-                                    <th>Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <AnimatePresence>
-                                    {contas
-                                        .filter(c => c.descricao.toLowerCase().includes(searchTerm.toLowerCase()))
-                                        .map((conta, index) => {
-                                            const StatusIcon = statusConfig[conta.status].icon;
-                                            const tipoInfo = tiposConta.find(t => t.value === conta.tipo_conta);
-
-                                            return (
-                                                <motion.tr
-                                                    key={conta.id}
-                                                    initial={{ opacity: 0, x: -20 }}
-                                                    animate={{ opacity: 1, x: 0 }}
-                                                    exit={{ opacity: 0, x: 20 }}
-                                                    transition={{ delay: index * 0.05 }}
-                                                    whileHover={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
-                                                >
-                                                    <td>
-                                                        <motion.div
-                                                            className="status-badge"
-                                                            style={{
-                                                                backgroundColor: statusConfig[conta.status].bg,
-                                                                color: statusConfig[conta.status].color
-                                                            }}
-                                                            whileHover={{ scale: 1.05 }}
-                                                        >
-                                                            <StatusIcon size={16} />
-                                                            {statusConfig[conta.status].label}
-                                                        </motion.div>
-                                                    </td>
-                                                    <td>
-                                                        <span
-                                                            className="tipo-badge"
-                                                            style={{
-                                                                backgroundColor: `${tipoInfo?.color} 20`,
-                                                                color: tipoInfo?.color
-                                                            }}
-                                                        >
-                                                            {tipoInfo?.label}
-                                                        </span>
-                                                    </td>
-                                                    <td className="descricao-cell">{conta.descricao}</td>
-                                                    <td>
-                                                        <div className="date-cell">
-                                                            <Calendar size={14} />
-                                                            {new Date(conta.data_vencimento).toLocaleDateString('pt-BR')}
-                                                        </div>
-                                                    </td>
-                                                    <td className="valor-cell">
-                                                        R$ {Number(conta.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                                                    </td>
-                                                    <td>
-                                                        <div className="action-buttons">
-                                                            <motion.button
-                                                                className="btn-icon btn-edit"
-                                                                onClick={() => {
-                                                                    setEditingConta(conta);
-                                                                    setShowModal(true);
-                                                                }}
-                                                                whileHover={{ scale: 1.1 }}
-                                                                whileTap={{ scale: 0.9 }}
-                                                            >
-                                                                <Edit size={16} />
-                                                            </motion.button>
-                                                            <motion.button
-                                                                className="btn-icon btn-delete"
-                                                                onClick={() => handleDelete(conta.id)}
-                                                                whileHover={{ scale: 1.1 }}
-                                                                whileTap={{ scale: 0.9 }}
-                                                            >
-                                                                <Trash2 size={16} />
-                                                            </motion.button>
-                                                        </div>
-                                                    </td>
-                                                </motion.tr>
-                                            );
-                                        })}
-                                </AnimatePresence>
-                            </tbody>
-                        </motion.table>
-                    )}
-                </AnimatePresence>
-            </motion.div>
-
-            {/* Paginação */}
-            {totalPages > 1 && (
-                <motion.div
-                    className="pagination"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.5 }}
-                >
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
-                        <motion.button
-                            key={p}
-                            className={`page - btn ${p === page ? 'active' : ''} `}
-                            onClick={() => setPage(p)}
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                        >
-                            {p}
-                        </motion.button>
-                    ))}
+                        <Collapse in={showFilters}>
+                            <Grid container spacing={2} sx={{ mt: 1 }}>
+                                <Grid item xs={12} sm={6} md={4}>
+                                    <TextField select fullWidth label="Tipo de Conta" value={filterTipo} onChange={(e) => setFilterTipo(e.target.value)} size="small">
+                                        <MenuItem value="">Todos</MenuItem>
+                                        <MenuItem disabled sx={{ fontWeight: 700, color: expressoTheme.colors.primary }}>Custos de Estrada</MenuItem>
+                                        {tiposConta.filter(t => t.categoria === 'estrada').map(tipo => (
+                                            <MenuItem key={tipo.value} value={tipo.value}>{tipo.label}</MenuItem>
+                                        ))}
+                                        <MenuItem disabled sx={{ fontWeight: 700, color: expressoTheme.colors.primary }}>Contas Habituais</MenuItem>
+                                        {tiposConta.filter(t => t.categoria === 'habitual').map(tipo => (
+                                            <MenuItem key={tipo.value} value={tipo.value}>{tipo.label}</MenuItem>
+                                        ))}
+                                        <MenuItem disabled sx={{ fontWeight: 700, color: expressoTheme.colors.primary }}>Outros</MenuItem>
+                                        {tiposConta.filter(t => t.categoria === 'outros').map(tipo => (
+                                            <MenuItem key={tipo.value} value={tipo.value}>{tipo.label}</MenuItem>
+                                        ))}
+                                    </TextField>
+                                </Grid>
+                                <Grid item xs={12} sm={6} md={4}>
+                                    <TextField select fullWidth label="Status" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} size="small">
+                                        <MenuItem value="">Todos</MenuItem>
+                                        {Object.entries(statusConfig).map(([status, config]) => (
+                                            <MenuItem key={status} value={status}>{config.label}</MenuItem>
+                                        ))}
+                                    </TextField>
+                                </Grid>
+                                <Grid item xs={12} sm={6} md={4}>
+                                    <TextField fullWidth label="Cidade" value={filterCidade} onChange={(e) => setFilterCidade(e.target.value)} size="small" />
+                                </Grid>
+                            </Grid>
+                        </Collapse>
+                    </Box>
                 </motion.div>
-            )}
-        </div>
+
+                {/* Grid de Contas */}
+                <Grid container spacing={2}>
+                    <AnimatePresence>
+                        {filteredContas.length === 0 ? (
+                            <Grid item xs={12}>
+                                <Box sx={{ background: expressoTheme.colors.cardBackground, borderRadius: expressoTheme.borderRadius.large, border: `1px solid ${expressoTheme.colors.border}`, p: 6, textAlign: 'center' }}>
+                                    <DollarSign size={48} color={expressoTheme.colors.textLight} style={{ marginBottom: 16 }} />
+                                    <Typography sx={{ color: expressoTheme.colors.textSecondary }}>
+                                        {searchTerm || hasActiveFilters ? 'Nenhuma conta encontrada.' : 'Nenhuma conta cadastrada ainda.'}
+                                    </Typography>
+                                </Box>
+                            </Grid>
+                        ) : (
+                            filteredContas.map((conta, index) => {
+                                const StatusIcon = statusConfig[conta.status].icon;
+                                const tipoInfo = tiposConta.find(t => t.value === conta.tipo_conta);
+                                const TipoIcon = tipoInfo?.icon || FileText;
+
+                                return (
+                                    <Grid item xs={12} sm={6} md={4} lg={3} key={conta.id}>
+                                        <motion.div
+                                            initial={{ opacity: 0, y: 20 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, scale: 0.9 }}
+                                            transition={{ delay: index * 0.03 }}
+                                            whileHover={{ y: -5, scale: 1.02 }}
+                                        >
+                                            <Box
+                                                sx={{
+                                                    background: expressoTheme.colors.cardBackground,
+                                                    borderRadius: expressoTheme.borderRadius.large,
+                                                    border: `1px solid ${expressoTheme.colors.border}`,
+                                                    p: 2,
+                                                    height: '100%',
+                                                    transition: 'all 0.3s ease',
+                                                    boxShadow: expressoTheme.shadows.card,
+                                                    '&:hover': {
+                                                        background: expressoTheme.colors.cardHover,
+                                                        borderColor: expressoTheme.colors.primary,
+                                                        boxShadow: expressoTheme.shadows.cardHover,
+                                                    },
+                                                }}
+                                            >
+                                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 1.5 }}>
+                                                    <motion.div
+                                                        animate={{ scale: [1, 1.1, 1] }}
+                                                        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                                                    >
+                                                        <Box sx={{ display: 'inline-flex', padding: 1, borderRadius: expressoTheme.borderRadius.medium, background: `${tipoInfo?.color}20` }}>
+                                                            <TipoIcon size={20} color={tipoInfo?.color} />
+                                                        </Box>
+                                                    </motion.div>
+                                                    <Chip
+                                                        icon={<StatusIcon size={14} />}
+                                                        label={statusConfig[conta.status].label}
+                                                        size="small"
+                                                        sx={{
+                                                            background: statusConfig[conta.status].bg,
+                                                            color: statusConfig[conta.status].color,
+                                                            fontWeight: 600,
+                                                            fontSize: '0.75rem',
+                                                        }}
+                                                    />
+                                                </Box>
+
+                                                <Typography variant="h6" sx={{ color: expressoTheme.colors.text, fontWeight: 700, mb: 0.5, fontSize: '0.95rem' }}>
+                                                    {tipoInfo?.label}
+                                                </Typography>
+
+                                                <Typography sx={{ color: expressoTheme.colors.textSecondary, fontSize: '0.8rem', mb: 1, minHeight: 32 }}>
+                                                    {conta.descricao.length > 50 ? `${conta.descricao.substring(0, 50)}...` : conta.descricao}
+                                                </Typography>
+
+                                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mb: 1.5 }}>
+                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                        <DollarSign size={14} color={expressoTheme.colors.primary} />
+                                                        <Typography sx={{ color: expressoTheme.colors.text, fontSize: '0.85rem', fontWeight: 700 }}>
+                                                            R$ {Number(conta.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                                        </Typography>
+                                                    </Box>
+                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                        <Calendar size={14} color={expressoTheme.colors.primary} />
+                                                        <Typography sx={{ color: expressoTheme.colors.textSecondary, fontSize: '0.75rem' }}>
+                                                            {new Date(conta.data_vencimento).toLocaleDateString('pt-BR')}
+                                                        </Typography>
+                                                    </Box>
+                                                    {conta.cidade && (
+                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                            <MapPin size={14} color={expressoTheme.colors.primary} />
+                                                            <Typography sx={{ color: expressoTheme.colors.textSecondary, fontSize: '0.75rem' }}>
+                                                                {conta.cidade}
+                                                            </Typography>
+                                                        </Box>
+                                                    )}
+                                                </Box>
+
+                                                <Box sx={{ display: 'flex', gap: 1 }}>
+                                                    <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} style={{ flex: 1 }}>
+                                                        <Button
+                                                            fullWidth
+                                                            size="small"
+                                                            startIcon={<Edit size={14} />}
+                                                            onClick={() => handleOpenDialog(conta)}
+                                                            sx={{
+                                                                color: expressoTheme.colors.primary,
+                                                                borderColor: expressoTheme.colors.primary,
+                                                                textTransform: 'none',
+                                                                fontSize: '0.75rem',
+                                                                '&:hover': {
+                                                                    background: expressoTheme.colors.cardHover,
+                                                                    borderColor: expressoTheme.colors.primaryDark,
+                                                                }
+                                                            }}
+                                                            variant="outlined"
+                                                        >
+                                                            Editar
+                                                        </Button>
+                                                    </motion.div>
+                                                    <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                                                        <IconButton
+                                                            size="small"
+                                                            onClick={() => handleDelete(conta.id)}
+                                                            sx={{
+                                                                color: expressoTheme.colors.danger,
+                                                                '&:hover': {
+                                                                    background: 'rgba(220, 53, 69, 0.1)',
+                                                                }
+                                                            }}
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </IconButton>
+                                                    </motion.div>
+                                                </Box>
+                                            </Box>
+                                        </motion.div>
+                                    </Grid>
+                                );
+                            })
+                        )}
+                    </AnimatePresence>
+                </Grid>
+
+                {/* Modal de Cadastro/Edição */}
+                <Dialog
+                    open={showModal}
+                    onClose={() => setShowModal(false)}
+                    maxWidth="md"
+                    fullWidth
+                    PaperProps={{
+                        sx: {
+                            borderRadius: expressoTheme.borderRadius.large,
+                            boxShadow: expressoTheme.shadows.dialog,
+                        }
+                    }}
+                >
+                    <DialogTitle sx={{ background: expressoTheme.gradients.primary, color: 'white', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <DollarSign size={24} />
+                        {editingConta ? 'Editar Conta' : 'Nova Conta'}
+                    </DialogTitle>
+                    <DialogContent sx={{ pt: 3 }}>
+                        <Grid container spacing={2.5}>
+                            {/* Seleção de Tipo de Conta */}
+                            <Grid item xs={12}>
+                                <Typography sx={{ fontWeight: 600, mb: 1.5, color: expressoTheme.colors.text }}>
+                                    Tipo de Conta
+                                </Typography>
+
+                                {/* Custos de Estrada */}
+                                <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, color: expressoTheme.colors.primary, mb: 1 }}>
+                                    🚛 Custos de Estrada
+                                </Typography>
+                                <Grid container spacing={1} sx={{ mb: 2 }}>
+                                    {tiposConta.filter(t => t.categoria === 'estrada').map(tipo => {
+                                        const TipoIcon = tipo.icon;
+                                        const isSelected = formData.tipo_conta === tipo.value;
+                                        return (
+                                            <Grid item xs={6} sm={4} md={3} key={tipo.value}>
+                                                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                                                    <Box
+                                                        onClick={() => setFormData({ ...formData, tipo_conta: tipo.value })}
+                                                        sx={{
+                                                            p: 1.5,
+                                                            borderRadius: expressoTheme.borderRadius.medium,
+                                                            border: `2px solid ${isSelected ? tipo.color : expressoTheme.colors.border}`,
+                                                            background: isSelected ? `${tipo.color}15` : expressoTheme.colors.cardBackground,
+                                                            cursor: 'pointer',
+                                                            transition: 'all 0.2s ease',
+                                                            display: 'flex',
+                                                            flexDirection: 'column',
+                                                            alignItems: 'center',
+                                                            gap: 0.5,
+                                                            '&:hover': {
+                                                                borderColor: tipo.color,
+                                                                background: `${tipo.color}10`,
+                                                            }
+                                                        }}
+                                                    >
+                                                        <TipoIcon size={24} color={tipo.color} />
+                                                        <Typography sx={{ fontSize: '0.7rem', textAlign: 'center', color: expressoTheme.colors.text }}>
+                                                            {tipo.label.replace(/[🛞🛢️⛽🔧🚛🧼🛣️]/g, '').trim()}
+                                                        </Typography>
+                                                    </Box>
+                                                </motion.div>
+                                            </Grid>
+                                        );
+                                    })}
+                                </Grid>
+
+                                {/* Contas Habituais */}
+                                <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, color: expressoTheme.colors.primary, mb: 1 }}>
+                                    🏢 Contas Habituais
+                                </Typography>
+                                <Grid container spacing={1} sx={{ mb: 2 }}>
+                                    {tiposConta.filter(t => t.categoria === 'habitual').map(tipo => {
+                                        const TipoIcon = tipo.icon;
+                                        const isSelected = formData.tipo_conta === tipo.value;
+                                        return (
+                                            <Grid item xs={6} sm={4} md={3} key={tipo.value}>
+                                                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                                                    <Box
+                                                        onClick={() => setFormData({ ...formData, tipo_conta: tipo.value })}
+                                                        sx={{
+                                                            p: 1.5,
+                                                            borderRadius: expressoTheme.borderRadius.medium,
+                                                            border: `2px solid ${isSelected ? tipo.color : expressoTheme.colors.border}`,
+                                                            background: isSelected ? `${tipo.color}15` : expressoTheme.colors.cardBackground,
+                                                            cursor: 'pointer',
+                                                            transition: 'all 0.2s ease',
+                                                            display: 'flex',
+                                                            flexDirection: 'column',
+                                                            alignItems: 'center',
+                                                            gap: 0.5,
+                                                            '&:hover': {
+                                                                borderColor: tipo.color,
+                                                                background: `${tipo.color}10`,
+                                                            }
+                                                        }}
+                                                    >
+                                                        <TipoIcon size={24} color={tipo.color} />
+                                                        <Typography sx={{ fontSize: '0.7rem', textAlign: 'center', color: expressoTheme.colors.text }}>
+                                                            {tipo.label.replace(/[💧⚡🏠🌐📱]/g, '').trim()}
+                                                        </Typography>
+                                                    </Box>
+                                                </motion.div>
+                                            </Grid>
+                                        );
+                                    })}
+                                </Grid>
+
+                                {/* Outros */}
+                                <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, color: expressoTheme.colors.primary, mb: 1 }}>
+                                    📦 Outros
+                                </Typography>
+                                <Grid container spacing={1}>
+                                    {tiposConta.filter(t => t.categoria === 'outros').map(tipo => {
+                                        const TipoIcon = tipo.icon;
+                                        const isSelected = formData.tipo_conta === tipo.value;
+                                        return (
+                                            <Grid item xs={6} sm={4} md={3} key={tipo.value}>
+                                                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                                                    <Box
+                                                        onClick={() => setFormData({ ...formData, tipo_conta: tipo.value })}
+                                                        sx={{
+                                                            p: 1.5,
+                                                            borderRadius: expressoTheme.borderRadius.medium,
+                                                            border: `2px solid ${isSelected ? tipo.color : expressoTheme.colors.border}`,
+                                                            background: isSelected ? `${tipo.color}15` : expressoTheme.colors.cardBackground,
+                                                            cursor: 'pointer',
+                                                            transition: 'all 0.2s ease',
+                                                            display: 'flex',
+                                                            flexDirection: 'column',
+                                                            alignItems: 'center',
+                                                            gap: 0.5,
+                                                            '&:hover': {
+                                                                borderColor: tipo.color,
+                                                                background: `${tipo.color}10`,
+                                                            }
+                                                        }}
+                                                    >
+                                                        <TipoIcon size={24} color={tipo.color} />
+                                                        <Typography sx={{ fontSize: '0.7rem', textAlign: 'center', color: expressoTheme.colors.text }}>
+                                                            {tipo.label.replace(/[✨📦]/g, '').trim()}
+                                                        </Typography>
+                                                    </Box>
+                                                </motion.div>
+                                            </Grid>
+                                        );
+                                    })}
+                                </Grid>
+                            </Grid>
+
+                            {/* Campo Tipo Espontâneo (condicional) */}
+                            {formData.tipo_conta === 'espontaneo' && (
+                                <Grid item xs={12}>
+                                    <TextField
+                                        fullWidth
+                                        label="Especifique o Tipo"
+                                        value={formData.tipo_espontaneo}
+                                        onChange={(e) => setFormData({ ...formData, tipo_espontaneo: e.target.value })}
+                                        placeholder="Ex: Multa de trânsito, Seguro, etc."
+                                    />
+                                </Grid>
+                            )}
+
+                            {/* Descrição */}
+                            <Grid item xs={12}>
+                                <TextField
+                                    fullWidth
+                                    label="Descrição"
+                                    value={formData.descricao}
+                                    onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
+                                    placeholder="Descreva a conta..."
+                                    multiline
+                                    rows={2}
+                                />
+                            </Grid>
+
+                            {/* Valor e Data de Vencimento */}
+                            <Grid item xs={12} sm={6}>
+                                <TextField
+                                    fullWidth
+                                    label="Valor (R$)"
+                                    type="number"
+                                    value={formData.valor}
+                                    onChange={(e) => setFormData({ ...formData, valor: Number(e.target.value) })}
+                                    InputProps={{
+                                        startAdornment: (
+                                            <InputAdornment position="start">
+                                                <DollarSign size={18} color={expressoTheme.colors.primary} />
+                                            </InputAdornment>
+                                        ),
+                                    }}
+                                />
+                            </Grid>
+                            <Grid item xs={12} sm={6}>
+                                <TextField
+                                    fullWidth
+                                    label="Data de Vencimento"
+                                    type="date"
+                                    value={formData.data_vencimento}
+                                    onChange={(e) => setFormData({ ...formData, data_vencimento: e.target.value })}
+                                    InputLabelProps={{ shrink: true }}
+                                    InputProps={{
+                                        startAdornment: (
+                                            <InputAdornment position="start">
+                                                <Calendar size={18} color={expressoTheme.colors.primary} />
+                                            </InputAdornment>
+                                        ),
+                                    }}
+                                />
+                            </Grid>
+
+                            {/* Cidade e Status */}
+                            <Grid item xs={12} sm={6}>
+                                <TextField
+                                    fullWidth
+                                    label="Cidade (para relatórios)"
+                                    value={formData.cidade}
+                                    onChange={(e) => setFormData({ ...formData, cidade: e.target.value })}
+                                    placeholder="Ex: São Luís"
+                                    InputProps={{
+                                        startAdornment: (
+                                            <InputAdornment position="start">
+                                                <MapPin size={18} color={expressoTheme.colors.primary} />
+                                            </InputAdornment>
+                                        ),
+                                    }}
+                                />
+                            </Grid>
+                            <Grid item xs={12} sm={6}>
+                                <TextField
+                                    select
+                                    fullWidth
+                                    label="Status"
+                                    value={formData.status}
+                                    onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
+                                >
+                                    {Object.entries(statusConfig).map(([status, config]) => (
+                                        <MenuItem key={status} value={status}>
+                                            {config.label}
+                                        </MenuItem>
+                                    ))}
+                                </TextField>
+                            </Grid>
+
+                            {/* Recorrente */}
+                            <Grid item xs={12}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1.5, borderRadius: expressoTheme.borderRadius.medium, background: expressoTheme.colors.cardHover }}>
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.recorrente}
+                                        onChange={(e) => setFormData({ ...formData, recorrente: e.target.checked })}
+                                        style={{ width: 18, height: 18, cursor: 'pointer' }}
+                                    />
+                                    <Typography sx={{ color: expressoTheme.colors.text }}>
+                                        Conta recorrente (mensal)
+                                    </Typography>
+                                </Box>
+                            </Grid>
+
+                            {/* Observações */}
+                            <Grid item xs={12}>
+                                <TextField
+                                    fullWidth
+                                    label="Observações (opcional)"
+                                    value={formData.observacoes}
+                                    onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
+                                    multiline
+                                    rows={2}
+                                    placeholder="Informações adicionais..."
+                                />
+                            </Grid>
+                        </Grid>
+                    </DialogContent>
+                    <DialogActions sx={{ p: 2.5, gap: 1 }}>
+                        <Button
+                            onClick={() => setShowModal(false)}
+                            sx={{
+                                color: expressoTheme.colors.textSecondary,
+                                textTransform: 'none',
+                            }}
+                        >
+                            Cancelar
+                        </Button>
+                        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                            <Button
+                                onClick={handleSave}
+                                variant="contained"
+                                sx={{
+                                    background: expressoTheme.gradients.primary,
+                                    color: 'white',
+                                    px: 3,
+                                    textTransform: 'none',
+                                    fontWeight: 600,
+                                    boxShadow: expressoTheme.shadows.button,
+                                    '&:hover': {
+                                        background: expressoTheme.colors.primaryDark,
+                                    }
+                                }}
+                            >
+                                {editingConta ? 'Atualizar' : 'Salvar'}
+                            </Button>
+                        </motion.div>
+                    </DialogActions>
+                </Dialog>
+            </Container>
+        </Box>
     );
 };
 
 export default ContasPagar;
+

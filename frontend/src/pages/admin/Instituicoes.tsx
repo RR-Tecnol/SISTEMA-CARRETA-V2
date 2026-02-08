@@ -131,7 +131,7 @@ const Instituicoes: React.FC = () => {
                             </Grid>
                         ) : (
                             filteredInstituicoes.map((inst, index) => (
-                                <Grid item xs={12} sm={6} md={4} key={inst.id}>
+                                <Grid item xs={12} sm={6} md={3} key={inst.id}>
                                     <motion.div
                                         initial={{ opacity: 0, y: 20 }}
                                         animate={{ opacity: 1, y: 0 }}
@@ -144,7 +144,7 @@ const Instituicoes: React.FC = () => {
                                                 background: expressoTheme.colors.cardBackground,
                                                 borderRadius: expressoTheme.borderRadius.large,
                                                 border: `1px solid ${expressoTheme.colors.border}`,
-                                                p: 3,
+                                                p: 2,
                                                 height: '100%',
                                                 transition: 'all 0.3s ease',
                                                 boxShadow: expressoTheme.shadows.card,
@@ -155,9 +155,9 @@ const Instituicoes: React.FC = () => {
                                                 },
                                             }}
                                         >
-                                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 2 }}>
-                                                <Box sx={{ display: 'inline-flex', padding: 1.5, borderRadius: expressoTheme.borderRadius.medium, background: expressoTheme.gradients.primary, boxShadow: expressoTheme.shadows.button }}>
-                                                    <Building2 size={24} color="white" />
+                                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 1.5 }}>
+                                                <Box sx={{ display: 'inline-flex', padding: 1.2, borderRadius: expressoTheme.borderRadius.medium, background: expressoTheme.gradients.primary, boxShadow: expressoTheme.shadows.button }}>
+                                                    <Building2 size={20} color="white" />
                                                 </Box>
                                                 <IconButton
                                                     size="small"
@@ -168,24 +168,24 @@ const Instituicoes: React.FC = () => {
                                                 </IconButton>
                                             </Box>
 
-                                            <Typography variant="h6" sx={{ color: expressoTheme.colors.text, fontWeight: 700, mb: 0.5 }}>
+                                            <Typography variant="h6" sx={{ color: expressoTheme.colors.text, fontWeight: 700, mb: 0.5, fontSize: '0.95rem' }}>
                                                 {inst.razao_social}
                                             </Typography>
 
-                                            <Typography sx={{ color: expressoTheme.colors.textSecondary, fontSize: '0.85rem', mb: 2 }}>
+                                            <Typography sx={{ color: expressoTheme.colors.textSecondary, fontSize: '0.8rem', mb: 1.5 }}>
                                                 CNPJ: {inst.cnpj}
                                             </Typography>
 
-                                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
                                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                                     <Phone size={16} color={expressoTheme.colors.primary} />
-                                                    <Typography sx={{ color: expressoTheme.colors.textSecondary, fontSize: '0.85rem' }}>
+                                                    <Typography sx={{ color: expressoTheme.colors.textSecondary, fontSize: '0.8rem' }}>
                                                         {inst.telefone}
                                                     </Typography>
                                                 </Box>
                                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                                     <Mail size={16} color={expressoTheme.colors.primary} />
-                                                    <Typography sx={{ color: expressoTheme.colors.textSecondary, fontSize: '0.85rem', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                    <Typography sx={{ color: expressoTheme.colors.textSecondary, fontSize: '0.8rem' }}>
                                                         {inst.email}
                                                     </Typography>
                                                 </Box>

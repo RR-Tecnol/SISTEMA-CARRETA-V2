@@ -11,12 +11,16 @@ import {
     UserCheck,
     FileText,
     BarChart3,
+    DollarSign,
+    Package,
 } from 'lucide-react';
 import { expressoTheme } from '../../theme/expressoTheme';
 
 const menuItems = [
     { title: 'Relatórios e BI', icon: BarChart3, path: '/admin/relatorios', description: 'Analytics e métricas' },
     { title: 'Ações', icon: Activity, path: '/admin/acoes', description: 'Gerenciar ações de saúde' },
+    { title: 'Contas a Pagar', icon: DollarSign, path: '/admin/contas-pagar', description: 'Custos e despesas' },
+    { title: 'Estoque', icon: Package, path: '/admin/estoque', description: 'Controle de insumos' },
     { title: 'Instituições', icon: Building2, path: '/admin/instituicoes', description: 'Parceiros e convênios' },
     { title: 'Caminhões', icon: Truck, path: '/admin/caminhoes', description: 'Frota de veículos' },
     { title: 'Funcionários', icon: Users, path: '/admin/funcionarios', description: 'Equipe e colaboradores' },
