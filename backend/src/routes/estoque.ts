@@ -318,44 +318,293 @@ router.post('/movimentacao', async (req: Request, res: Response) => {
 
         const quantidade_anterior = insumo.quantidade_atual;
         let quantidade_atual = quantidade_anterior;
+        let origem_final = origem;
+        let destino_final = destino;
 
-        // Calcular nova quantidade baseado no tipo de movimentação
-        if (tipo === 'ENTRADA') {
-            quantidade_atual += quantidade;
-        } else if (tipo === 'SAIDA' || tipo === 'PERDA') {
-            quantidade_atual -= quantidade;
-        } else if (tipo === 'TRANSFERENCIA') {
-            // Para transferência, reduz do estoque central
-            if (origem === 'CAPITAL') {
-                quantidade_atual -= quantidade;
+        // Lógica específica por tipo de movimentação
+        switch (tipo) {
+            case 'ENTRADA': {
+                // Central → Caminhão (abastecer)
+                console.log('🔵 Processando ENTRADA (Central → Caminhão)');
+
+                if (!caminhao_id) {
+                    await transaction.rollback();
+                    return res.status(400).json({ error: 'caminhao_id é obrigatório para ENTRADA' });
+                }
+
+                // Validar estoque central suficiente
+                if (insumo.quantidade_atual < quantidade) {
+                    await transaction.rollback();
+                    return res.status(400).json({
+                        error: 'Estoque central insuficiente',
+                        disponivel: insumo.quantidade_atual,
+                        solicitado: quantidade
+                    });
+                }
+
+                // Diminuir estoque central
+                quantidade_atual = quantidade_anterior - quantidade;
+                await insumo.update({ quantidade_atual }, { transaction });
+
+                // Aumentar estoque do caminhão
+                const estoqueCaminhaoEntrada = await EstoqueCaminhao.findOne({
+                    where: { caminhao_id, insumo_id },
+                    transaction
+                });
+
+                if (estoqueCaminhaoEntrada) {
+                    await estoqueCaminhaoEntrada.update({
+                        quantidade: estoqueCaminhaoEntrada.quantidade + quantidade,
+                        ultima_atualizacao: new Date()
+                    }, { transaction });
+                    console.log(`✅ Estoque do caminhão atualizado: ${estoqueCaminhaoEntrada.quantidade} → ${estoqueCaminhaoEntrada.quantidade + quantidade}`);
+                } else {
+                    await EstoqueCaminhao.create({
+                        caminhao_id,
+                        insumo_id,
+                        quantidade,
+                        ultima_atualizacao: new Date()
+                    }, { transaction });
+                    console.log(`✅ Estoque do caminhão criado com quantidade: ${quantidade}`);
+                }
+
+                origem_final = 'CENTRAL';
+                destino_final = caminhao_id;
+                break;
             }
-        } else if (tipo === 'AJUSTE') {
-            quantidade_atual = quantidade; // Ajuste define o valor absoluto
-        }
 
-        // Atualizar quantidade do insumo
-        await insumo.update({ quantidade_atual }, { transaction });
+            case 'SAIDA': {
+                // Caminhão → Ação (consumo)
+                console.log('🔴 Processando SAÍDA (Caminhão → Ação)');
 
-        // Se for transferência para caminhão, atualizar estoque do caminhão
-        if (tipo === 'TRANSFERENCIA' && caminhao_id && destino !== 'CAPITAL') {
-            const estoqueCaminhao = await EstoqueCaminhao.findOne({
-                where: { caminhao_id, insumo_id },
-                transaction,
-            });
+                if (!caminhao_id) {
+                    await transaction.rollback();
+                    return res.status(400).json({ error: 'caminhao_id é obrigatório para SAÍDA' });
+                }
 
-            if (estoqueCaminhao) {
-                await estoqueCaminhao.update({
-                    quantidade: estoqueCaminhao.quantidade + quantidade,
-                    ultima_atualizacao: new Date(),
+                if (!acao_id) {
+                    await transaction.rollback();
+                    return res.status(400).json({ error: 'acao_id é obrigatório para SAÍDA' });
+                }
+
+                // Buscar estoque do caminhão
+                const estoqueCaminhaoSaida = await EstoqueCaminhao.findOne({
+                    where: { caminhao_id, insumo_id },
+                    transaction
+                });
+
+                if (!estoqueCaminhaoSaida) {
+                    await transaction.rollback();
+                    return res.status(404).json({ error: 'Insumo não encontrado no estoque do caminhão' });
+                }
+
+                if (estoqueCaminhaoSaida.quantidade < quantidade) {
+                    await transaction.rollback();
+                    return res.status(400).json({
+                        error: 'Estoque do caminhão insuficiente',
+                        disponivel: estoqueCaminhaoSaida.quantidade,
+                        solicitado: quantidade
+                    });
+                }
+
+                // Diminuir estoque do caminhão
+                await estoqueCaminhaoSaida.update({
+                    quantidade: estoqueCaminhaoSaida.quantidade - quantidade,
+                    ultima_atualizacao: new Date()
                 }, { transaction });
-            } else {
-                await EstoqueCaminhao.create({
-                    caminhao_id,
+                console.log(`✅ Estoque do caminhão atualizado: ${estoqueCaminhaoSaida.quantidade} → ${estoqueCaminhaoSaida.quantidade - quantidade}`);
+
+                // Registrar consumo na ação
+                await AcaoInsumo.create({
+                    acao_id,
                     insumo_id,
-                    quantidade,
-                    ultima_atualizacao: new Date(),
+                    quantidade_utilizada: quantidade
                 }, { transaction });
+                console.log(`✅ Consumo registrado na ação ${acao_id}`);
+
+                // Estoque central não muda
+                quantidade_atual = quantidade_anterior;
+                origem_final = caminhao_id;
+                destino_final = acao_id;
+                break;
             }
+
+            case 'TRANSFERENCIA': {
+                // Caminhão A → Caminhão B
+                console.log('🔄 Processando TRANSFERÊNCIA (Caminhão → Caminhão)');
+
+                const caminhao_origem_id = origem;
+                const caminhao_destino_id = destino;
+
+                if (!caminhao_origem_id || !caminhao_destino_id) {
+                    await transaction.rollback();
+                    return res.status(400).json({ error: 'origem e destino são obrigatórios para TRANSFERÊNCIA' });
+                }
+
+                if (caminhao_origem_id === caminhao_destino_id) {
+                    await transaction.rollback();
+                    return res.status(400).json({ error: 'Caminhões de origem e destino devem ser diferentes' });
+                }
+
+                // Buscar estoque do caminhão origem
+                const estoqueOrigem = await EstoqueCaminhao.findOne({
+                    where: { caminhao_id: caminhao_origem_id, insumo_id },
+                    transaction
+                });
+
+                if (!estoqueOrigem) {
+                    await transaction.rollback();
+                    return res.status(404).json({ error: 'Insumo não encontrado no estoque do caminhão origem' });
+                }
+
+                if (estoqueOrigem.quantidade < quantidade) {
+                    await transaction.rollback();
+                    return res.status(400).json({
+                        error: 'Estoque do caminhão origem insuficiente',
+                        disponivel: estoqueOrigem.quantidade,
+                        solicitado: quantidade
+                    });
+                }
+
+                // Diminuir estoque origem
+                await estoqueOrigem.update({
+                    quantidade: estoqueOrigem.quantidade - quantidade,
+                    ultima_atualizacao: new Date()
+                }, { transaction });
+                console.log(`✅ Estoque origem atualizado: ${estoqueOrigem.quantidade} → ${estoqueOrigem.quantidade - quantidade}`);
+
+                // Aumentar estoque destino
+                const estoqueDestino = await EstoqueCaminhao.findOne({
+                    where: { caminhao_id: caminhao_destino_id, insumo_id },
+                    transaction
+                });
+
+                if (estoqueDestino) {
+                    await estoqueDestino.update({
+                        quantidade: estoqueDestino.quantidade + quantidade,
+                        ultima_atualizacao: new Date()
+                    }, { transaction });
+                    console.log(`✅ Estoque destino atualizado: ${estoqueDestino.quantidade} → ${estoqueDestino.quantidade + quantidade}`);
+                } else {
+                    await EstoqueCaminhao.create({
+                        caminhao_id: caminhao_destino_id,
+                        insumo_id,
+                        quantidade,
+                        ultima_atualizacao: new Date()
+                    }, { transaction });
+                    console.log(`✅ Estoque destino criado com quantidade: ${quantidade}`);
+                }
+
+                // Estoque central não muda
+                quantidade_atual = quantidade_anterior;
+                origem_final = caminhao_origem_id;
+                destino_final = caminhao_destino_id;
+                break;
+            }
+
+            case 'DEVOLUCAO': {
+                // Caminhão → Central
+                console.log('🔙 Processando DEVOLUÇÃO (Caminhão → Central)');
+
+                if (!caminhao_id) {
+                    await transaction.rollback();
+                    return res.status(400).json({ error: 'caminhao_id é obrigatório para DEVOLUÇÃO' });
+                }
+
+                // Buscar estoque do caminhão
+                const estoqueCaminhaoDevolucao = await EstoqueCaminhao.findOne({
+                    where: { caminhao_id, insumo_id },
+                    transaction
+                });
+
+                if (!estoqueCaminhaoDevolucao) {
+                    await transaction.rollback();
+                    return res.status(404).json({ error: 'Insumo não encontrado no estoque do caminhão' });
+                }
+
+                if (estoqueCaminhaoDevolucao.quantidade < quantidade) {
+                    await transaction.rollback();
+                    return res.status(400).json({
+                        error: 'Estoque do caminhão insuficiente',
+                        disponivel: estoqueCaminhaoDevolucao.quantidade,
+                        solicitado: quantidade
+                    });
+                }
+
+                // Diminuir estoque do caminhão
+                await estoqueCaminhaoDevolucao.update({
+                    quantidade: estoqueCaminhaoDevolucao.quantidade - quantidade,
+                    ultima_atualizacao: new Date()
+                }, { transaction });
+                console.log(`✅ Estoque do caminhão atualizado: ${estoqueCaminhaoDevolucao.quantidade} → ${estoqueCaminhaoDevolucao.quantidade - quantidade}`);
+
+                // Aumentar estoque central
+                quantidade_atual = quantidade_anterior + quantidade;
+                await insumo.update({ quantidade_atual }, { transaction });
+                console.log(`✅ Estoque central atualizado: ${quantidade_anterior} → ${quantidade_atual}`);
+
+                origem_final = caminhao_id;
+                destino_final = 'CENTRAL';
+                break;
+            }
+
+            case 'AJUSTE':
+            case 'PERDA': {
+                // Ajuste ou Perda manual
+                console.log(`⚙️ Processando ${tipo}`);
+
+                if (!observacoes) {
+                    await transaction.rollback();
+                    return res.status(400).json({ error: `Observações são obrigatórias para ${tipo}` });
+                }
+
+                // Ajuste pode ser no central ou em caminhão
+                if (caminhao_id) {
+                    // Ajuste no caminhão
+                    const estoqueCaminhaoAjuste = await EstoqueCaminhao.findOne({
+                        where: { caminhao_id, insumo_id },
+                        transaction
+                    });
+
+                    if (estoqueCaminhaoAjuste) {
+                        await estoqueCaminhaoAjuste.update({
+                            quantidade: tipo === 'AJUSTE' ? quantidade : estoqueCaminhaoAjuste.quantidade - quantidade,
+                            ultima_atualizacao: new Date()
+                        }, { transaction });
+                        console.log(`✅ Estoque do caminhão ajustado`);
+                    } else {
+                        await EstoqueCaminhao.create({
+                            caminhao_id,
+                            insumo_id,
+                            quantidade,
+                            ultima_atualizacao: new Date()
+                        }, { transaction });
+                        console.log(`✅ Estoque do caminhão criado`);
+                    }
+
+                    // Estoque central não muda
+                    quantidade_atual = quantidade_anterior;
+                    origem_final = caminhao_id;
+                    destino_final = caminhao_id;
+                } else {
+                    // Ajuste no central
+                    if (tipo === 'AJUSTE') {
+                        quantidade_atual = quantidade;
+                    } else {
+                        quantidade_atual = quantidade_anterior - quantidade;
+                    }
+                    await insumo.update({ quantidade_atual }, { transaction });
+                    console.log(`✅ Estoque central ajustado: ${quantidade_anterior} → ${quantidade_atual}`);
+
+                    origem_final = 'CENTRAL';
+                    destino_final = 'CENTRAL';
+                }
+                break;
+            }
+
+            default:
+                await transaction.rollback();
+                return res.status(400).json({ error: `Tipo de movimentação inválido: ${tipo}` });
         }
 
         // Registrar movimentação
@@ -365,18 +614,19 @@ router.post('/movimentacao', async (req: Request, res: Response) => {
             quantidade,
             quantidade_anterior,
             quantidade_atual,
-            origem,
-            destino,
+            origem: origem_final,
+            destino: destino_final,
             caminhao_id,
             acao_id,
             motorista_id,
             nota_fiscal,
             observacoes,
             data_movimento: new Date(),
-            usuario_id: usuario_id || null, // Converter string vazia em null
+            usuario_id: usuario_id || null,
         }, { transaction });
 
         await transaction.commit();
+        console.log('✅ Movimentação registrada com sucesso');
         res.status(201).json(movimentacao);
     } catch (error: any) {
         await transaction.rollback();
@@ -647,6 +897,41 @@ router.get('/acao/:acao_id/consumo', async (req: Request, res: Response) => {
     } catch (error: any) {
         console.error('Erro ao listar consumo da ação:', error);
         res.status(500).json({ error: 'Erro ao listar consumo da ação', details: error.message });
+    }
+});
+
+// Listar estoque de um caminhão específico
+router.get('/caminhao/:caminhao_id', async (req: Request, res: Response) => {
+    try {
+        const { caminhao_id } = req.params;
+
+        console.log(`📦 Buscando estoque do caminhão: ${caminhao_id}`);
+
+        const estoque = await EstoqueCaminhao.findAll({
+            where: { caminhao_id },
+            include: [
+                {
+                    model: Insumo,
+                    as: 'insumo',
+                    attributes: ['id', 'nome', 'unidade', 'categoria', 'quantidade_minima']
+                },
+                {
+                    model: Caminhao,
+                    as: 'caminhao',
+                    attributes: ['id', 'placa', 'modelo']
+                }
+            ],
+            order: [[{ model: Insumo, as: 'insumo' }, 'nome', 'ASC']]
+        });
+
+        console.log(`✅ Encontrados ${estoque.length} insumos no caminhão`);
+        res.json(estoque);
+    } catch (error: any) {
+        console.error('❌ Erro ao buscar estoque do caminhão:', error);
+        res.status(500).json({
+            error: 'Erro ao buscar estoque do caminhão',
+            details: error.message
+        });
     }
 });
 

@@ -24,7 +24,7 @@ export interface Insumo {
 export interface MovimentacaoEstoque {
     id: string;
     insumo_id: string;
-    tipo: 'ENTRADA' | 'SAIDA' | 'TRANSFERENCIA' | 'AJUSTE' | 'PERDA';
+    tipo: 'ENTRADA' | 'SAIDA' | 'TRANSFERENCIA' | 'DEVOLUCAO' | 'AJUSTE' | 'PERDA';
     quantidade: number;
     quantidade_anterior: number;
     quantidade_atual: number;

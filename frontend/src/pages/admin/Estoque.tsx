@@ -52,6 +52,7 @@ import {
     listarMovimentacoes,
     exportarRelatorio,
 } from '../../services/estoque';
+import axios from 'axios';
 
 const Estoque: React.FC = () => {
     const [insumos, setInsumos] = useState<Insumo[]>([]);
@@ -81,14 +82,37 @@ const Estoque: React.FC = () => {
     // Estados do formulário de movimentação
     const [formMovimentacao, setFormMovimentacao] = useState({
         insumo_id: '',
-        tipo: 'ENTRADA' as 'ENTRADA' | 'SAIDA' | 'TRANSFERENCIA' | 'AJUSTE' | 'PERDA',
+        tipo: 'ENTRADA' as 'ENTRADA' | 'SAIDA' | 'TRANSFERENCIA' | 'DEVOLUCAO' | 'AJUSTE' | 'PERDA',
         quantidade: 0,
         observacoes: '',
+        caminhao_id: '',
+        acao_id: '',
+        origem: '',
+        destino: '',
     });
+
+    // Estados para caminhões e ações
+    const [_caminhoes, setCaminhoes] = useState<any[]>([]);
+    const [_acoes, setAcoes] = useState<any[]>([]);
 
     useEffect(() => {
         carregarDados();
+        carregarCaminhoesEAcoes();
     }, [filtroCategoria, filtroStatus, filtroVencimento, busca]);
+
+    const carregarCaminhoesEAcoes = async () => {
+        try {
+            const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+            const [caminhoesData, acoesData] = await Promise.all([
+                axios.get(`${API_URL}/caminhoes`),
+                axios.get(`${API_URL}/acoes`)
+            ]);
+            setCaminhoes(caminhoesData.data);
+            setAcoes(acoesData.data);
+        } catch (error) {
+            console.error('Erro ao carregar caminhões e ações:', error);
+        }
+    };
 
     const carregarDados = async () => {
         try {
@@ -160,6 +184,10 @@ const Estoque: React.FC = () => {
                 tipo: 'ENTRADA',
                 quantidade: 0,
                 observacoes: '',
+                caminhao_id: '',
+                acao_id: '',
+                origem: '',
+                destino: '',
             });
             carregarDados();
         } catch (error: any) {
@@ -590,6 +618,10 @@ const Estoque: React.FC = () => {
                                                                         tipo: 'ENTRADA',
                                                                         quantidade: 0,
                                                                         observacoes: '',
+                                                                        caminhao_id: '',
+                                                                        acao_id: '',
+                                                                        origem: '',
+                                                                        destino: '',
                                                                     });
                                                                     console.log('✅ Form atualizado com insumo_id:', insumo.id);
                                                                     setModalMovimentacao(true);
@@ -892,6 +924,10 @@ const Estoque: React.FC = () => {
                         tipo: 'ENTRADA',
                         quantidade: 0,
                         observacoes: '',
+                        caminhao_id: '',
+                        acao_id: '',
+                        origem: '',
+                        destino: '',
                     });
                 }}
                 maxWidth="sm"
@@ -1000,6 +1036,10 @@ const Estoque: React.FC = () => {
                             tipo: 'ENTRADA',
                             quantidade: 0,
                             observacoes: '',
+                            caminhao_id: '',
+                            acao_id: '',
+                            origem: '',
+                            destino: '',
                         });
                     }} sx={{ color: '#64748b' }}>
                         Cancelar
