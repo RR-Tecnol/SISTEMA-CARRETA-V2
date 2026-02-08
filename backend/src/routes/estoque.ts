@@ -368,7 +368,7 @@ router.post('/movimentacao', async (req: Request, res: Response) => {
                     console.log(`✅ Estoque do caminhão atualizado: ${estoqueCaminhaoEntrada.quantidade} → ${estoqueCaminhaoEntrada.quantidade + quantidade}`);
                 } else {
                     await EstoqueCaminhao.create({
-                        caminhao_id,
+                        caminhao_id: caminhao_id_clean,
                         insumo_id,
                         quantidade,
                         ultima_atualizacao: new Date()
@@ -624,9 +624,9 @@ router.post('/movimentacao', async (req: Request, res: Response) => {
             quantidade_atual,
             origem: origem_final,
             destino: destino_final,
-            caminhao_id,
-            acao_id,
-            motorista_id,
+            caminhao_id: caminhao_id_clean,
+            acao_id: acao_id_clean,
+            motorista_id: motorista_id_clean,
             nota_fiscal,
             observacoes,
             data_movimento: new Date(),
