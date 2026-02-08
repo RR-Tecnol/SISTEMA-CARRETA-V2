@@ -286,6 +286,14 @@ router.post('/movimentacao', async (req: Request, res: Response) => {
             usuario_id,
         } = req.body;
 
+        // Converter strings vazias em null
+        const caminhao_id_clean = caminhao_id === '' ? null : caminhao_id;
+        const acao_id_clean = acao_id === '' ? null : acao_id;
+        const origem_clean = origem === '' ? null : origem;
+        const destino_clean = destino === '' ? null : destino;
+        const usuario_id_clean = usuario_id === '' ? null : usuario_id;
+        const motorista_id_clean = motorista_id === '' ? null : motorista_id;
+
         // Aceitar tanto 'observacao' quanto 'observacoes'
         const observacoes = observacoesAlt || observacao;
 
@@ -318,8 +326,8 @@ router.post('/movimentacao', async (req: Request, res: Response) => {
 
         const quantidade_anterior = insumo.quantidade_atual;
         let quantidade_atual = quantidade_anterior;
-        let origem_final = origem;
-        let destino_final = destino;
+        let origem_final = origem_clean;
+        let destino_final = destino_clean;
 
         // Lógica específica por tipo de movimentação
         switch (tipo) {
@@ -327,7 +335,7 @@ router.post('/movimentacao', async (req: Request, res: Response) => {
                 // Central → Caminhão (abastecer)
                 console.log('🔵 Processando ENTRADA (Central → Caminhão)');
 
-                if (!caminhao_id) {
+                if (!caminhao_id_clean) {
                     await transaction.rollback();
                     return res.status(400).json({ error: 'caminhao_id é obrigatório para ENTRADA' });
                 }
@@ -377,12 +385,12 @@ router.post('/movimentacao', async (req: Request, res: Response) => {
                 // Caminhão → Ação (consumo)
                 console.log('🔴 Processando SAÍDA (Caminhão → Ação)');
 
-                if (!caminhao_id) {
+                if (!caminhao_id_clean) {
                     await transaction.rollback();
                     return res.status(400).json({ error: 'caminhao_id é obrigatório para SAÍDA' });
                 }
 
-                if (!acao_id) {
+                if (!acao_id_clean) {
                     await transaction.rollback();
                     return res.status(400).json({ error: 'acao_id é obrigatório para SAÍDA' });
                 }
@@ -506,7 +514,7 @@ router.post('/movimentacao', async (req: Request, res: Response) => {
                 // Caminhão → Central
                 console.log('🔙 Processando DEVOLUÇÃO (Caminhão → Central)');
 
-                if (!caminhao_id) {
+                if (!caminhao_id_clean) {
                     await transaction.rollback();
                     return res.status(400).json({ error: 'caminhao_id é obrigatório para DEVOLUÇÃO' });
                 }
@@ -622,7 +630,7 @@ router.post('/movimentacao', async (req: Request, res: Response) => {
             nota_fiscal,
             observacoes,
             data_movimento: new Date(),
-            usuario_id: usuario_id || null,
+            usuario_id: usuario_id_clean || null,
         }, { transaction });
 
         await transaction.commit();
@@ -1138,3 +1146,4 @@ router.get('/relatorios/exportar', async (req: Request, res: Response) => {
 });
 
 export default router;
+
