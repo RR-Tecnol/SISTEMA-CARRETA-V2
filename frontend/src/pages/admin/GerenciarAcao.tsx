@@ -2028,6 +2028,60 @@ const GerenciarAcao = () => {
                             </DialogActions>
                         </Dialog>
 
+                        {/* Modal Despesa Geral */}
+                        <Dialog open={openDespesaDialog} onClose={() => setOpenDespesaDialog(false)} maxWidth="sm" fullWidth>
+                            <DialogTitle>Nova Despesa Geral</DialogTitle>
+                            <DialogContent>
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
+                                    <TextField
+                                        label="Descrição"
+                                        name="descricao"
+                                        value={despesaGeral.descricao}
+                                        onChange={handleDespesaChange}
+                                        fullWidth
+                                        required
+                                    />
+                                    <TextField
+                                        label="Valor"
+                                        name="valor"
+                                        type="number"
+                                        value={despesaGeral.valor}
+                                        onChange={handleDespesaChange}
+                                        fullWidth
+                                        required
+                                        InputProps={{
+                                            startAdornment: <Typography sx={{ mr: 1 }}>R$</Typography>
+                                        }}
+                                    />
+                                    <TextField
+                                        label="Data de Vencimento"
+                                        name="data_vencimento"
+                                        type="date"
+                                        value={despesaGeral.data_vencimento}
+                                        onChange={handleDespesaChange}
+                                        fullWidth
+                                        required
+                                        InputLabelProps={{ shrink: true }}
+                                    />
+                                    <TextField
+                                        label="Observações"
+                                        name="observacoes"
+                                        value={despesaGeral.observacoes}
+                                        onChange={handleDespesaChange}
+                                        fullWidth
+                                        multiline
+                                        rows={3}
+                                    />
+                                </Box>
+                            </DialogContent>
+                            <DialogActions>
+                                <Button onClick={() => setOpenDespesaDialog(false)}>Cancelar</Button>
+                                <Button onClick={handleAddDespesaGeral} variant="contained" color="primary">
+                                    Criar Despesa
+                                </Button>
+                            </DialogActions>
+                        </Dialog>
+
                         {/* Seção de Funcionários */}
                         <Box sx={{ mt: 3 }}>
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2.5 }}>
