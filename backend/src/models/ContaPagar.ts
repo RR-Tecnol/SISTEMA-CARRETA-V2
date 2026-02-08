@@ -7,6 +7,8 @@ export type TipoConta =
     // Problemas de estrada
     | 'pneu_furado' | 'troca_oleo' | 'abastecimento' | 'manutencao_mecanica'
     | 'reboque' | 'lavagem' | 'pedagio'
+    // Custos de ação
+    | 'funcionario'
     // Outros
     | 'manutencao' | 'espontaneo' | 'outros';
 
@@ -63,6 +65,7 @@ ContaPagar.init(
                 'agua', 'energia', 'aluguel', 'internet', 'telefone',
                 'pneu_furado', 'troca_oleo', 'abastecimento', 'manutencao_mecanica',
                 'reboque', 'lavagem', 'pedagio',
+                'funcionario',
                 'manutencao', 'espontaneo', 'outros'
             ),
             allowNull: false,
