@@ -225,12 +225,25 @@ const GerenciarAcao = () => {
         if (!id) return;
 
         try {
-            // Buscar todas as contas a pagar da ação (abastecimentos, funcionários, despesas gerais)
-            const response = await api.get(`/contas-pagar`, {
+            // Buscar abastecimentos (tem campo litros)
+            const abastecimentosRes = await api.get(`/acoes/${id}/abastecimentos`);
+            const abastecimentos = abastecimentosRes.data.map((a: any) => ({
+                ...a,
+                tipo_conta: 'abastecimento'
+            }));
+
+            // Buscar outras contas a pagar (funcionários, despesas gerais, etc)
+            const contasRes = await api.get(`/contas-pagar`, {
                 params: { acao_id: id }
             });
-            // API retorna { contas: [], total: 0 } ou array direto
-            setCustos(response.data.contas || response.data || []);
+            const contas = contasRes.data.contas || contasRes.data || [];
+
+            // Filtrar apenas contas que NÃO são abastecimentos
+            const outrasContas = contas.filter((c: any) => c.tipo_conta !== 'abastecimento');
+
+            // Combinar abastecimentos com outras contas
+            const todosCustos = [...abastecimentos, ...outrasContas];
+            setCustos(todosCustos);
         } catch (error: any) {
             enqueueSnackbar(
                 error.response?.data?.error || 'Erro ao carregar custos',
