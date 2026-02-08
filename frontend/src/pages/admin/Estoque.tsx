@@ -107,14 +107,20 @@ const Estoque: React.FC = () => {
     const carregarCaminhoesEAcoes = async () => {
         try {
             const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+            const token = localStorage.getItem('token');
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+            console.log('🔍 Carregando caminhões e ações...');
             const [caminhoesData, acoesData] = await Promise.all([
-                axios.get(`${API_URL}/caminhoes`),
-                axios.get(`${API_URL}/acoes`)
+                axios.get(`${API_URL}/caminhoes`, { headers }),
+                axios.get(`${API_URL}/acoes`, { headers })
             ]);
+            console.log('✅ Caminhões carregados:', caminhoesData.data);
+            console.log('✅ Ações carregadas:', acoesData.data);
             setCaminhoes(caminhoesData.data);
             setAcoes(acoesData.data);
         } catch (error) {
-            console.error('Erro ao carregar caminhões e ações:', error);
+            console.error('❌ Erro ao carregar caminhões e ações:', error);
         }
     };
 
