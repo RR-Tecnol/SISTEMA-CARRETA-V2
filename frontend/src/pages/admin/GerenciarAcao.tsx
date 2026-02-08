@@ -225,8 +225,10 @@ const GerenciarAcao = () => {
         if (!id) return;
 
         try {
-            const response = await api.get(`/acoes/${id}/abastecimentos`);
-            setCustos(response.data);
+            // Buscar todas as contas a pagar da ação (abastecimentos, funcionários, despesas gerais)
+            const response = await api.get(`/contas-pagar?acao_id=${id}`);
+            // API pode retornar { rows: [], count: 0 } ou array direto
+            setCustos(Array.isArray(response.data) ? response.data : response.data.rows || []);
         } catch (error: any) {
             enqueueSnackbar(
                 error.response?.data?.error || 'Erro ao carregar custos',
@@ -1816,7 +1818,7 @@ const GerenciarAcao = () => {
                                 fontWeight: 600,
                                 fontSize: '1.1rem'
                             }}>
-                                Abastecimentos Registrados ({custos.length})
+                                Custos da Ação ({custos.length})
                             </Typography>
                             <Box sx={{ display: 'flex', gap: 1 }}>
                                 <Button
@@ -1888,8 +1890,8 @@ const GerenciarAcao = () => {
                                             background: 'linear-gradient(135deg, #4682b4 0%, #5b9bd5 100%)'
                                         }}>
                                             <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Data</TableCell>
-                                            <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Caminhão</TableCell>
-                                            <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Litros</TableCell>
+                                            <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Tipo</TableCell>
+                                            <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Descrição</TableCell>
                                             <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Valor Total</TableCell>
                                             <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Observações</TableCell>
                                             <TableCell align="center" sx={{ color: '#fff', fontWeight: 600 }}>Ações</TableCell>
@@ -1897,28 +1899,42 @@ const GerenciarAcao = () => {
                                     </TableHead>
                                     <TableBody>
                                         {custos.map((custo: any) => (
-                                            <TableRow key={custo.id}>
+                                            <TableRow key={custo.id} sx={{
+                                                '&:hover': {
+                                                    backgroundColor: 'rgba(70, 130, 180, 0.03)'
+                                                }
+                                            }}>
                                                 <TableCell>
-                                                    {new Date(custo.data_abastecimento).toLocaleDateString('pt-BR')}
+                                                    {new Date(custo.data_vencimento || custo.data_abastecimento || custo.created_at).toLocaleDateString('pt-BR')}
                                                 </TableCell>
-                                                <TableCell>{custo.caminhao?.placa || '-'}</TableCell>
-                                                <TableCell>{custo.litros} L</TableCell>
-                                                <TableCell>R$ {parseFloat(custo.valor_total || 0).toFixed(2)}</TableCell>
+                                                <TableCell>
+                                                    {custo.tipo_conta === 'abastecimento' && `${custo.caminhao?.placa || 'N/A'}`}
+                                                    {custo.tipo_conta === 'funcionario' && 'Funcionário'}
+                                                    {custo.tipo_conta === 'espontaneo' && 'Despesa Geral'}
+                                                    {!['abastecimento', 'funcionario', 'espontaneo'].includes(custo.tipo_conta) && custo.tipo_conta}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {custo.tipo_conta === 'abastecimento' && `${custo.litros || 0}L`}
+                                                    {custo.tipo_conta !== 'abastecimento' && custo.descricao}
+                                                </TableCell>
+                                                <TableCell>R$ {parseFloat(custo.valor_total || custo.valor || 0).toFixed(2)}</TableCell>
                                                 <TableCell>{custo.observacoes || '-'}</TableCell>
                                                 <TableCell align="center">
-                                                    <IconButton
-                                                        size="small"
-                                                        onClick={() => handleDeleteAbastecimento(custo.id)}
-                                                        title="Excluir abastecimento"
-                                                        sx={{
-                                                            color: '#ef4444',
-                                                            '&:hover': {
-                                                                background: 'rgba(239, 68, 68, 0.1)'
-                                                            }
-                                                        }}
-                                                    >
-                                                        <Trash2 size={16} />
-                                                    </IconButton>
+                                                    {custo.tipo_conta === 'abastecimento' && (
+                                                        <IconButton
+                                                            size="small"
+                                                            onClick={() => handleDeleteAbastecimento(custo.id)}
+                                                            title="Excluir abastecimento"
+                                                            sx={{
+                                                                color: '#ef4444',
+                                                                '&:hover': {
+                                                                    background: 'rgba(239, 68, 68, 0.1)'
+                                                                }
+                                                            }}
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </IconButton>
+                                                    )}
                                                 </TableCell>
                                             </TableRow>
                                         ))}
