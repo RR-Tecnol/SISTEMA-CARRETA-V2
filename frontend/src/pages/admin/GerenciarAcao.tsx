@@ -226,9 +226,11 @@ const GerenciarAcao = () => {
 
         try {
             // Buscar todas as contas a pagar da ação (abastecimentos, funcionários, despesas gerais)
-            const response = await api.get(`/contas-pagar?acao_id=${id}`);
-            // API pode retornar { rows: [], count: 0 } ou array direto
-            setCustos(Array.isArray(response.data) ? response.data : response.data.rows || []);
+            const response = await api.get(`/contas-pagar`, {
+                params: { acao_id: id }
+            });
+            // API retorna { contas: [], total: 0 } ou array direto
+            setCustos(response.data.contas || response.data || []);
         } catch (error: any) {
             enqueueSnackbar(
                 error.response?.data?.error || 'Erro ao carregar custos',
