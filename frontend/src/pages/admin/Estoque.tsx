@@ -25,6 +25,8 @@ import {
     TableRow,
     Tooltip,
     InputAdornment,
+    Tabs,
+    Tab,
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import {
@@ -68,6 +70,8 @@ const Estoque: React.FC = () => {
     const [insumoSelecionado, setInsumoSelecionado] = useState<Insumo | null>(null);
     const [movimentacoesHistorico, setMovimentacoesHistorico] = useState<any[]>([]);
     const [modoEdicao, setModoEdicao] = useState(false);
+    const [tabAtual, setTabAtual] = useState(0); // 0 = Estoque Central, 1 = Estoque por Caminhão
+    const [estoquePorCaminhao, setEstoquePorCaminhao] = useState<any[]>([]);
 
     // Estados do formulário de insumo
     const [formInsumo, setFormInsumo] = useState<Partial<Insumo>>({
@@ -404,885 +408,1009 @@ const Estoque: React.FC = () => {
                 ))}
             </Grid>
 
-            {/* Filtros */}
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.4 }}
-            >
-                <Card
+            {/* Tabs de Visualização */}
+            <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+                <Tabs
+                    value={tabAtual}
+                    onChange={(_, newValue) => setTabAtual(newValue)}
                     sx={{
-                        background: 'white',
-                        border: '1px solid #e2e8f0',
-                        borderRadius: 3,
-                        mb: 3,
+                        '& .MuiTab-root': {
+                            textTransform: 'none',
+                            fontWeight: 600,
+                            fontSize: '1rem',
+                        },
+                        '& .Mui-selected': {
+                            color: '#5DADE2 !important',
+                        },
+                        '& .MuiTabs-indicator': {
+                            backgroundColor: '#5DADE2',
+                        },
                     }}
                 >
-                    <CardContent>
-                        <Grid container spacing={2} alignItems="center">
-                            <Grid item xs={12} md={3}>
-                                <TextField
-                                    fullWidth
-                                    placeholder="Buscar insumo..."
-                                    value={busca}
-                                    onChange={(e) => setBusca(e.target.value)}
-                                    InputProps={{
-                                        startAdornment: (
-                                            <InputAdornment position="start">
-                                                <Search size={20} color="#94a3b8" />
-                                            </InputAdornment>
-                                        ),
-                                    }}
-                                    sx={{
-                                        '& .MuiOutlinedInput-root': {
-                                            color: '#1e293b',
-                                            '& fieldset': { borderColor: '#e2e8f0' },
-                                            '&:hover fieldset': { borderColor: '#5DADE2' },
-                                            '&.Mui-focused fieldset': { borderColor: '#5DADE2' },
-                                        },
-                                    }}
-                                />
-                            </Grid>
-                            <Grid item xs={12} md={3}>
-                                <FormControl fullWidth>
-                                    <InputLabel sx={{ color: '#64748b' }}>Categoria</InputLabel>
-                                    <Select
-                                        value={filtroCategoria}
-                                        onChange={(e) => setFiltroCategoria(e.target.value)}
-                                        label="Categoria"
-                                        sx={{
-                                            color: '#1e293b',
-                                            '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' },
-                                            '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
-                                            '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
-                                        }}
-                                    >
-                                        <MenuItem value="">Todas</MenuItem>
-                                        {categorias.map((cat) => (
-                                            <MenuItem key={cat} value={cat}>
-                                                {cat.replace(/_/g, ' ')}
-                                            </MenuItem>
-                                        ))}
-                                    </Select>
-                                </FormControl>
-                            </Grid>
-                            <Grid item xs={12} md={2}>
-                                <FormControl fullWidth>
-                                    <InputLabel sx={{ color: '#64748b' }}>Status</InputLabel>
-                                    <Select
-                                        value={filtroStatus}
-                                        onChange={(e) => setFiltroStatus(e.target.value)}
-                                        label="Status"
-                                        sx={{
-                                            color: '#1e293b',
-                                            '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' },
-                                            '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
-                                            '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
-                                        }}
-                                    >
-                                        <MenuItem value="">Todos</MenuItem>
-                                        <MenuItem value="OK">OK</MenuItem>
-                                        <MenuItem value="BAIXO">Baixo</MenuItem>
-                                        <MenuItem value="CRITICO">Crítico</MenuItem>
-                                    </Select>
-                                </FormControl>
-                            </Grid>
-                            <Grid item xs={12} md={2}>
-                                <FormControl fullWidth>
-                                    <InputLabel sx={{ color: '#64748b' }}>Vencimento</InputLabel>
-                                    <Select
-                                        value={filtroVencimento}
-                                        onChange={(e) => setFiltroVencimento(e.target.value)}
-                                        label="Vencimento"
-                                        sx={{
-                                            color: '#1e293b',
-                                            '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' },
-                                            '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
-                                            '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
-                                        }}
-                                    >
-                                        <MenuItem value="">Todos</MenuItem>
-                                        <MenuItem value="OK">OK</MenuItem>
-                                        <MenuItem value="VENCENDO">Vencendo</MenuItem>
-                                        <MenuItem value="VENCIDO">Vencido</MenuItem>
-                                    </Select>
-                                </FormControl>
-                            </Grid>
-                            <Grid item xs={12} md={2}>
-                                <Button
-                                    fullWidth
-                                    variant="outlined"
-                                    startIcon={<Download size={20} />}
-                                    onClick={() => handleExportar('xlsx', 'estoque')}
-                                    sx={{
-                                        borderColor: '#5DADE2',
-                                        color: '#5DADE2',
-                                        textTransform: 'none',
-                                        height: '56px',
-                                    }}
-                                >
-                                    Exportar
-                                </Button>
-                            </Grid>
-                        </Grid>
-                    </CardContent>
-                </Card>
-            </motion.div>
+                    <Tab label="📦 Estoque Central" />
+                    <Tab label="🚛 Estoque por Caminhão" />
+                </Tabs>
+            </Box>
 
-            {/* Tabela de Insumos */}
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.5 }}
-            >
-                <Card
-                    sx={{
-                        background: 'white',
-                        border: '1px solid #e2e8f0',
-                        borderRadius: 3,
-                    }}
-                >
-                    <CardContent>
-                        <Typography variant="h6" sx={{ color: '#1e293b', mb: 2, fontWeight: 600 }}>
-                            Lista de Insumos
-                        </Typography>
-                        <TableContainer>
-                            <Table>
-                                <TableHead>
-                                    <TableRow>
-                                        <TableCell sx={{ color: '#64748b', fontWeight: 600 }}>Nome</TableCell>
-                                        <TableCell sx={{ color: '#64748b', fontWeight: 600 }}>Categoria</TableCell>
-                                        <TableCell sx={{ color: '#64748b', fontWeight: 600 }}>Quantidade</TableCell>
-                                        <TableCell sx={{ color: '#64748b', fontWeight: 600 }}>Mínimo</TableCell>
-                                        <TableCell sx={{ color: '#64748b', fontWeight: 600 }}>Vencimento</TableCell>
-                                        <TableCell sx={{ color: '#64748b', fontWeight: 600 }}>Status</TableCell>
-                                        <TableCell sx={{ color: '#64748b', fontWeight: 600 }}>Ações</TableCell>
-                                    </TableRow>
-                                </TableHead>
-                                <TableBody>
-                                    {insumos.map((insumo) => {
-                                        const status = getStatusEstoque(insumo);
-                                        const StatusIcon = status.icon;
+            {/* Conteúdo da Tab Estoque Central */}
+            {tabAtual === 0 && (
+                <>
 
-                                        return (
-                                            <TableRow
-                                                key={insumo.id}
+                    {/* Filtros */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: 0.4 }}
+                    >
+                        <Card
+                            sx={{
+                                background: 'white',
+                                border: '1px solid #e2e8f0',
+                                borderRadius: 3,
+                                mb: 3,
+                            }}
+                        >
+                            <CardContent>
+                                <Grid container spacing={2} alignItems="center">
+                                    <Grid item xs={12} md={3}>
+                                        <TextField
+                                            fullWidth
+                                            placeholder="Buscar insumo..."
+                                            value={busca}
+                                            onChange={(e) => setBusca(e.target.value)}
+                                            InputProps={{
+                                                startAdornment: (
+                                                    <InputAdornment position="start">
+                                                        <Search size={20} color="#94a3b8" />
+                                                    </InputAdornment>
+                                                ),
+                                            }}
+                                            sx={{
+                                                '& .MuiOutlinedInput-root': {
+                                                    color: '#1e293b',
+                                                    '& fieldset': { borderColor: '#e2e8f0' },
+                                                    '&:hover fieldset': { borderColor: '#5DADE2' },
+                                                    '&.Mui-focused fieldset': { borderColor: '#5DADE2' },
+                                                },
+                                            }}
+                                        />
+                                    </Grid>
+                                    <Grid item xs={12} md={3}>
+                                        <FormControl fullWidth>
+                                            <InputLabel sx={{ color: '#64748b' }}>Categoria</InputLabel>
+                                            <Select
+                                                value={filtroCategoria}
+                                                onChange={(e) => setFiltroCategoria(e.target.value)}
+                                                label="Categoria"
                                                 sx={{
+                                                    color: '#1e293b',
+                                                    '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' },
+                                                    '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
+                                                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
+                                                }}
+                                            >
+                                                <MenuItem value="">Todas</MenuItem>
+                                                {categorias.map((cat) => (
+                                                    <MenuItem key={cat} value={cat}>
+                                                        {cat.replace(/_/g, ' ')}
+                                                    </MenuItem>
+                                                ))}
+                                            </Select>
+                                        </FormControl>
+                                    </Grid>
+                                    <Grid item xs={12} md={2}>
+                                        <FormControl fullWidth>
+                                            <InputLabel sx={{ color: '#64748b' }}>Status</InputLabel>
+                                            <Select
+                                                value={filtroStatus}
+                                                onChange={(e) => setFiltroStatus(e.target.value)}
+                                                label="Status"
+                                                sx={{
+                                                    color: '#1e293b',
+                                                    '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' },
+                                                    '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
+                                                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
+                                                }}
+                                            >
+                                                <MenuItem value="">Todos</MenuItem>
+                                                <MenuItem value="OK">OK</MenuItem>
+                                                <MenuItem value="BAIXO">Baixo</MenuItem>
+                                                <MenuItem value="CRITICO">Crítico</MenuItem>
+                                            </Select>
+                                        </FormControl>
+                                    </Grid>
+                                    <Grid item xs={12} md={2}>
+                                        <FormControl fullWidth>
+                                            <InputLabel sx={{ color: '#64748b' }}>Vencimento</InputLabel>
+                                            <Select
+                                                value={filtroVencimento}
+                                                onChange={(e) => setFiltroVencimento(e.target.value)}
+                                                label="Vencimento"
+                                                sx={{
+                                                    color: '#1e293b',
+                                                    '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' },
+                                                    '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
+                                                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
+                                                }}
+                                            >
+                                                <MenuItem value="">Todos</MenuItem>
+                                                <MenuItem value="OK">OK</MenuItem>
+                                                <MenuItem value="VENCENDO">Vencendo</MenuItem>
+                                                <MenuItem value="VENCIDO">Vencido</MenuItem>
+                                            </Select>
+                                        </FormControl>
+                                    </Grid>
+                                    <Grid item xs={12} md={2}>
+                                        <Button
+                                            fullWidth
+                                            variant="outlined"
+                                            startIcon={<Download size={20} />}
+                                            onClick={() => handleExportar('xlsx', 'estoque')}
+                                            sx={{
+                                                borderColor: '#5DADE2',
+                                                color: '#5DADE2',
+                                                textTransform: 'none',
+                                                height: '56px',
+                                            }}
+                                        >
+                                            Exportar
+                                        </Button>
+                                    </Grid>
+                                </Grid>
+                            </CardContent>
+                        </Card>
+                    </motion.div>
+
+                    {/* Tabela de Insumos */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: 0.5 }}
+                    >
+                        <Card
+                            sx={{
+                                background: 'white',
+                                border: '1px solid #e2e8f0',
+                                borderRadius: 3,
+                            }}
+                        >
+                            <CardContent>
+                                <Typography variant="h6" sx={{ color: '#1e293b', mb: 2, fontWeight: 600 }}>
+                                    Lista de Insumos
+                                </Typography>
+                                <TableContainer>
+                                    <Table>
+                                        <TableHead>
+                                            <TableRow>
+                                                <TableCell sx={{ color: '#64748b', fontWeight: 600 }}>Nome</TableCell>
+                                                <TableCell sx={{ color: '#64748b', fontWeight: 600 }}>Categoria</TableCell>
+                                                <TableCell sx={{ color: '#64748b', fontWeight: 600 }}>Quantidade</TableCell>
+                                                <TableCell sx={{ color: '#64748b', fontWeight: 600 }}>Mínimo</TableCell>
+                                                <TableCell sx={{ color: '#64748b', fontWeight: 600 }}>Vencimento</TableCell>
+                                                <TableCell sx={{ color: '#64748b', fontWeight: 600 }}>Status</TableCell>
+                                                <TableCell sx={{ color: '#64748b', fontWeight: 600 }}>Ações</TableCell>
+                                            </TableRow>
+                                        </TableHead>
+                                        <TableBody>
+                                            {insumos.map((insumo) => {
+                                                const status = getStatusEstoque(insumo);
+                                                const StatusIcon = status.icon;
+
+                                                return (
+                                                    <TableRow
+                                                        key={insumo.id}
+                                                        sx={{
+                                                            '&:hover': {
+                                                                backgroundColor: 'rgba(102, 126, 234, 0.05)',
+                                                            },
+                                                        }}
+                                                    >
+                                                        <TableCell sx={{ color: '#1e293b' }}>{insumo.nome}</TableCell>
+                                                        <TableCell sx={{ color: '#64748b' }}>
+                                                            {insumo.categoria.replace(/_/g, ' ')}
+                                                        </TableCell>
+                                                        <TableCell sx={{ color: '#1e293b', fontWeight: 600 }}>
+                                                            {insumo.quantidade_atual} {insumo.unidade}
+                                                        </TableCell>
+                                                        <TableCell sx={{ color: '#64748b' }}>
+                                                            {insumo.quantidade_minima} {insumo.unidade}
+                                                        </TableCell>
+                                                        <TableCell sx={{ color: '#1e293b' }}>
+                                                            {insumo.data_validade ? (
+                                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                                    <Clock size={16} color="#64748b" />
+                                                                    {new Date(insumo.data_validade).toLocaleDateString('pt-BR')}
+                                                                </Box>
+                                                            ) : (
+                                                                <Typography sx={{ color: '#94a3b8', fontSize: '0.875rem' }}>-</Typography>
+                                                            )}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <Chip
+                                                                icon={<StatusIcon size={16} />}
+                                                                label={status.label}
+                                                                size="small"
+                                                                sx={{
+                                                                    backgroundColor: `${status.color}20`,
+                                                                    color: status.color,
+                                                                    fontWeight: 600,
+                                                                    border: `1px solid ${status.color}40`,
+                                                                }}
+                                                            />
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <Box sx={{ display: 'flex', gap: 1 }}>
+                                                                <Tooltip title="Movimentação">
+                                                                    <IconButton
+                                                                        size="small"
+                                                                        onClick={() => {
+                                                                            console.log('🔍 Insumo selecionado:', insumo.id, insumo.nome);
+                                                                            setFormMovimentacao({
+                                                                                insumo_id: insumo.id,
+                                                                                tipo: 'ENTRADA',
+                                                                                quantidade: 0,
+                                                                                observacoes: '',
+                                                                                caminhao_id: '',
+                                                                                acao_id: '',
+                                                                                origem: '',
+                                                                                destino: '',
+                                                                            });
+                                                                            console.log('✅ Form atualizado com insumo_id:', insumo.id);
+                                                                            setModalMovimentacao(true);
+                                                                        }}
+                                                                        sx={{ color: '#10b981' }}
+                                                                    >
+                                                                        <ArrowUpDown size={18} />
+                                                                    </IconButton>
+                                                                </Tooltip>
+                                                                <Tooltip title="Histórico">
+                                                                    <IconButton
+                                                                        size="small"
+                                                                        onClick={() => handleVerHistorico(insumo)}
+                                                                        sx={{ color: '#3b82f6' }}
+                                                                    >
+                                                                        <History size={18} />
+                                                                    </IconButton>
+                                                                </Tooltip>
+                                                                <Tooltip title="Editar">
+                                                                    <IconButton
+                                                                        size="small"
+                                                                        onClick={() => {
+                                                                            setModoEdicao(true);
+                                                                            setInsumoSelecionado(insumo);
+                                                                            setFormInsumo(insumo);
+                                                                            setModalInsumo(true);
+                                                                        }}
+                                                                        sx={{ color: '#5DADE2' }}
+                                                                    >
+                                                                        <Edit size={18} />
+                                                                    </IconButton>
+                                                                </Tooltip>
+                                                                <Tooltip title="Deletar">
+                                                                    <IconButton
+                                                                        size="small"
+                                                                        onClick={() => handleDeletarInsumo(insumo.id)}
+                                                                        sx={{ color: '#ef4444' }}
+                                                                    >
+                                                                        <Trash2 size={18} />
+                                                                    </IconButton>
+                                                                </Tooltip>
+                                                            </Box>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                );
+                                            })}
+                                        </TableBody>
+                                    </Table>
+                                </TableContainer>
+                            </CardContent>
+                        </Card>
+                    </motion.div>
+
+                    {/* Modal de Insumo */}
+                    <Dialog
+                        open={modalInsumo}
+                        onClose={() => setModalInsumo(false)}
+                        maxWidth="md"
+                        fullWidth
+                        PaperProps={{
+                            sx: {
+                                background: 'white',
+                                border: '1px solid #e2e8f0',
+                                borderRadius: 3,
+                            },
+                        }}
+                    >
+                        <DialogTitle sx={{ color: '#1e293b', fontWeight: 600 }}>
+                            {modoEdicao ? 'Editar Insumo' : 'Novo Insumo'}
+                        </DialogTitle>
+                        <DialogContent>
+                            <Grid container spacing={2} sx={{ mt: 1 }}>
+                                <Grid item xs={12} md={8}>
+                                    <TextField
+                                        fullWidth
+                                        label="Nome"
+                                        value={formInsumo.nome}
+                                        onChange={(e) => setFormInsumo({ ...formInsumo, nome: e.target.value })}
+                                        sx={{
+                                            '& .MuiOutlinedInput-root': {
+                                                color: '#1e293b',
+                                                '& fieldset': { borderColor: '#e2e8f0' },
+                                                '&:hover fieldset': { borderColor: '#5DADE2' },
+                                                '&.Mui-focused fieldset': { borderColor: '#5DADE2' },
+                                            },
+                                            '& .MuiInputLabel-root': { color: '#64748b' },
+                                        }}
+                                    />
+                                </Grid>
+                                <Grid item xs={12} md={4}>
+                                    <FormControl fullWidth>
+                                        <InputLabel sx={{ color: '#64748b' }}>Categoria</InputLabel>
+                                        <Select
+                                            value={formInsumo.categoria}
+                                            onChange={(e) => setFormInsumo({ ...formInsumo, categoria: e.target.value as any })}
+                                            label="Categoria"
+                                            sx={{
+                                                color: 'white',
+                                                '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(148, 163, 184, 0.2)' },
+                                                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
+                                                '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
+                                            }}
+                                        >
+                                            {categorias.map((cat) => (
+                                                <MenuItem key={cat} value={cat}>
+                                                    {cat.replace(/_/g, ' ')}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <TextField
+                                        fullWidth
+                                        label="Descrição"
+                                        multiline
+                                        rows={2}
+                                        value={formInsumo.descricao || ''}
+                                        onChange={(e) => setFormInsumo({ ...formInsumo, descricao: e.target.value })}
+                                        sx={{
+                                            '& .MuiOutlinedInput-root': {
+                                                color: '#1e293b',
+                                                '& fieldset': { borderColor: '#e2e8f0' },
+                                                '&:hover fieldset': { borderColor: '#5DADE2' },
+                                                '&.Mui-focused fieldset': { borderColor: '#5DADE2' },
+                                            },
+                                            '& .MuiInputLabel-root': { color: '#64748b' },
+                                        }}
+                                    />
+                                </Grid>
+                                <Grid item xs={12} md={4}>
+                                    <TextField
+                                        fullWidth
+                                        label="Unidade"
+                                        value={formInsumo.unidade}
+                                        onChange={(e) => setFormInsumo({ ...formInsumo, unidade: e.target.value })}
+                                        placeholder="Ex: unidade, caixa, litro"
+                                        sx={{
+                                            '& .MuiOutlinedInput-root': {
+                                                color: '#1e293b',
+                                                '& fieldset': { borderColor: '#e2e8f0' },
+                                                '&:hover fieldset': { borderColor: '#5DADE2' },
+                                                '&.Mui-focused fieldset': { borderColor: '#5DADE2' },
+                                            },
+                                            '& .MuiInputLabel-root': { color: '#64748b' },
+                                        }}
+                                    />
+                                </Grid>
+                                <Grid item xs={12} md={4}>
+                                    <TextField
+                                        fullWidth
+                                        label="Quantidade Atual"
+                                        type="number"
+                                        value={formInsumo.quantidade_atual}
+                                        onChange={(e) => setFormInsumo({ ...formInsumo, quantidade_atual: Number(e.target.value) })}
+                                        sx={{
+                                            '& .MuiOutlinedInput-root': {
+                                                color: '#1e293b',
+                                                '& fieldset': { borderColor: '#e2e8f0' },
+                                                '&:hover fieldset': { borderColor: '#5DADE2' },
+                                                '&.Mui-focused fieldset': { borderColor: '#5DADE2' },
+                                            },
+                                            '& .MuiInputLabel-root': { color: '#64748b' },
+                                        }}
+                                    />
+                                </Grid>
+                                <Grid item xs={12} md={4}>
+                                    <TextField
+                                        fullWidth
+                                        label="Quantidade Mínima"
+                                        type="number"
+                                        value={formInsumo.quantidade_minima}
+                                        onChange={(e) => setFormInsumo({ ...formInsumo, quantidade_minima: Number(e.target.value) })}
+                                        sx={{
+                                            '& .MuiOutlinedInput-root': {
+                                                color: '#1e293b',
+                                                '& fieldset': { borderColor: '#e2e8f0' },
+                                                '&:hover fieldset': { borderColor: '#5DADE2' },
+                                                '&.Mui-focused fieldset': { borderColor: '#5DADE2' },
+                                            },
+                                            '& .MuiInputLabel-root': { color: '#64748b' },
+                                        }}
+                                    />
+                                </Grid>
+                                <Grid item xs={12} md={6}>
+                                    <TextField
+                                        fullWidth
+                                        label="Código de Barras"
+                                        value={formInsumo.codigo_barras || ''}
+                                        onChange={(e) => setFormInsumo({ ...formInsumo, codigo_barras: e.target.value })}
+                                        sx={{
+                                            '& .MuiOutlinedInput-root': {
+                                                color: '#1e293b',
+                                                '& fieldset': { borderColor: '#e2e8f0' },
+                                                '&:hover fieldset': { borderColor: '#5DADE2' },
+                                                '&.Mui-focused fieldset': { borderColor: '#5DADE2' },
+                                            },
+                                            '& .MuiInputLabel-root': { color: '#64748b' },
+                                        }}
+                                    />
+                                </Grid>
+                                <Grid item xs={12} md={6}>
+                                    <TextField
+                                        fullWidth
+                                        label="Lote"
+                                        value={formInsumo.lote || ''}
+                                        onChange={(e) => setFormInsumo({ ...formInsumo, lote: e.target.value })}
+                                        sx={{
+                                            '& .MuiOutlinedInput-root': {
+                                                color: '#1e293b',
+                                                '& fieldset': { borderColor: '#e2e8f0' },
+                                                '&:hover fieldset': { borderColor: '#5DADE2' },
+                                                '&.Mui-focused fieldset': { borderColor: '#5DADE2' },
+                                            },
+                                            '& .MuiInputLabel-root': { color: '#64748b' },
+                                        }}
+                                    />
+                                </Grid>
+                                <Grid item xs={12} md={6}>
+                                    <TextField
+                                        fullWidth
+                                        label="Data de Vencimento"
+                                        type="date"
+                                        value={formInsumo.data_validade ? new Date(formInsumo.data_validade).toISOString().split('T')[0] : ''}
+                                        onChange={(e) => setFormInsumo({ ...formInsumo, data_validade: e.target.value ? new Date(e.target.value) : undefined })}
+                                        InputLabelProps={{ shrink: true }}
+                                        sx={{
+                                            '& .MuiOutlinedInput-root': {
+                                                color: '#1e293b',
+                                                '& fieldset': { borderColor: '#e2e8f0' },
+                                                '&:hover fieldset': { borderColor: '#5DADE2' },
+                                                '&.Mui-focused fieldset': { borderColor: '#5DADE2' },
+                                            },
+                                            '& .MuiInputLabel-root': { color: '#64748b' },
+                                        }}
+                                    />
+                                </Grid>
+                                <Grid item xs={12} md={6}>
+                                    <TextField
+                                        fullWidth
+                                        label="Fornecedor"
+                                        value={formInsumo.fornecedor || ''}
+                                        onChange={(e) => setFormInsumo({ ...formInsumo, fornecedor: e.target.value })}
+                                        sx={{
+                                            '& .MuiOutlinedInput-root': {
+                                                color: '#1e293b',
+                                                '& fieldset': { borderColor: '#e2e8f0' },
+                                                '&:hover fieldset': { borderColor: '#5DADE2' },
+                                                '&.Mui-focused fieldset': { borderColor: '#5DADE2' },
+                                            },
+                                            '& .MuiInputLabel-root': { color: '#64748b' },
+                                        }}
+                                    />
+                                </Grid>
+                                <Grid item xs={12} md={6}>
+                                    <TextField
+                                        fullWidth
+                                        label="Localização"
+                                        value={formInsumo.localizacao || ''}
+                                        onChange={(e) => setFormInsumo({ ...formInsumo, localizacao: e.target.value })}
+                                        placeholder="Ex: Prateleira A3"
+                                        sx={{
+                                            '& .MuiOutlinedInput-root': {
+                                                color: '#1e293b',
+                                                '& fieldset': { borderColor: '#e2e8f0' },
+                                                '&:hover fieldset': { borderColor: '#5DADE2' },
+                                                '&.Mui-focused fieldset': { borderColor: '#5DADE2' },
+                                            },
+                                            '& .MuiInputLabel-root': { color: '#64748b' },
+                                        }}
+                                    />
+                                </Grid>
+                            </Grid>
+                        </DialogContent>
+                        <DialogActions sx={{ p: 3 }}>
+                            <Button onClick={() => setModalInsumo(false)} sx={{ color: '#64748b' }}>
+                                Cancelar
+                            </Button>
+                            <Button
+                                onClick={handleSalvarInsumo}
+                                variant="contained"
+                                sx={{
+                                    background: 'linear-gradient(135deg, #5DADE2 0%, #1B4F72 100%)',
+                                    textTransform: 'none',
+                                    fontWeight: 600,
+                                }}
+                            >
+                                {modoEdicao ? 'Atualizar' : 'Criar'}
+                            </Button>
+                        </DialogActions>
+                    </Dialog>
+
+                    {/* Modal de Movimentação */}
+                    <Dialog
+                        open={modalMovimentacao}
+                        onClose={() => {
+                            setModalMovimentacao(false);
+                            setFormMovimentacao({
+                                insumo_id: '',
+                                tipo: 'ENTRADA',
+                                quantidade: 0,
+                                observacoes: '',
+                                caminhao_id: '',
+                                acao_id: '',
+                                origem: '',
+                                destino: '',
+                            });
+                        }}
+                        maxWidth="sm"
+                        fullWidth
+                        PaperProps={{
+                            sx: {
+                                background: 'white',
+                                border: '1px solid #e2e8f0',
+                                borderRadius: 3,
+                            },
+                        }}
+                    >
+                        <DialogTitle sx={{ color: 'white', fontWeight: 600 }}>
+                            Registrar Movimentação
+                        </DialogTitle>
+                        <DialogContent>
+                            <Grid container spacing={2} sx={{ mt: 1 }}>
+                                <Grid item xs={12}>
+                                    <FormControl fullWidth>
+                                        <InputLabel sx={{ color: '#64748b' }}>Insumo</InputLabel>
+                                        <Select
+                                            value={formMovimentacao.insumo_id}
+                                            onChange={(e) => setFormMovimentacao({ ...formMovimentacao, insumo_id: e.target.value })}
+                                            label="Insumo"
+                                            disabled={formMovimentacao.insumo_id !== ''}
+                                            sx={{
+                                                color: 'white',
+                                                '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(148, 163, 184, 0.2)' },
+                                                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
+                                                '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
+                                            }}
+                                        >
+                                            {insumos.map((insumo) => (
+                                                <MenuItem key={insumo.id} value={insumo.id}>
+                                                    {insumo.nome}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+                                </Grid>
+                                <Grid item xs={12} md={6}>
+                                    <FormControl fullWidth>
+                                        <InputLabel sx={{ color: '#64748b' }}>Tipo</InputLabel>
+                                        <Select
+                                            value={formMovimentacao.tipo}
+                                            onChange={(e) => setFormMovimentacao({ ...formMovimentacao, tipo: e.target.value as any })}
+                                            label="Tipo"
+                                            sx={{
+                                                color: '#1e293b',
+                                                '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' },
+                                                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
+                                                '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
+                                            }}
+                                        >
+                                            <MenuItem value="ENTRADA">Entrada (Central → Caminhão)</MenuItem>
+                                            <MenuItem value="SAIDA">Saída (Caminhão → Ação)</MenuItem>
+                                            <MenuItem value="TRANSFERENCIA">Transferência (Caminhão → Caminhão)</MenuItem>
+                                            <MenuItem value="DEVOLUCAO">Devolução (Caminhão → Central)</MenuItem>
+                                            <MenuItem value="AJUSTE">Ajuste</MenuItem>
+                                            <MenuItem value="PERDA">Perda</MenuItem>
+                                        </Select>
+                                    </FormControl>
+                                </Grid>
+
+                                {/* Campos condicionais baseados no tipo */}
+                                {formMovimentacao.tipo === 'ENTRADA' && (
+                                    <Grid item xs={12}>
+                                        <FormControl fullWidth>
+                                            <InputLabel sx={{ color: '#64748b' }}>Caminhão Destino</InputLabel>
+                                            <Select
+                                                value={formMovimentacao.caminhao_id}
+                                                onChange={(e) => setFormMovimentacao({ ...formMovimentacao, caminhao_id: e.target.value })}
+                                                label="Caminhão Destino"
+                                                sx={{
+                                                    color: '#1e293b',
+                                                    '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' },
+                                                    '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
+                                                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
+                                                }}
+                                            >
+                                                {_caminhoes.map((caminhao) => (
+                                                    <MenuItem key={caminhao.id} value={caminhao.id}>
+                                                        {caminhao.placa} - {caminhao.modelo}
+                                                    </MenuItem>
+                                                ))}
+                                            </Select>
+                                        </FormControl>
+                                    </Grid>
+                                )}
+
+                                {formMovimentacao.tipo === 'SAIDA' && (
+                                    <>
+                                        <Grid item xs={12} md={6}>
+                                            <FormControl fullWidth>
+                                                <InputLabel sx={{ color: '#64748b' }}>Caminhão</InputLabel>
+                                                <Select
+                                                    value={formMovimentacao.caminhao_id}
+                                                    onChange={(e) => setFormMovimentacao({ ...formMovimentacao, caminhao_id: e.target.value })}
+                                                    label="Caminhão"
+                                                    sx={{
+                                                        color: '#1e293b',
+                                                        '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' },
+                                                        '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
+                                                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
+                                                    }}
+                                                >
+                                                    {_caminhoes.map((caminhao) => (
+                                                        <MenuItem key={caminhao.id} value={caminhao.id}>
+                                                            {caminhao.placa}
+                                                        </MenuItem>
+                                                    ))}
+                                                </Select>
+                                            </FormControl>
+                                        </Grid>
+                                        <Grid item xs={12} md={6}>
+                                            <FormControl fullWidth>
+                                                <InputLabel sx={{ color: '#64748b' }}>Ação</InputLabel>
+                                                <Select
+                                                    value={formMovimentacao.acao_id}
+                                                    onChange={(e) => setFormMovimentacao({ ...formMovimentacao, acao_id: e.target.value })}
+                                                    label="Ação"
+                                                    sx={{
+                                                        color: '#1e293b',
+                                                        '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' },
+                                                        '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
+                                                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
+                                                    }}
+                                                >
+                                                    {_acoes.map((acao) => (
+                                                        <MenuItem key={acao.id} value={acao.id}>
+                                                            {acao.nome}
+                                                        </MenuItem>
+                                                    ))}
+                                                </Select>
+                                            </FormControl>
+                                        </Grid>
+                                    </>
+                                )}
+
+                                {formMovimentacao.tipo === 'TRANSFERENCIA' && (
+                                    <>
+                                        <Grid item xs={12} md={6}>
+                                            <FormControl fullWidth>
+                                                <InputLabel sx={{ color: '#64748b' }}>Caminhão Origem</InputLabel>
+                                                <Select
+                                                    value={formMovimentacao.origem}
+                                                    onChange={(e) => setFormMovimentacao({ ...formMovimentacao, origem: e.target.value })}
+                                                    label="Caminhão Origem"
+                                                    sx={{
+                                                        color: '#1e293b',
+                                                        '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' },
+                                                        '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
+                                                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
+                                                    }}
+                                                >
+                                                    {_caminhoes.map((caminhao) => (
+                                                        <MenuItem key={caminhao.id} value={caminhao.id}>
+                                                            {caminhao.placa}
+                                                        </MenuItem>
+                                                    ))}
+                                                </Select>
+                                            </FormControl>
+                                        </Grid>
+                                        <Grid item xs={12} md={6}>
+                                            <FormControl fullWidth>
+                                                <InputLabel sx={{ color: '#64748b' }}>Caminhão Destino</InputLabel>
+                                                <Select
+                                                    value={formMovimentacao.destino}
+                                                    onChange={(e) => setFormMovimentacao({ ...formMovimentacao, destino: e.target.value })}
+                                                    label="Caminhão Destino"
+                                                    sx={{
+                                                        color: '#1e293b',
+                                                        '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' },
+                                                        '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
+                                                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
+                                                    }}
+                                                >
+                                                    {_caminhoes.filter(c => c.id !== formMovimentacao.origem).map((caminhao) => (
+                                                        <MenuItem key={caminhao.id} value={caminhao.id}>
+                                                            {caminhao.placa}
+                                                        </MenuItem>
+                                                    ))}
+                                                </Select>
+                                            </FormControl>
+                                        </Grid>
+                                    </>
+                                )}
+
+                                {formMovimentacao.tipo === 'DEVOLUCAO' && (
+                                    <Grid item xs={12}>
+                                        <FormControl fullWidth>
+                                            <InputLabel sx={{ color: '#64748b' }}>Caminhão</InputLabel>
+                                            <Select
+                                                value={formMovimentacao.caminhao_id}
+                                                onChange={(e) => setFormMovimentacao({ ...formMovimentacao, caminhao_id: e.target.value })}
+                                                label="Caminhão"
+                                                sx={{
+                                                    color: '#1e293b',
+                                                    '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' },
+                                                    '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
+                                                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
+                                                }}
+                                            >
+                                                {_caminhoes.map((caminhao) => (
+                                                    <MenuItem key={caminhao.id} value={caminhao.id}>
+                                                        {caminhao.placa} - {caminhao.modelo}
+                                                    </MenuItem>
+                                                ))}
+                                            </Select>
+                                        </FormControl>
+                                    </Grid>
+                                )}
+
+                                <Grid item xs={12} md={6}>
+                                    <TextField
+                                        fullWidth
+                                        label="Quantidade"
+                                        type="number"
+                                        value={formMovimentacao.quantidade}
+                                        onChange={(e) => setFormMovimentacao({ ...formMovimentacao, quantidade: Number(e.target.value) })}
+                                        sx={{
+                                            '& .MuiOutlinedInput-root': {
+                                                color: '#1e293b',
+                                                '& fieldset': { borderColor: '#e2e8f0' },
+                                                '&:hover fieldset': { borderColor: '#5DADE2' },
+                                                '&.Mui-focused fieldset': { borderColor: '#5DADE2' },
+                                            },
+                                            '& .MuiInputLabel-root': { color: '#64748b' },
+                                        }}
+                                    />
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <TextField
+                                        fullWidth
+                                        label="Observações"
+                                        multiline
+                                        rows={3}
+                                        value={formMovimentacao.observacoes}
+                                        onChange={(e) => setFormMovimentacao({ ...formMovimentacao, observacoes: e.target.value })}
+                                        sx={{
+                                            '& .MuiOutlinedInput-root': {
+                                                color: '#1e293b',
+                                                '& fieldset': { borderColor: '#e2e8f0' },
+                                                '&:hover fieldset': { borderColor: '#5DADE2' },
+                                                '&.Mui-focused fieldset': { borderColor: '#5DADE2' },
+                                            },
+                                            '& .MuiInputLabel-root': { color: '#64748b' },
+                                        }}
+                                    />
+                                </Grid>
+                            </Grid>
+                        </DialogContent>
+                        <DialogActions sx={{ p: 3 }}>
+                            <Button onClick={() => {
+                                setModalMovimentacao(false);
+                                setFormMovimentacao({
+                                    insumo_id: '',
+                                    tipo: 'ENTRADA',
+                                    quantidade: 0,
+                                    observacoes: '',
+                                    caminhao_id: '',
+                                    acao_id: '',
+                                    origem: '',
+                                    destino: '',
+                                });
+                            }} sx={{ color: '#64748b' }}>
+                                Cancelar
+                            </Button>
+                            <Button
+                                onClick={handleRegistrarMovimentacao}
+                                variant="contained"
+                                sx={{
+                                    background: 'linear-gradient(135deg, #5DADE2 0%, #1B4F72 100%)',
+                                    textTransform: 'none',
+                                    fontWeight: 600,
+                                }}
+                            >
+                                Registrar
+                            </Button>
+                        </DialogActions>
+                    </Dialog>
+
+                    {/* Modal de Histórico */}
+                    <Dialog
+                        open={modalHistorico}
+                        onClose={() => setModalHistorico(false)}
+                        maxWidth="md"
+                        fullWidth
+                        PaperProps={{
+                            sx: {
+                                background: 'white',
+                                border: '1px solid #e2e8f0',
+                                borderRadius: 3,
+                            },
+                        }}
+                    >
+                        <DialogTitle sx={{ color: '#1e293b', fontWeight: 600 }}>
+                            Histórico de Movimentações - {insumoSelecionado?.nome}
+                        </DialogTitle>
+                        <DialogContent>
+                            {movimentacoesHistorico.length === 0 ? (
+                                <Box sx={{ textAlign: 'center', py: 4 }}>
+                                    <Typography color="text.secondary">
+                                        Nenhuma movimentação registrada para este insumo.
+                                    </Typography>
+                                </Box>
+                            ) : (
+                                <TableContainer>
+                                    <Table>
+                                        <TableHead>
+                                            <TableRow>
+                                                <TableCell sx={{ fontWeight: 600 }}>Data</TableCell>
+                                                <TableCell sx={{ fontWeight: 600 }}>Tipo</TableCell>
+                                                <TableCell sx={{ fontWeight: 600 }}>Quantidade</TableCell>
+                                                <TableCell sx={{ fontWeight: 600 }}>Qtd. Anterior</TableCell>
+                                                <TableCell sx={{ fontWeight: 600 }}>Qtd. Atual</TableCell>
+                                                <TableCell sx={{ fontWeight: 600 }}>Observações</TableCell>
+                                            </TableRow>
+                                        </TableHead>
+                                        <TableBody>
+                                            {movimentacoesHistorico.map((mov) => (
+                                                <TableRow key={mov.id}>
+                                                    <TableCell>
+                                                        {new Date(mov.data_movimento).toLocaleString('pt-BR')}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Chip
+                                                            label={mov.tipo}
+                                                            size="small"
+                                                            sx={{
+                                                                bgcolor: mov.tipo === 'ENTRADA' ? '#10b981' :
+                                                                    mov.tipo === 'SAIDA' ? '#ef4444' :
+                                                                        mov.tipo === 'TRANSFERENCIA' ? '#3b82f6' : '#f59e0b',
+                                                                color: 'white',
+                                                                fontWeight: 600,
+                                                            }}
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell>{mov.quantidade}</TableCell>
+                                                    <TableCell>{mov.quantidade_anterior}</TableCell>
+                                                    <TableCell>{mov.quantidade_atual}</TableCell>
+                                                    <TableCell>{mov.observacoes || '-'}</TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </TableContainer>
+                            )}
+                        </DialogContent>
+                        <DialogActions sx={{ p: 3 }}>
+                            <Button onClick={() => setModalHistorico(false)} sx={{ color: '#64748b' }}>
+                                Fechar
+                            </Button>
+                        </DialogActions>
+                    </Dialog>
+                </>
+            )}
+
+            {/* Conteúdo da Tab Estoque por Caminhão */}
+            {tabAtual === 1 && (
+                <Grid container spacing={3}>
+                    {_caminhoes.length === 0 ? (
+                        <Grid item xs={12}>
+                            <Card sx={{ p: 4, textAlign: 'center' }}>
+                                <Typography variant="h6" color="textSecondary">
+                                    Nenhum caminhão cadastrado
+                                </Typography>
+                            </Card>
+                        </Grid>
+                    ) : (
+                        _caminhoes.map((caminhao) => (
+                            <Grid item xs={12} md={6} lg={4} key={caminhao.id}>
+                                <motion.div
+                                    initial={{ opacity: 0, scale: 0.9 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    transition={{ duration: 0.3 }}
+                                >
+                                    <Card
+                                        sx={{
+                                            height: '100%',
+                                            background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+                                            border: '1px solid #e2e8f0',
+                                            '&:hover': {
+                                                boxShadow: '0 8px 24px rgba(93, 173, 226, 0.15)',
+                                                transform: 'translateY(-4px)',
+                                                transition: 'all 0.3s ease',
+                                            },
+                                        }}
+                                    >
+                                        <CardContent>
+                                            <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+                                                <Box
+                                                    sx={{
+                                                        width: 48,
+                                                        height: 48,
+                                                        borderRadius: 2,
+                                                        background: 'linear-gradient(135deg, #5DADE2 0%, #1B4F72 100%)',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                    }}
+                                                >
+                                                    <Typography sx={{ fontSize: '24px' }}>🚛</Typography>
+                                                </Box>
+                                                <Box>
+                                                    <Typography variant="h6" sx={{ fontWeight: 700, color: '#1e293b' }}>
+                                                        {caminhao.placa}
+                                                    </Typography>
+                                                    <Typography variant="body2" sx={{ color: '#64748b' }}>
+                                                        {caminhao.modelo}
+                                                    </Typography>
+                                                </Box>
+                                            </Box>
+
+                                            <Typography variant="body2" sx={{ color: '#64748b', mb: 2 }}>
+                                                Clique para ver estoque completo
+                                            </Typography>
+
+                                            <Button
+                                                fullWidth
+                                                variant="outlined"
+                                                onClick={async () => {
+                                                    try {
+                                                        const { listarEstoqueCaminhao } = await import('../../services/estoque');
+                                                        const estoque = await listarEstoqueCaminhao(caminhao.id);
+                                                        setEstoquePorCaminhao(estoque);
+                                                        // TODO: Abrir modal com detalhes
+                                                        console.log('Estoque do caminhão:', estoque);
+                                                    } catch (error) {
+                                                        console.error('Erro ao carregar estoque:', error);
+                                                    }
+                                                }}
+                                                sx={{
+                                                    borderColor: '#5DADE2',
+                                                    color: '#5DADE2',
                                                     '&:hover': {
-                                                        backgroundColor: 'rgba(102, 126, 234, 0.05)',
+                                                        borderColor: '#1B4F72',
+                                                        backgroundColor: 'rgba(93, 173, 226, 0.05)',
                                                     },
                                                 }}
                                             >
-                                                <TableCell sx={{ color: '#1e293b' }}>{insumo.nome}</TableCell>
-                                                <TableCell sx={{ color: '#64748b' }}>
-                                                    {insumo.categoria.replace(/_/g, ' ')}
-                                                </TableCell>
-                                                <TableCell sx={{ color: '#1e293b', fontWeight: 600 }}>
-                                                    {insumo.quantidade_atual} {insumo.unidade}
-                                                </TableCell>
-                                                <TableCell sx={{ color: '#64748b' }}>
-                                                    {insumo.quantidade_minima} {insumo.unidade}
-                                                </TableCell>
-                                                <TableCell sx={{ color: '#1e293b' }}>
-                                                    {insumo.data_validade ? (
-                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                            <Clock size={16} color="#64748b" />
-                                                            {new Date(insumo.data_validade).toLocaleDateString('pt-BR')}
-                                                        </Box>
-                                                    ) : (
-                                                        <Typography sx={{ color: '#94a3b8', fontSize: '0.875rem' }}>-</Typography>
-                                                    )}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Chip
-                                                        icon={<StatusIcon size={16} />}
-                                                        label={status.label}
-                                                        size="small"
-                                                        sx={{
-                                                            backgroundColor: `${status.color}20`,
-                                                            color: status.color,
-                                                            fontWeight: 600,
-                                                            border: `1px solid ${status.color}40`,
-                                                        }}
-                                                    />
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Box sx={{ display: 'flex', gap: 1 }}>
-                                                        <Tooltip title="Movimentação">
-                                                            <IconButton
-                                                                size="small"
-                                                                onClick={() => {
-                                                                    console.log('🔍 Insumo selecionado:', insumo.id, insumo.nome);
-                                                                    setFormMovimentacao({
-                                                                        insumo_id: insumo.id,
-                                                                        tipo: 'ENTRADA',
-                                                                        quantidade: 0,
-                                                                        observacoes: '',
-                                                                        caminhao_id: '',
-                                                                        acao_id: '',
-                                                                        origem: '',
-                                                                        destino: '',
-                                                                    });
-                                                                    console.log('✅ Form atualizado com insumo_id:', insumo.id);
-                                                                    setModalMovimentacao(true);
-                                                                }}
-                                                                sx={{ color: '#10b981' }}
-                                                            >
-                                                                <ArrowUpDown size={18} />
-                                                            </IconButton>
-                                                        </Tooltip>
-                                                        <Tooltip title="Histórico">
-                                                            <IconButton
-                                                                size="small"
-                                                                onClick={() => handleVerHistorico(insumo)}
-                                                                sx={{ color: '#3b82f6' }}
-                                                            >
-                                                                <History size={18} />
-                                                            </IconButton>
-                                                        </Tooltip>
-                                                        <Tooltip title="Editar">
-                                                            <IconButton
-                                                                size="small"
-                                                                onClick={() => {
-                                                                    setModoEdicao(true);
-                                                                    setInsumoSelecionado(insumo);
-                                                                    setFormInsumo(insumo);
-                                                                    setModalInsumo(true);
-                                                                }}
-                                                                sx={{ color: '#5DADE2' }}
-                                                            >
-                                                                <Edit size={18} />
-                                                            </IconButton>
-                                                        </Tooltip>
-                                                        <Tooltip title="Deletar">
-                                                            <IconButton
-                                                                size="small"
-                                                                onClick={() => handleDeletarInsumo(insumo.id)}
-                                                                sx={{ color: '#ef4444' }}
-                                                            >
-                                                                <Trash2 size={18} />
-                                                            </IconButton>
-                                                        </Tooltip>
-                                                    </Box>
-                                                </TableCell>
-                                            </TableRow>
-                                        );
-                                    })}
-                                </TableBody>
-                            </Table>
-                        </TableContainer>
-                    </CardContent>
-                </Card>
-            </motion.div>
-
-            {/* Modal de Insumo */}
-            <Dialog
-                open={modalInsumo}
-                onClose={() => setModalInsumo(false)}
-                maxWidth="md"
-                fullWidth
-                PaperProps={{
-                    sx: {
-                        background: 'white',
-                        border: '1px solid #e2e8f0',
-                        borderRadius: 3,
-                    },
-                }}
-            >
-                <DialogTitle sx={{ color: '#1e293b', fontWeight: 600 }}>
-                    {modoEdicao ? 'Editar Insumo' : 'Novo Insumo'}
-                </DialogTitle>
-                <DialogContent>
-                    <Grid container spacing={2} sx={{ mt: 1 }}>
-                        <Grid item xs={12} md={8}>
-                            <TextField
-                                fullWidth
-                                label="Nome"
-                                value={formInsumo.nome}
-                                onChange={(e) => setFormInsumo({ ...formInsumo, nome: e.target.value })}
-                                sx={{
-                                    '& .MuiOutlinedInput-root': {
-                                        color: '#1e293b',
-                                        '& fieldset': { borderColor: '#e2e8f0' },
-                                        '&:hover fieldset': { borderColor: '#5DADE2' },
-                                        '&.Mui-focused fieldset': { borderColor: '#5DADE2' },
-                                    },
-                                    '& .MuiInputLabel-root': { color: '#64748b' },
-                                }}
-                            />
-                        </Grid>
-                        <Grid item xs={12} md={4}>
-                            <FormControl fullWidth>
-                                <InputLabel sx={{ color: '#64748b' }}>Categoria</InputLabel>
-                                <Select
-                                    value={formInsumo.categoria}
-                                    onChange={(e) => setFormInsumo({ ...formInsumo, categoria: e.target.value as any })}
-                                    label="Categoria"
-                                    sx={{
-                                        color: 'white',
-                                        '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(148, 163, 184, 0.2)' },
-                                        '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
-                                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
-                                    }}
-                                >
-                                    {categorias.map((cat) => (
-                                        <MenuItem key={cat} value={cat}>
-                                            {cat.replace(/_/g, ' ')}
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
-                        </Grid>
-                        <Grid item xs={12}>
-                            <TextField
-                                fullWidth
-                                label="Descrição"
-                                multiline
-                                rows={2}
-                                value={formInsumo.descricao || ''}
-                                onChange={(e) => setFormInsumo({ ...formInsumo, descricao: e.target.value })}
-                                sx={{
-                                    '& .MuiOutlinedInput-root': {
-                                        color: '#1e293b',
-                                        '& fieldset': { borderColor: '#e2e8f0' },
-                                        '&:hover fieldset': { borderColor: '#5DADE2' },
-                                        '&.Mui-focused fieldset': { borderColor: '#5DADE2' },
-                                    },
-                                    '& .MuiInputLabel-root': { color: '#64748b' },
-                                }}
-                            />
-                        </Grid>
-                        <Grid item xs={12} md={4}>
-                            <TextField
-                                fullWidth
-                                label="Unidade"
-                                value={formInsumo.unidade}
-                                onChange={(e) => setFormInsumo({ ...formInsumo, unidade: e.target.value })}
-                                placeholder="Ex: unidade, caixa, litro"
-                                sx={{
-                                    '& .MuiOutlinedInput-root': {
-                                        color: '#1e293b',
-                                        '& fieldset': { borderColor: '#e2e8f0' },
-                                        '&:hover fieldset': { borderColor: '#5DADE2' },
-                                        '&.Mui-focused fieldset': { borderColor: '#5DADE2' },
-                                    },
-                                    '& .MuiInputLabel-root': { color: '#64748b' },
-                                }}
-                            />
-                        </Grid>
-                        <Grid item xs={12} md={4}>
-                            <TextField
-                                fullWidth
-                                label="Quantidade Atual"
-                                type="number"
-                                value={formInsumo.quantidade_atual}
-                                onChange={(e) => setFormInsumo({ ...formInsumo, quantidade_atual: Number(e.target.value) })}
-                                sx={{
-                                    '& .MuiOutlinedInput-root': {
-                                        color: '#1e293b',
-                                        '& fieldset': { borderColor: '#e2e8f0' },
-                                        '&:hover fieldset': { borderColor: '#5DADE2' },
-                                        '&.Mui-focused fieldset': { borderColor: '#5DADE2' },
-                                    },
-                                    '& .MuiInputLabel-root': { color: '#64748b' },
-                                }}
-                            />
-                        </Grid>
-                        <Grid item xs={12} md={4}>
-                            <TextField
-                                fullWidth
-                                label="Quantidade Mínima"
-                                type="number"
-                                value={formInsumo.quantidade_minima}
-                                onChange={(e) => setFormInsumo({ ...formInsumo, quantidade_minima: Number(e.target.value) })}
-                                sx={{
-                                    '& .MuiOutlinedInput-root': {
-                                        color: '#1e293b',
-                                        '& fieldset': { borderColor: '#e2e8f0' },
-                                        '&:hover fieldset': { borderColor: '#5DADE2' },
-                                        '&.Mui-focused fieldset': { borderColor: '#5DADE2' },
-                                    },
-                                    '& .MuiInputLabel-root': { color: '#64748b' },
-                                }}
-                            />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <TextField
-                                fullWidth
-                                label="Código de Barras"
-                                value={formInsumo.codigo_barras || ''}
-                                onChange={(e) => setFormInsumo({ ...formInsumo, codigo_barras: e.target.value })}
-                                sx={{
-                                    '& .MuiOutlinedInput-root': {
-                                        color: '#1e293b',
-                                        '& fieldset': { borderColor: '#e2e8f0' },
-                                        '&:hover fieldset': { borderColor: '#5DADE2' },
-                                        '&.Mui-focused fieldset': { borderColor: '#5DADE2' },
-                                    },
-                                    '& .MuiInputLabel-root': { color: '#64748b' },
-                                }}
-                            />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <TextField
-                                fullWidth
-                                label="Lote"
-                                value={formInsumo.lote || ''}
-                                onChange={(e) => setFormInsumo({ ...formInsumo, lote: e.target.value })}
-                                sx={{
-                                    '& .MuiOutlinedInput-root': {
-                                        color: '#1e293b',
-                                        '& fieldset': { borderColor: '#e2e8f0' },
-                                        '&:hover fieldset': { borderColor: '#5DADE2' },
-                                        '&.Mui-focused fieldset': { borderColor: '#5DADE2' },
-                                    },
-                                    '& .MuiInputLabel-root': { color: '#64748b' },
-                                }}
-                            />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <TextField
-                                fullWidth
-                                label="Data de Vencimento"
-                                type="date"
-                                value={formInsumo.data_validade ? new Date(formInsumo.data_validade).toISOString().split('T')[0] : ''}
-                                onChange={(e) => setFormInsumo({ ...formInsumo, data_validade: e.target.value ? new Date(e.target.value) : undefined })}
-                                InputLabelProps={{ shrink: true }}
-                                sx={{
-                                    '& .MuiOutlinedInput-root': {
-                                        color: '#1e293b',
-                                        '& fieldset': { borderColor: '#e2e8f0' },
-                                        '&:hover fieldset': { borderColor: '#5DADE2' },
-                                        '&.Mui-focused fieldset': { borderColor: '#5DADE2' },
-                                    },
-                                    '& .MuiInputLabel-root': { color: '#64748b' },
-                                }}
-                            />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <TextField
-                                fullWidth
-                                label="Fornecedor"
-                                value={formInsumo.fornecedor || ''}
-                                onChange={(e) => setFormInsumo({ ...formInsumo, fornecedor: e.target.value })}
-                                sx={{
-                                    '& .MuiOutlinedInput-root': {
-                                        color: '#1e293b',
-                                        '& fieldset': { borderColor: '#e2e8f0' },
-                                        '&:hover fieldset': { borderColor: '#5DADE2' },
-                                        '&.Mui-focused fieldset': { borderColor: '#5DADE2' },
-                                    },
-                                    '& .MuiInputLabel-root': { color: '#64748b' },
-                                }}
-                            />
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <TextField
-                                fullWidth
-                                label="Localização"
-                                value={formInsumo.localizacao || ''}
-                                onChange={(e) => setFormInsumo({ ...formInsumo, localizacao: e.target.value })}
-                                placeholder="Ex: Prateleira A3"
-                                sx={{
-                                    '& .MuiOutlinedInput-root': {
-                                        color: '#1e293b',
-                                        '& fieldset': { borderColor: '#e2e8f0' },
-                                        '&:hover fieldset': { borderColor: '#5DADE2' },
-                                        '&.Mui-focused fieldset': { borderColor: '#5DADE2' },
-                                    },
-                                    '& .MuiInputLabel-root': { color: '#64748b' },
-                                }}
-                            />
-                        </Grid>
-                    </Grid>
-                </DialogContent>
-                <DialogActions sx={{ p: 3 }}>
-                    <Button onClick={() => setModalInsumo(false)} sx={{ color: '#64748b' }}>
-                        Cancelar
-                    </Button>
-                    <Button
-                        onClick={handleSalvarInsumo}
-                        variant="contained"
-                        sx={{
-                            background: 'linear-gradient(135deg, #5DADE2 0%, #1B4F72 100%)',
-                            textTransform: 'none',
-                            fontWeight: 600,
-                        }}
-                    >
-                        {modoEdicao ? 'Atualizar' : 'Criar'}
-                    </Button>
-                </DialogActions>
-            </Dialog>
-
-            {/* Modal de Movimentação */}
-            <Dialog
-                open={modalMovimentacao}
-                onClose={() => {
-                    setModalMovimentacao(false);
-                    setFormMovimentacao({
-                        insumo_id: '',
-                        tipo: 'ENTRADA',
-                        quantidade: 0,
-                        observacoes: '',
-                        caminhao_id: '',
-                        acao_id: '',
-                        origem: '',
-                        destino: '',
-                    });
-                }}
-                maxWidth="sm"
-                fullWidth
-                PaperProps={{
-                    sx: {
-                        background: 'white',
-                        border: '1px solid #e2e8f0',
-                        borderRadius: 3,
-                    },
-                }}
-            >
-                <DialogTitle sx={{ color: 'white', fontWeight: 600 }}>
-                    Registrar Movimentação
-                </DialogTitle>
-                <DialogContent>
-                    <Grid container spacing={2} sx={{ mt: 1 }}>
-                        <Grid item xs={12}>
-                            <FormControl fullWidth>
-                                <InputLabel sx={{ color: '#64748b' }}>Insumo</InputLabel>
-                                <Select
-                                    value={formMovimentacao.insumo_id}
-                                    onChange={(e) => setFormMovimentacao({ ...formMovimentacao, insumo_id: e.target.value })}
-                                    label="Insumo"
-                                    disabled={formMovimentacao.insumo_id !== ''}
-                                    sx={{
-                                        color: 'white',
-                                        '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(148, 163, 184, 0.2)' },
-                                        '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
-                                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
-                                    }}
-                                >
-                                    {insumos.map((insumo) => (
-                                        <MenuItem key={insumo.id} value={insumo.id}>
-                                            {insumo.nome}
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <FormControl fullWidth>
-                                <InputLabel sx={{ color: '#64748b' }}>Tipo</InputLabel>
-                                <Select
-                                    value={formMovimentacao.tipo}
-                                    onChange={(e) => setFormMovimentacao({ ...formMovimentacao, tipo: e.target.value as any })}
-                                    label="Tipo"
-                                    sx={{
-                                        color: '#1e293b',
-                                        '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' },
-                                        '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
-                                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
-                                    }}
-                                >
-                                    <MenuItem value="ENTRADA">Entrada (Central → Caminhão)</MenuItem>
-                                    <MenuItem value="SAIDA">Saída (Caminhão → Ação)</MenuItem>
-                                    <MenuItem value="TRANSFERENCIA">Transferência (Caminhão → Caminhão)</MenuItem>
-                                    <MenuItem value="DEVOLUCAO">Devolução (Caminhão → Central)</MenuItem>
-                                    <MenuItem value="AJUSTE">Ajuste</MenuItem>
-                                    <MenuItem value="PERDA">Perda</MenuItem>
-                                </Select>
-                            </FormControl>
-                        </Grid>
-
-                        {/* Campos condicionais baseados no tipo */}
-                        {formMovimentacao.tipo === 'ENTRADA' && (
-                            <Grid item xs={12}>
-                                <FormControl fullWidth>
-                                    <InputLabel sx={{ color: '#64748b' }}>Caminhão Destino</InputLabel>
-                                    <Select
-                                        value={formMovimentacao.caminhao_id}
-                                        onChange={(e) => setFormMovimentacao({ ...formMovimentacao, caminhao_id: e.target.value })}
-                                        label="Caminhão Destino"
-                                        sx={{
-                                            color: '#1e293b',
-                                            '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' },
-                                            '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
-                                            '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
-                                        }}
-                                    >
-                                        {_caminhoes.map((caminhao) => (
-                                            <MenuItem key={caminhao.id} value={caminhao.id}>
-                                                {caminhao.placa} - {caminhao.modelo}
-                                            </MenuItem>
-                                        ))}
-                                    </Select>
-                                </FormControl>
+                                                Ver Estoque
+                                            </Button>
+                                        </CardContent>
+                                    </Card>
+                                </motion.div>
                             </Grid>
-                        )}
-
-                        {formMovimentacao.tipo === 'SAIDA' && (
-                            <>
-                                <Grid item xs={12} md={6}>
-                                    <FormControl fullWidth>
-                                        <InputLabel sx={{ color: '#64748b' }}>Caminhão</InputLabel>
-                                        <Select
-                                            value={formMovimentacao.caminhao_id}
-                                            onChange={(e) => setFormMovimentacao({ ...formMovimentacao, caminhao_id: e.target.value })}
-                                            label="Caminhão"
-                                            sx={{
-                                                color: '#1e293b',
-                                                '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' },
-                                                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
-                                                '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
-                                            }}
-                                        >
-                                            {_caminhoes.map((caminhao) => (
-                                                <MenuItem key={caminhao.id} value={caminhao.id}>
-                                                    {caminhao.placa}
-                                                </MenuItem>
-                                            ))}
-                                        </Select>
-                                    </FormControl>
-                                </Grid>
-                                <Grid item xs={12} md={6}>
-                                    <FormControl fullWidth>
-                                        <InputLabel sx={{ color: '#64748b' }}>Ação</InputLabel>
-                                        <Select
-                                            value={formMovimentacao.acao_id}
-                                            onChange={(e) => setFormMovimentacao({ ...formMovimentacao, acao_id: e.target.value })}
-                                            label="Ação"
-                                            sx={{
-                                                color: '#1e293b',
-                                                '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' },
-                                                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
-                                                '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
-                                            }}
-                                        >
-                                            {_acoes.map((acao) => (
-                                                <MenuItem key={acao.id} value={acao.id}>
-                                                    {acao.nome}
-                                                </MenuItem>
-                                            ))}
-                                        </Select>
-                                    </FormControl>
-                                </Grid>
-                            </>
-                        )}
-
-                        {formMovimentacao.tipo === 'TRANSFERENCIA' && (
-                            <>
-                                <Grid item xs={12} md={6}>
-                                    <FormControl fullWidth>
-                                        <InputLabel sx={{ color: '#64748b' }}>Caminhão Origem</InputLabel>
-                                        <Select
-                                            value={formMovimentacao.origem}
-                                            onChange={(e) => setFormMovimentacao({ ...formMovimentacao, origem: e.target.value })}
-                                            label="Caminhão Origem"
-                                            sx={{
-                                                color: '#1e293b',
-                                                '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' },
-                                                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
-                                                '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
-                                            }}
-                                        >
-                                            {_caminhoes.map((caminhao) => (
-                                                <MenuItem key={caminhao.id} value={caminhao.id}>
-                                                    {caminhao.placa}
-                                                </MenuItem>
-                                            ))}
-                                        </Select>
-                                    </FormControl>
-                                </Grid>
-                                <Grid item xs={12} md={6}>
-                                    <FormControl fullWidth>
-                                        <InputLabel sx={{ color: '#64748b' }}>Caminhão Destino</InputLabel>
-                                        <Select
-                                            value={formMovimentacao.destino}
-                                            onChange={(e) => setFormMovimentacao({ ...formMovimentacao, destino: e.target.value })}
-                                            label="Caminhão Destino"
-                                            sx={{
-                                                color: '#1e293b',
-                                                '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' },
-                                                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
-                                                '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
-                                            }}
-                                        >
-                                            {_caminhoes.filter(c => c.id !== formMovimentacao.origem).map((caminhao) => (
-                                                <MenuItem key={caminhao.id} value={caminhao.id}>
-                                                    {caminhao.placa}
-                                                </MenuItem>
-                                            ))}
-                                        </Select>
-                                    </FormControl>
-                                </Grid>
-                            </>
-                        )}
-
-                        {formMovimentacao.tipo === 'DEVOLUCAO' && (
-                            <Grid item xs={12}>
-                                <FormControl fullWidth>
-                                    <InputLabel sx={{ color: '#64748b' }}>Caminhão</InputLabel>
-                                    <Select
-                                        value={formMovimentacao.caminhao_id}
-                                        onChange={(e) => setFormMovimentacao({ ...formMovimentacao, caminhao_id: e.target.value })}
-                                        label="Caminhão"
-                                        sx={{
-                                            color: '#1e293b',
-                                            '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' },
-                                            '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
-                                            '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
-                                        }}
-                                    >
-                                        {_caminhoes.map((caminhao) => (
-                                            <MenuItem key={caminhao.id} value={caminhao.id}>
-                                                {caminhao.placa} - {caminhao.modelo}
-                                            </MenuItem>
-                                        ))}
-                                    </Select>
-                                </FormControl>
-                            </Grid>
-                        )}
-
-                        <Grid item xs={12} md={6}>
-                            <TextField
-                                fullWidth
-                                label="Quantidade"
-                                type="number"
-                                value={formMovimentacao.quantidade}
-                                onChange={(e) => setFormMovimentacao({ ...formMovimentacao, quantidade: Number(e.target.value) })}
-                                sx={{
-                                    '& .MuiOutlinedInput-root': {
-                                        color: '#1e293b',
-                                        '& fieldset': { borderColor: '#e2e8f0' },
-                                        '&:hover fieldset': { borderColor: '#5DADE2' },
-                                        '&.Mui-focused fieldset': { borderColor: '#5DADE2' },
-                                    },
-                                    '& .MuiInputLabel-root': { color: '#64748b' },
-                                }}
-                            />
-                        </Grid>
-                        <Grid item xs={12}>
-                            <TextField
-                                fullWidth
-                                label="Observações"
-                                multiline
-                                rows={3}
-                                value={formMovimentacao.observacoes}
-                                onChange={(e) => setFormMovimentacao({ ...formMovimentacao, observacoes: e.target.value })}
-                                sx={{
-                                    '& .MuiOutlinedInput-root': {
-                                        color: '#1e293b',
-                                        '& fieldset': { borderColor: '#e2e8f0' },
-                                        '&:hover fieldset': { borderColor: '#5DADE2' },
-                                        '&.Mui-focused fieldset': { borderColor: '#5DADE2' },
-                                    },
-                                    '& .MuiInputLabel-root': { color: '#64748b' },
-                                }}
-                            />
-                        </Grid>
-                    </Grid>
-                </DialogContent>
-                <DialogActions sx={{ p: 3 }}>
-                    <Button onClick={() => {
-                        setModalMovimentacao(false);
-                        setFormMovimentacao({
-                            insumo_id: '',
-                            tipo: 'ENTRADA',
-                            quantidade: 0,
-                            observacoes: '',
-                            caminhao_id: '',
-                            acao_id: '',
-                            origem: '',
-                            destino: '',
-                        });
-                    }} sx={{ color: '#64748b' }}>
-                        Cancelar
-                    </Button>
-                    <Button
-                        onClick={handleRegistrarMovimentacao}
-                        variant="contained"
-                        sx={{
-                            background: 'linear-gradient(135deg, #5DADE2 0%, #1B4F72 100%)',
-                            textTransform: 'none',
-                            fontWeight: 600,
-                        }}
-                    >
-                        Registrar
-                    </Button>
-                </DialogActions>
-            </Dialog>
-
-            {/* Modal de Histórico */}
-            <Dialog
-                open={modalHistorico}
-                onClose={() => setModalHistorico(false)}
-                maxWidth="md"
-                fullWidth
-                PaperProps={{
-                    sx: {
-                        background: 'white',
-                        border: '1px solid #e2e8f0',
-                        borderRadius: 3,
-                    },
-                }}
-            >
-                <DialogTitle sx={{ color: '#1e293b', fontWeight: 600 }}>
-                    Histórico de Movimentações - {insumoSelecionado?.nome}
-                </DialogTitle>
-                <DialogContent>
-                    {movimentacoesHistorico.length === 0 ? (
-                        <Box sx={{ textAlign: 'center', py: 4 }}>
-                            <Typography color="text.secondary">
-                                Nenhuma movimentação registrada para este insumo.
-                            </Typography>
-                        </Box>
-                    ) : (
-                        <TableContainer>
-                            <Table>
-                                <TableHead>
-                                    <TableRow>
-                                        <TableCell sx={{ fontWeight: 600 }}>Data</TableCell>
-                                        <TableCell sx={{ fontWeight: 600 }}>Tipo</TableCell>
-                                        <TableCell sx={{ fontWeight: 600 }}>Quantidade</TableCell>
-                                        <TableCell sx={{ fontWeight: 600 }}>Qtd. Anterior</TableCell>
-                                        <TableCell sx={{ fontWeight: 600 }}>Qtd. Atual</TableCell>
-                                        <TableCell sx={{ fontWeight: 600 }}>Observações</TableCell>
-                                    </TableRow>
-                                </TableHead>
-                                <TableBody>
-                                    {movimentacoesHistorico.map((mov) => (
-                                        <TableRow key={mov.id}>
-                                            <TableCell>
-                                                {new Date(mov.data_movimento).toLocaleString('pt-BR')}
-                                            </TableCell>
-                                            <TableCell>
-                                                <Chip
-                                                    label={mov.tipo}
-                                                    size="small"
-                                                    sx={{
-                                                        bgcolor: mov.tipo === 'ENTRADA' ? '#10b981' :
-                                                            mov.tipo === 'SAIDA' ? '#ef4444' :
-                                                                mov.tipo === 'TRANSFERENCIA' ? '#3b82f6' : '#f59e0b',
-                                                        color: 'white',
-                                                        fontWeight: 600,
-                                                    }}
-                                                />
-                                            </TableCell>
-                                            <TableCell>{mov.quantidade}</TableCell>
-                                            <TableCell>{mov.quantidade_anterior}</TableCell>
-                                            <TableCell>{mov.quantidade_atual}</TableCell>
-                                            <TableCell>{mov.observacoes || '-'}</TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </TableContainer>
+                        ))
                     )}
-                </DialogContent>
-                <DialogActions sx={{ p: 3 }}>
-                    <Button onClick={() => setModalHistorico(false)} sx={{ color: '#64748b' }}>
-                        Fechar
-                    </Button>
-                </DialogActions>
-            </Dialog>
+                </Grid>
+            )}
         </Box>
     );
 };
