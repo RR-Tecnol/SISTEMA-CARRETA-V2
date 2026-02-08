@@ -1442,7 +1442,7 @@ const Estoque: React.FC = () => {
                 maxWidth="md"
                 fullWidth
             >
-                <DialogTitle sx={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
+                <DialogTitle sx={{ background: 'linear-gradient(135deg, #5DADE2 0%, #1B4F72 100%)', color: 'white' }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                         <LocalShipping />
                         <Box>
