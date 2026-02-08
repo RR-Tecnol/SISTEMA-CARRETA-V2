@@ -225,26 +225,35 @@ const GerenciarAcao = () => {
         if (!id) return;
 
         try {
+            console.log('🔍 Carregando custos para ação:', id);
+
             // Buscar abastecimentos (tem campo litros)
             const abastecimentosRes = await api.get(`/acoes/${id}/abastecimentos`);
             const abastecimentos = abastecimentosRes.data.map((a: any) => ({
                 ...a,
                 tipo_conta: 'abastecimento'
             }));
+            console.log('⛽ Abastecimentos encontrados:', abastecimentos.length, abastecimentos);
 
             // Buscar outras contas a pagar (funcionários, despesas gerais, etc)
             const contasRes = await api.get(`/contas-pagar`, {
                 params: { acao_id: id }
             });
+            console.log('📋 Resposta da API contas-pagar:', contasRes.data);
+
             const contas = contasRes.data.contas || contasRes.data || [];
+            console.log('💰 Contas encontradas:', contas.length, contas);
 
             // Filtrar apenas contas que NÃO são abastecimentos
             const outrasContas = contas.filter((c: any) => c.tipo_conta !== 'abastecimento');
+            console.log('📝 Outras contas (não abastecimentos):', outrasContas.length, outrasContas);
 
             // Combinar abastecimentos com outras contas
             const todosCustos = [...abastecimentos, ...outrasContas];
+            console.log('✅ Total de custos combinados:', todosCustos.length, todosCustos);
             setCustos(todosCustos);
         } catch (error: any) {
+            console.error('❌ Erro ao carregar custos:', error);
             enqueueSnackbar(
                 error.response?.data?.error || 'Erro ao carregar custos',
                 { variant: 'error' }
