@@ -982,13 +982,165 @@ const Estoque: React.FC = () => {
                                         '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
                                     }}
                                 >
-                                    <MenuItem value="ENTRADA">Entrada</MenuItem>
-                                    <MenuItem value="SAIDA">Saída</MenuItem>
+                                    <MenuItem value="ENTRADA">Entrada (Central → Caminhão)</MenuItem>
+                                    <MenuItem value="SAIDA">Saída (Caminhão → Ação)</MenuItem>
+                                    <MenuItem value="TRANSFERENCIA">Transferência (Caminhão → Caminhão)</MenuItem>
+                                    <MenuItem value="DEVOLUCAO">Devolução (Caminhão → Central)</MenuItem>
                                     <MenuItem value="AJUSTE">Ajuste</MenuItem>
                                     <MenuItem value="PERDA">Perda</MenuItem>
                                 </Select>
                             </FormControl>
                         </Grid>
+
+                        {/* Campos condicionais baseados no tipo */}
+                        {formMovimentacao.tipo === 'ENTRADA' && (
+                            <Grid item xs={12}>
+                                <FormControl fullWidth>
+                                    <InputLabel sx={{ color: '#64748b' }}>Caminhão Destino</InputLabel>
+                                    <Select
+                                        value={formMovimentacao.caminhao_id}
+                                        onChange={(e) => setFormMovimentacao({ ...formMovimentacao, caminhao_id: e.target.value })}
+                                        label="Caminhão Destino"
+                                        sx={{
+                                            color: '#1e293b',
+                                            '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' },
+                                            '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
+                                            '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
+                                        }}
+                                    >
+                                        {_caminhoes.map((caminhao) => (
+                                            <MenuItem key={caminhao.id} value={caminhao.id}>
+                                                {caminhao.placa} - {caminhao.modelo}
+                                            </MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                            </Grid>
+                        )}
+
+                        {formMovimentacao.tipo === 'SAIDA' && (
+                            <>
+                                <Grid item xs={12} md={6}>
+                                    <FormControl fullWidth>
+                                        <InputLabel sx={{ color: '#64748b' }}>Caminhão</InputLabel>
+                                        <Select
+                                            value={formMovimentacao.caminhao_id}
+                                            onChange={(e) => setFormMovimentacao({ ...formMovimentacao, caminhao_id: e.target.value })}
+                                            label="Caminhão"
+                                            sx={{
+                                                color: '#1e293b',
+                                                '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' },
+                                                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
+                                                '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
+                                            }}
+                                        >
+                                            {_caminhoes.map((caminhao) => (
+                                                <MenuItem key={caminhao.id} value={caminhao.id}>
+                                                    {caminhao.placa}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+                                </Grid>
+                                <Grid item xs={12} md={6}>
+                                    <FormControl fullWidth>
+                                        <InputLabel sx={{ color: '#64748b' }}>Ação</InputLabel>
+                                        <Select
+                                            value={formMovimentacao.acao_id}
+                                            onChange={(e) => setFormMovimentacao({ ...formMovimentacao, acao_id: e.target.value })}
+                                            label="Ação"
+                                            sx={{
+                                                color: '#1e293b',
+                                                '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' },
+                                                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
+                                                '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
+                                            }}
+                                        >
+                                            {_acoes.map((acao) => (
+                                                <MenuItem key={acao.id} value={acao.id}>
+                                                    {acao.nome}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+                                </Grid>
+                            </>
+                        )}
+
+                        {formMovimentacao.tipo === 'TRANSFERENCIA' && (
+                            <>
+                                <Grid item xs={12} md={6}>
+                                    <FormControl fullWidth>
+                                        <InputLabel sx={{ color: '#64748b' }}>Caminhão Origem</InputLabel>
+                                        <Select
+                                            value={formMovimentacao.origem}
+                                            onChange={(e) => setFormMovimentacao({ ...formMovimentacao, origem: e.target.value })}
+                                            label="Caminhão Origem"
+                                            sx={{
+                                                color: '#1e293b',
+                                                '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' },
+                                                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
+                                                '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
+                                            }}
+                                        >
+                                            {_caminhoes.map((caminhao) => (
+                                                <MenuItem key={caminhao.id} value={caminhao.id}>
+                                                    {caminhao.placa}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+                                </Grid>
+                                <Grid item xs={12} md={6}>
+                                    <FormControl fullWidth>
+                                        <InputLabel sx={{ color: '#64748b' }}>Caminhão Destino</InputLabel>
+                                        <Select
+                                            value={formMovimentacao.destino}
+                                            onChange={(e) => setFormMovimentacao({ ...formMovimentacao, destino: e.target.value })}
+                                            label="Caminhão Destino"
+                                            sx={{
+                                                color: '#1e293b',
+                                                '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' },
+                                                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
+                                                '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
+                                            }}
+                                        >
+                                            {_caminhoes.filter(c => c.id !== formMovimentacao.origem).map((caminhao) => (
+                                                <MenuItem key={caminhao.id} value={caminhao.id}>
+                                                    {caminhao.placa}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+                                </Grid>
+                            </>
+                        )}
+
+                        {formMovimentacao.tipo === 'DEVOLUCAO' && (
+                            <Grid item xs={12}>
+                                <FormControl fullWidth>
+                                    <InputLabel sx={{ color: '#64748b' }}>Caminhão</InputLabel>
+                                    <Select
+                                        value={formMovimentacao.caminhao_id}
+                                        onChange={(e) => setFormMovimentacao({ ...formMovimentacao, caminhao_id: e.target.value })}
+                                        label="Caminhão"
+                                        sx={{
+                                            color: '#1e293b',
+                                            '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' },
+                                            '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
+                                            '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
+                                        }}
+                                    >
+                                        {_caminhoes.map((caminhao) => (
+                                            <MenuItem key={caminhao.id} value={caminhao.id}>
+                                                {caminhao.placa} - {caminhao.modelo}
+                                            </MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                            </Grid>
+                        )}
+
                         <Grid item xs={12} md={6}>
                             <TextField
                                 fullWidth
