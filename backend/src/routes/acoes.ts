@@ -8,6 +8,7 @@ import { Funcionario } from '../models/Funcionario';
 import { AcaoCaminhao } from '../models/AcaoCaminhao';
 import { AcaoFuncionario } from '../models/AcaoFuncionario';
 import { Inscricao } from '../models/Inscricao';
+import { ContaPagar } from '../models/ContaPagar';
 import { authenticate, authorizeAdmin } from '../middlewares/auth';
 import { cacheMiddleware, clearCache } from '../middlewares/cache';
 import Joi from 'joi';
@@ -474,7 +475,7 @@ router.delete('/:id/caminhoes/:caminhaoId', authenticate, authorizeAdmin, async 
 router.post('/:id/funcionarios', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const { funcionario_id } = req.body;
+        const { funcionario_id, data_vencimento } = req.body;
 
         if (!funcionario_id) {
             res.status(400).json({ error: 'funcionario_id é obrigatório' });
@@ -493,14 +494,43 @@ router.post('/:id/funcionarios', authenticate, authorizeAdmin, async (req: Reque
             return;
         }
 
+        // Calcular dias trabalhados
+        const dataInicio = new Date(acao.data_inicio);
+        const dataFim = new Date(acao.data_fim);
+        const diffTime = Math.abs(dataFim.getTime() - dataInicio.getTime());
+        const dias = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+        // Calcular valor total
+        const custoDiario = func.custo_diaria || 0;
+        const valorTotal = custoDiario * dias;
+
+        // Criar vínculo funcionário-ação
         await AcaoFuncionario.create({
             acao_id: id,
             funcionario_id,
-            valor_diaria: func.custo_diaria,
-            dias_trabalhados: 1
+            valor_diaria: custoDiario,
+            dias_trabalhados: dias
         } as any);
 
-        res.status(201).json({ message: 'Funcionário vinculado com sucesso' });
+        // Criar conta a pagar automaticamente
+        await ContaPagar.create({
+            tipo_conta: 'funcionario',
+            descricao: `Funcionário: ${func.nome} - Ação ${acao.numero_acao}`,
+            valor: valorTotal,
+            data_vencimento: data_vencimento || acao.data_fim, // Usa data customizada ou fim da ação
+            status: 'pendente',
+            recorrente: false,
+            observacoes: `Custo diário: R$ ${custoDiario.toFixed(2)} × ${dias} dias`,
+            acao_id: id,
+            cidade: acao.municipio,
+        });
+
+        res.status(201).json({
+            message: 'Funcionário vinculado com sucesso',
+            conta_criada: true,
+            valor_total: valorTotal,
+            dias_trabalhados: dias
+        });
 
     } catch (error) {
         console.error('Error linking funcionario:', error);
