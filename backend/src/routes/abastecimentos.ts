@@ -1,7 +1,9 @@
 import { Router, Request, Response } from 'express';
 import { Abastecimento } from '../models/Abastecimento';
 import { Caminhao } from '../models/Caminhao';
+import { ContaPagar } from '../models/ContaPagar';
 import { authenticate, authorizeAdmin } from '../middlewares/auth';
+import { sequelize } from '../config/database';
 
 const router = Router();
 
@@ -30,6 +32,8 @@ router.get('/acoes/:acaoId/abastecimentos', authenticate, authorizeAdmin, async 
 
 // Registrar novo abastecimento
 router.post('/acoes/:acaoId/abastecimentos', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+    const t = await sequelize.transaction();
+
     try {
         const { acaoId } = req.params;
         const { caminhao_id, data_abastecimento, litros, valor_total, observacoes } = req.body;
@@ -37,6 +41,7 @@ router.post('/acoes/:acaoId/abastecimentos', authenticate, authorizeAdmin, async
         // Calcular preço por litro
         const preco_por_litro = parseFloat((valor_total / litros).toFixed(3));
 
+        // 1. Criar abastecimento
         const abastecimento = await Abastecimento.create({
             acao_id: acaoId,
             caminhao_id,
@@ -45,9 +50,29 @@ router.post('/acoes/:acaoId/abastecimentos', authenticate, authorizeAdmin, async
             valor_total: parseFloat(valor_total),
             preco_por_litro,
             observacoes,
-        });
+        }, { transaction: t });
 
-        // Retornar com dados do caminhão
+        // 2. Buscar dados do caminhão
+        const caminhao = await Caminhao.findByPk(caminhao_id);
+
+        // 3. Criar conta a pagar automaticamente
+        await ContaPagar.create({
+            tipo_conta: 'abastecimento',
+            descricao: `Abastecimento ${caminhao?.placa || 'N/A'} - ${parseFloat(litros).toFixed(2)}L`,
+            valor: parseFloat(valor_total),
+            data_vencimento: data_abastecimento || new Date(),
+            data_pagamento: data_abastecimento || new Date(),
+            status: 'paga',
+            recorrente: false,
+            observacoes: observacoes || null,
+            acao_id: acaoId,
+            caminhao_id: caminhao_id,
+            cidade: null,
+        }, { transaction: t });
+
+        await t.commit();
+
+        // 4. Retornar com dados do caminhão
         const abastecimentoCompleto = await Abastecimento.findByPk(abastecimento.id, {
             include: [
                 {
@@ -60,12 +85,15 @@ router.post('/acoes/:acaoId/abastecimentos', authenticate, authorizeAdmin, async
 
         res.status(201).json(abastecimentoCompleto);
     } catch (error: any) {
+        await t.rollback();
         res.status(400).json({ error: error.message });
     }
 });
 
 // Deletar abastecimento de uma ação
 router.delete('/acoes/:acaoId/abastecimentos/:id', authenticate, authorizeAdmin, async (req: Request, res: Response): Promise<void> => {
+    const t = await sequelize.transaction();
+
     try {
         const { id, acaoId } = req.params;
 
@@ -77,13 +105,37 @@ router.delete('/acoes/:acaoId/abastecimentos/:id', authenticate, authorizeAdmin,
         });
 
         if (!abastecimento) {
+            await t.rollback();
             res.status(404).json({ error: 'Abastecimento não encontrado' });
             return;
         }
 
-        await abastecimento.destroy();
+        // 1. Buscar conta a pagar vinculada
+        const contaPagar = await ContaPagar.findOne({
+            where: {
+                acao_id: abastecimento.acao_id,
+                caminhao_id: abastecimento.caminhao_id,
+                tipo_conta: 'abastecimento',
+                status: 'paga',
+            },
+            order: [['created_at', 'DESC']],
+            transaction: t,
+        });
+
+        // 2. Cancelar conta a pagar se existir
+        if (contaPagar) {
+            await contaPagar.update({
+                status: 'cancelada',
+            }, { transaction: t });
+        }
+
+        // 3. Deletar abastecimento
+        await abastecimento.destroy({ transaction: t });
+
+        await t.commit();
         res.json({ message: 'Abastecimento excluído com sucesso' });
     } catch (error: any) {
+        await t.rollback();
         res.status(500).json({ error: error.message });
     }
 });
@@ -91,12 +143,15 @@ router.delete('/acoes/:acaoId/abastecimentos/:id', authenticate, authorizeAdmin,
 
 // Atualizar abastecimento
 router.put('/abastecimentos/:id', authenticate, authorizeAdmin, async (req: Request, res: Response): Promise<void> => {
+    const t = await sequelize.transaction();
+
     try {
         const { id } = req.params;
         const { data_abastecimento, litros, valor_total, observacoes } = req.body;
 
         const abastecimento = await Abastecimento.findByPk(id);
         if (!abastecimento) {
+            await t.rollback();
             res.status(404).json({ error: 'Abastecimento não encontrado' });
             return;
         }
@@ -106,13 +161,41 @@ router.put('/abastecimentos/:id', authenticate, authorizeAdmin, async (req: Requ
         const novoValor = valor_total !== undefined ? parseFloat(valor_total) : abastecimento.valor_total;
         const preco_por_litro = parseFloat((novoValor / novosLitros).toFixed(3));
 
+        // 1. Atualizar abastecimento
         await abastecimento.update({
             data_abastecimento: data_abastecimento || abastecimento.data_abastecimento,
             litros: novosLitros,
             valor_total: novoValor,
             preco_por_litro,
             observacoes: observacoes !== undefined ? observacoes : abastecimento.observacoes,
+        }, { transaction: t });
+
+        // 2. Buscar conta a pagar vinculada
+        const contaPagar = await ContaPagar.findOne({
+            where: {
+                acao_id: abastecimento.acao_id,
+                caminhao_id: abastecimento.caminhao_id,
+                tipo_conta: 'abastecimento',
+                status: 'paga', // Apenas contas pagas (não canceladas)
+            },
+            order: [['created_at', 'DESC']],
+            transaction: t,
         });
+
+        // 3. Atualizar conta a pagar se existir
+        if (contaPagar) {
+            const caminhao = await Caminhao.findByPk(abastecimento.caminhao_id);
+
+            await contaPagar.update({
+                descricao: `Abastecimento ${caminhao?.placa || 'N/A'} - ${novosLitros.toFixed(2)}L`,
+                valor: novoValor,
+                data_vencimento: data_abastecimento || abastecimento.data_abastecimento,
+                data_pagamento: data_abastecimento || abastecimento.data_abastecimento,
+                observacoes: observacoes !== undefined ? observacoes : abastecimento.observacoes,
+            }, { transaction: t });
+        }
+
+        await t.commit();
 
         const abastecimentoAtualizado = await Abastecimento.findByPk(id, {
             include: [
@@ -126,6 +209,7 @@ router.put('/abastecimentos/:id', authenticate, authorizeAdmin, async (req: Requ
 
         res.json(abastecimentoAtualizado);
     } catch (error: any) {
+        await t.rollback();
         res.status(400).json({ error: error.message });
     }
 });

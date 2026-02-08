@@ -11,6 +11,64 @@ import ExcelJS from 'exceljs';
 
 const router = Router();
 
+// ==================== MOVIMENTAÇÕES ====================
+// IMPORTANTE: Rotas específicas devem vir ANTES de rotas genéricas
+
+// Listar movimentações com filtros
+router.get('/movimentacao', async (req: Request, res: Response) => {
+    try {
+        const {
+            insumo_id,
+            tipo,
+            data_inicio,
+            data_fim,
+            caminhao_id,
+            acao_id,
+        } = req.query;
+
+        const where: any = {};
+
+        if (insumo_id) {
+            where.insumo_id = insumo_id;
+        }
+
+        if (tipo) {
+            where.tipo = tipo;
+        }
+
+        if (caminhao_id) {
+            where.caminhao_id = caminhao_id;
+        }
+
+        if (acao_id) {
+            where.acao_id = acao_id;
+        }
+
+        if (data_inicio || data_fim) {
+            where.data_movimento = {};
+            if (data_inicio) {
+                where.data_movimento[Op.gte] = new Date(data_inicio as string);
+            }
+            if (data_fim) {
+                where.data_movimento[Op.lte] = new Date(data_fim as string);
+            }
+        }
+
+        const movimentacoes = await MovimentacaoEstoque.findAll({
+            where,
+            order: [['data_movimento', 'DESC']],
+        });
+
+        res.json(movimentacoes);
+    } catch (error: any) {
+        console.error('❌ Erro ao listar movimentações:', error);
+        res.status(500).json({
+            error: 'Erro ao listar movimentações',
+            details: error.message,
+        });
+    }
+});
+
 // ==================== CRUD DE INSUMOS ====================
 
 // Listar insumos com filtros
@@ -211,6 +269,8 @@ router.post('/movimentacao', async (req: Request, res: Response) => {
     const transaction = await sequelize.transaction();
 
     try {
+        console.log('📦 Dados recebidos para movimentação:', JSON.stringify(req.body, null, 2));
+
         const {
             insumo_id,
             tipo,
@@ -221,14 +281,38 @@ router.post('/movimentacao', async (req: Request, res: Response) => {
             acao_id,
             motorista_id,
             nota_fiscal,
-            observacao: observacoes,
+            observacao,
+            observacoes: observacoesAlt,
             usuario_id,
         } = req.body;
+
+        // Aceitar tanto 'observacao' quanto 'observacoes'
+        const observacoes = observacoesAlt || observacao;
+
+        // Validações básicas
+        if (!insumo_id) {
+            await transaction.rollback();
+            return res.status(400).json({ error: 'insumo_id é obrigatório' });
+        }
+
+        if (!tipo) {
+            await transaction.rollback();
+            return res.status(400).json({ error: 'tipo é obrigatório' });
+        }
+
+        if (quantidade === undefined || quantidade === null) {
+            await transaction.rollback();
+            return res.status(400).json({ error: 'quantidade é obrigatória' });
+        }
+
+        console.log('✅ Validações básicas passaram');
+        console.log('🔍 Buscando insumo:', insumo_id);
 
         const insumo = await Insumo.findByPk(insumo_id, { transaction });
 
         if (!insumo) {
             await transaction.rollback();
+            console.error('❌ Insumo não encontrado:', insumo_id);
             return res.status(404).json({ error: 'Insumo não encontrado' });
         }
 
@@ -289,15 +373,20 @@ router.post('/movimentacao', async (req: Request, res: Response) => {
             nota_fiscal,
             observacoes,
             data_movimento: new Date(),
-            usuario_id,
+            usuario_id: usuario_id || null, // Converter string vazia em null
         }, { transaction });
 
         await transaction.commit();
         res.status(201).json(movimentacao);
     } catch (error: any) {
         await transaction.rollback();
-        console.error('Erro ao registrar movimentação:', error);
-        res.status(500).json({ error: 'Erro ao registrar movimentação', details: error.message });
+        console.error('❌ Erro ao registrar movimentação:', error);
+        console.error('❌ Stack:', error.stack);
+        res.status(500).json({
+            error: 'Erro ao registrar movimentação',
+            details: error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
     }
 });
 

@@ -38,6 +38,7 @@ import {
     Trash2,
     PackageX,
     Clock,
+    History,
 } from 'lucide-react';
 import {
     Insumo,
@@ -48,6 +49,7 @@ import {
     buscarAlertasEstoqueBaixo,
     buscarInsumosVencendo,
     registrarMovimentacao,
+    listarMovimentacoes,
     exportarRelatorio,
 } from '../../services/estoque';
 
@@ -61,7 +63,9 @@ const Estoque: React.FC = () => {
     const [filtroVencimento, setFiltroVencimento] = useState('');
     const [modalInsumo, setModalInsumo] = useState(false);
     const [modalMovimentacao, setModalMovimentacao] = useState(false);
+    const [modalHistorico, setModalHistorico] = useState(false);
     const [insumoSelecionado, setInsumoSelecionado] = useState<Insumo | null>(null);
+    const [movimentacoesHistorico, setMovimentacoesHistorico] = useState<any[]>([]);
     const [modoEdicao, setModoEdicao] = useState(false);
 
     // Estados do formulário de insumo
@@ -143,10 +147,13 @@ const Estoque: React.FC = () => {
     const handleRegistrarMovimentacao = async () => {
         try {
             const adminId = localStorage.getItem('adminId') || '';
-            await registrarMovimentacao({
+            const dadosMovimentacao = {
                 ...formMovimentacao,
                 usuario_id: adminId,
-            });
+            };
+            console.log('📤 Enviando movimentação:', JSON.stringify(dadosMovimentacao, null, 2));
+            console.log('📋 Form atual:', JSON.stringify(formMovimentacao, null, 2));
+            await registrarMovimentacao(dadosMovimentacao);
             setModalMovimentacao(false);
             setFormMovimentacao({
                 insumo_id: '',
@@ -155,8 +162,12 @@ const Estoque: React.FC = () => {
                 observacoes: '',
             });
             carregarDados();
-        } catch (error) {
+        } catch (error: any) {
             console.error('Erro ao registrar movimentação:', error);
+            console.error('Response data:', error.response?.data);
+            console.error('Response status:', error.response?.status);
+            console.error('Response headers:', error.response?.headers);
+            alert(`Erro: ${error.response?.data?.details || error.message}\n\nStack: ${error.response?.data?.stack || 'N/A'}`);
         }
     };
 
@@ -168,6 +179,17 @@ const Estoque: React.FC = () => {
             } catch (error) {
                 console.error('Erro ao deletar insumo:', error);
             }
+        }
+    };
+
+    const handleVerHistorico = async (insumo: Insumo) => {
+        try {
+            const movimentacoes = await listarMovimentacoes({ insumo_id: insumo.id });
+            setMovimentacoesHistorico(movimentacoes);
+            setInsumoSelecionado(insumo);
+            setModalHistorico(true);
+        } catch (error) {
+            console.error('Erro ao carregar histórico:', error);
         }
     };
 
@@ -504,6 +526,7 @@ const Estoque: React.FC = () => {
                                         <TableCell sx={{ color: '#64748b', fontWeight: 600 }}>Categoria</TableCell>
                                         <TableCell sx={{ color: '#64748b', fontWeight: 600 }}>Quantidade</TableCell>
                                         <TableCell sx={{ color: '#64748b', fontWeight: 600 }}>Mínimo</TableCell>
+                                        <TableCell sx={{ color: '#64748b', fontWeight: 600 }}>Vencimento</TableCell>
                                         <TableCell sx={{ color: '#64748b', fontWeight: 600 }}>Status</TableCell>
                                         <TableCell sx={{ color: '#64748b', fontWeight: 600 }}>Ações</TableCell>
                                     </TableRow>
@@ -532,6 +555,16 @@ const Estoque: React.FC = () => {
                                                 <TableCell sx={{ color: '#64748b' }}>
                                                     {insumo.quantidade_minima} {insumo.unidade}
                                                 </TableCell>
+                                                <TableCell sx={{ color: '#1e293b' }}>
+                                                    {insumo.data_validade ? (
+                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                            <Clock size={16} color="#64748b" />
+                                                            {new Date(insumo.data_validade).toLocaleDateString('pt-BR')}
+                                                        </Box>
+                                                    ) : (
+                                                        <Typography sx={{ color: '#94a3b8', fontSize: '0.875rem' }}>-</Typography>
+                                                    )}
+                                                </TableCell>
                                                 <TableCell>
                                                     <Chip
                                                         icon={<StatusIcon size={16} />}
@@ -547,6 +580,34 @@ const Estoque: React.FC = () => {
                                                 </TableCell>
                                                 <TableCell>
                                                     <Box sx={{ display: 'flex', gap: 1 }}>
+                                                        <Tooltip title="Movimentação">
+                                                            <IconButton
+                                                                size="small"
+                                                                onClick={() => {
+                                                                    console.log('🔍 Insumo selecionado:', insumo.id, insumo.nome);
+                                                                    setFormMovimentacao({
+                                                                        insumo_id: insumo.id,
+                                                                        tipo: 'ENTRADA',
+                                                                        quantidade: 0,
+                                                                        observacoes: '',
+                                                                    });
+                                                                    console.log('✅ Form atualizado com insumo_id:', insumo.id);
+                                                                    setModalMovimentacao(true);
+                                                                }}
+                                                                sx={{ color: '#10b981' }}
+                                                            >
+                                                                <ArrowUpDown size={18} />
+                                                            </IconButton>
+                                                        </Tooltip>
+                                                        <Tooltip title="Histórico">
+                                                            <IconButton
+                                                                size="small"
+                                                                onClick={() => handleVerHistorico(insumo)}
+                                                                sx={{ color: '#3b82f6' }}
+                                                            >
+                                                                <History size={18} />
+                                                            </IconButton>
+                                                        </Tooltip>
                                                         <Tooltip title="Editar">
                                                             <IconButton
                                                                 size="small"
@@ -750,6 +811,25 @@ const Estoque: React.FC = () => {
                         <Grid item xs={12} md={6}>
                             <TextField
                                 fullWidth
+                                label="Data de Vencimento"
+                                type="date"
+                                value={formInsumo.data_validade ? new Date(formInsumo.data_validade).toISOString().split('T')[0] : ''}
+                                onChange={(e) => setFormInsumo({ ...formInsumo, data_validade: e.target.value ? new Date(e.target.value) : undefined })}
+                                InputLabelProps={{ shrink: true }}
+                                sx={{
+                                    '& .MuiOutlinedInput-root': {
+                                        color: '#1e293b',
+                                        '& fieldset': { borderColor: '#e2e8f0' },
+                                        '&:hover fieldset': { borderColor: '#5DADE2' },
+                                        '&.Mui-focused fieldset': { borderColor: '#5DADE2' },
+                                    },
+                                    '& .MuiInputLabel-root': { color: '#64748b' },
+                                }}
+                            />
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                            <TextField
+                                fullWidth
                                 label="Fornecedor"
                                 value={formInsumo.fornecedor || ''}
                                 onChange={(e) => setFormInsumo({ ...formInsumo, fornecedor: e.target.value })}
@@ -805,7 +885,15 @@ const Estoque: React.FC = () => {
             {/* Modal de Movimentação */}
             <Dialog
                 open={modalMovimentacao}
-                onClose={() => setModalMovimentacao(false)}
+                onClose={() => {
+                    setModalMovimentacao(false);
+                    setFormMovimentacao({
+                        insumo_id: '',
+                        tipo: 'ENTRADA',
+                        quantidade: 0,
+                        observacoes: '',
+                    });
+                }}
                 maxWidth="sm"
                 fullWidth
                 PaperProps={{
@@ -828,6 +916,7 @@ const Estoque: React.FC = () => {
                                     value={formMovimentacao.insumo_id}
                                     onChange={(e) => setFormMovimentacao({ ...formMovimentacao, insumo_id: e.target.value })}
                                     label="Insumo"
+                                    disabled={formMovimentacao.insumo_id !== ''}
                                     sx={{
                                         color: 'white',
                                         '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(148, 163, 184, 0.2)' },
@@ -904,7 +993,15 @@ const Estoque: React.FC = () => {
                     </Grid>
                 </DialogContent>
                 <DialogActions sx={{ p: 3 }}>
-                    <Button onClick={() => setModalMovimentacao(false)} sx={{ color: '#64748b' }}>
+                    <Button onClick={() => {
+                        setModalMovimentacao(false);
+                        setFormMovimentacao({
+                            insumo_id: '',
+                            tipo: 'ENTRADA',
+                            quantidade: 0,
+                            observacoes: '',
+                        });
+                    }} sx={{ color: '#64748b' }}>
                         Cancelar
                     </Button>
                     <Button
@@ -917,6 +1014,80 @@ const Estoque: React.FC = () => {
                         }}
                     >
                         Registrar
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Modal de Histórico */}
+            <Dialog
+                open={modalHistorico}
+                onClose={() => setModalHistorico(false)}
+                maxWidth="md"
+                fullWidth
+                PaperProps={{
+                    sx: {
+                        background: 'white',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: 3,
+                    },
+                }}
+            >
+                <DialogTitle sx={{ color: '#1e293b', fontWeight: 600 }}>
+                    Histórico de Movimentações - {insumoSelecionado?.nome}
+                </DialogTitle>
+                <DialogContent>
+                    {movimentacoesHistorico.length === 0 ? (
+                        <Box sx={{ textAlign: 'center', py: 4 }}>
+                            <Typography color="text.secondary">
+                                Nenhuma movimentação registrada para este insumo.
+                            </Typography>
+                        </Box>
+                    ) : (
+                        <TableContainer>
+                            <Table>
+                                <TableHead>
+                                    <TableRow>
+                                        <TableCell sx={{ fontWeight: 600 }}>Data</TableCell>
+                                        <TableCell sx={{ fontWeight: 600 }}>Tipo</TableCell>
+                                        <TableCell sx={{ fontWeight: 600 }}>Quantidade</TableCell>
+                                        <TableCell sx={{ fontWeight: 600 }}>Qtd. Anterior</TableCell>
+                                        <TableCell sx={{ fontWeight: 600 }}>Qtd. Atual</TableCell>
+                                        <TableCell sx={{ fontWeight: 600 }}>Observações</TableCell>
+                                    </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                    {movimentacoesHistorico.map((mov) => (
+                                        <TableRow key={mov.id}>
+                                            <TableCell>
+                                                {new Date(mov.data_movimento).toLocaleString('pt-BR')}
+                                            </TableCell>
+                                            <TableCell>
+                                                <Chip
+                                                    label={mov.tipo}
+                                                    size="small"
+                                                    sx={{
+                                                        bgcolor: mov.tipo === 'ENTRADA' ? '#10b981' :
+                                                            mov.tipo === 'SAIDA' ? '#ef4444' :
+                                                                mov.tipo === 'TRANSFERENCIA' ? '#3b82f6' : '#f59e0b',
+                                                        color: 'white',
+                                                        fontWeight: 600,
+                                                    }}
+                                                />
+                                            </TableCell>
+                                            <TableCell>{mov.quantidade}</TableCell>
+                                            <TableCell>{mov.quantidade_anterior}</TableCell>
+                                            <TableCell>{mov.quantidade_atual}</TableCell>
+                                            <TableCell>{mov.observacoes || '-'}</TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </TableContainer>
+                    )}
+                </DialogContent>
+                <DialogActions sx={{ p: 3 }}>
+                    <Button onClick={() => setModalHistorico(false)} sx={{ color: '#64748b' }}>
+                        Fechar
                     </Button>
                 </DialogActions>
             </Dialog>
