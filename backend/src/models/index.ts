@@ -171,6 +171,17 @@ export function setupAssociations(): void {
         as: 'caminhao',
     });
 
+    // ContaPagar <-> Caminhao (N:1)
+    ContaPagar.belongsTo(Caminhao, {
+        foreignKey: 'caminhao_id',
+        as: 'caminhao',
+    });
+
+    Caminhao.hasMany(ContaPagar, {
+        foreignKey: 'caminhao_id',
+        as: 'contas_pagar',
+    });
+
     // Acao <-> Insumo (N:M through AcaoInsumo)
     Acao.belongsToMany(Insumo, {
         through: AcaoInsumo,
