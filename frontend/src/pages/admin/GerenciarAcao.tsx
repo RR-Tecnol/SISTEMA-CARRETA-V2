@@ -95,6 +95,15 @@ const GerenciarAcao = () => {
 
     // Custos state
     const [custos, setCustos] = useState<any[]>([]);
+
+    // Despesa Geral state
+    const [openDespesaDialog, setOpenDespesaDialog] = useState(false);
+    const [despesaGeral, setDespesaGeral] = useState({
+        descricao: '',
+        valor: '',
+        data_vencimento: '',
+        observacoes: ''
+    });
     // Funcion�rios state
     const [funcionariosAcao, setFuncionariosAcao] = useState<any[]>([]);
     const [funcionariosDisponiveis, setFuncionariosDisponiveis] = useState<any[]>([]);
@@ -317,6 +326,45 @@ const GerenciarAcao = () => {
                 error.response?.data?.error || 'Erro ao excluir abastecimento',
                 { variant: 'error' }
             );
+        }
+    };
+
+    // Handlers para Despesa Geral
+    const handleDespesaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+        setDespesaGeral(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleAddDespesaGeral = async () => {
+        try {
+            if (!despesaGeral.descricao || !despesaGeral.valor || !despesaGeral.data_vencimento) {
+                enqueueSnackbar('Preencha todos os campos obrigatórios', { variant: 'warning' });
+                return;
+            }
+
+            await api.post('/contas-pagar', {
+                tipo_conta: 'espontaneo',
+                descricao: despesaGeral.descricao,
+                valor: parseFloat(despesaGeral.valor),
+                data_vencimento: despesaGeral.data_vencimento,
+                status: 'pendente',
+                recorrente: false,
+                observacoes: despesaGeral.observacoes || null,
+                acao_id: id,
+                cidade: formData.municipio,
+            });
+
+            enqueueSnackbar('Despesa registrada com sucesso!', { variant: 'success' });
+            setOpenDespesaDialog(false);
+            setDespesaGeral({
+                descricao: '',
+                valor: '',
+                data_vencimento: '',
+                observacoes: ''
+            });
+        } catch (error: any) {
+            console.error('Erro ao registrar despesa:', error);
+            enqueueSnackbar(error.response?.data?.error || 'Erro ao registrar despesa', { variant: 'error' });
         }
     };
 
@@ -1770,26 +1818,49 @@ const GerenciarAcao = () => {
                             }}>
                                 Abastecimentos Registrados ({custos.length})
                             </Typography>
-                            <Button
-                                variant="contained"
-                                size="small"
-                                startIcon={<Plus size={16} />}
-                                onClick={() => setOpenAbastecimentoDialog(true)}
-                                sx={{
-                                    background: 'linear-gradient(135deg, #4682b4 0%, #5b9bd5 100%)',
-                                    color: '#fff',
-                                    fontWeight: 600,
-                                    textTransform: 'none',
-                                    '&:hover': {
-                                        background: 'linear-gradient(135deg, #5b9bd5 0%, #4682b4 100%)',
-                                        transform: 'translateY(-1px)',
-                                        boxShadow: '0 4px 12px rgba(70, 130, 180, 0.3)'
-                                    },
-                                    transition: 'all 0.2s ease'
-                                }}
-                            >
-                                Registrar Abastecimento
-                            </Button>
+                            <Box sx={{ display: 'flex', gap: 1 }}>
+                                <Button
+                                    variant="outlined"
+                                    size="small"
+                                    startIcon={<Plus size={16} />}
+                                    onClick={() => setOpenDespesaDialog(true)}
+                                    sx={{
+                                        borderColor: '#9b59b6',
+                                        color: '#9b59b6',
+                                        fontWeight: 600,
+                                        textTransform: 'none',
+                                        '&:hover': {
+                                            borderColor: '#8e44ad',
+                                            backgroundColor: 'rgba(155, 89, 182, 0.05)',
+                                            transform: 'translateY(-1px)',
+                                            boxShadow: '0 4px 12px rgba(155, 89, 182, 0.2)'
+                                        },
+                                        transition: 'all 0.2s ease'
+                                    }}
+                                >
+                                    Despesa Geral
+                                </Button>
+                                <Button
+                                    variant="contained"
+                                    size="small"
+                                    startIcon={<Plus size={16} />}
+                                    onClick={() => setOpenAbastecimentoDialog(true)}
+                                    sx={{
+                                        background: 'linear-gradient(135deg, #4682b4 0%, #5b9bd5 100%)',
+                                        color: '#fff',
+                                        fontWeight: 600,
+                                        textTransform: 'none',
+                                        '&:hover': {
+                                            background: 'linear-gradient(135deg, #5b9bd5 0%, #4682b4 100%)',
+                                            transform: 'translateY(-1px)',
+                                            boxShadow: '0 4px 12px rgba(70, 130, 180, 0.3)'
+                                        },
+                                        transition: 'all 0.2s ease'
+                                    }}
+                                >
+                                    Registrar Abastecimento
+                                </Button>
+                            </Box>
                         </Box>
 
                         {custos.length === 0 ? (
