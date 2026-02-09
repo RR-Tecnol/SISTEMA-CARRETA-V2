@@ -671,12 +671,21 @@ const ContasPagar = () => {
                                                 </Box>
 
                                                 <Typography variant="h6" sx={{ color: expressoTheme.colors.text, fontWeight: 700, mb: 0.5, fontSize: '0.95rem' }}>
-                                                    {tipoInfo?.label}
+                                                    {conta.tipo_conta === 'espontaneo'
+                                                        ? (conta.descricao.length > 30 ? `${conta.descricao.substring(0, 30)}...` : conta.descricao)
+                                                        : tipoInfo?.label
+                                                    }
                                                 </Typography>
 
-                                                <Typography sx={{ color: expressoTheme.colors.textSecondary, fontSize: '0.8rem', mb: 1, minHeight: 32 }}>
-                                                    {conta.descricao.length > 50 ? `${conta.descricao.substring(0, 50)}...` : conta.descricao}
-                                                </Typography>
+                                                {conta.tipo_conta === 'espontaneo' ? (
+                                                    <Typography sx={{ color: expressoTheme.colors.textSecondary, fontSize: '0.8rem', mb: 1, minHeight: 32 }}>
+                                                        Despesa Geral
+                                                    </Typography>
+                                                ) : (
+                                                    <Typography sx={{ color: expressoTheme.colors.textSecondary, fontSize: '0.8rem', mb: 1, minHeight: 32 }}>
+                                                        {conta.descricao.length > 50 ? `${conta.descricao.substring(0, 50)}...` : conta.descricao}
+                                                    </Typography>
+                                                )}
 
                                                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mb: 1.5 }}>
                                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
