@@ -119,6 +119,7 @@ const ContasPagar = () => {
         { value: 'internet', label: '🌐 Internet', color: '#10B981', icon: FileText, categoria: 'habitual' },
         { value: 'telefone', label: '📱 Telefone', color: '#06B6D4', icon: FileText, categoria: 'habitual' },
         // Outros
+        { value: 'funcionario', label: '👤 Funcionário', color: '#2563EB', icon: FileText, categoria: 'outros' },
         { value: 'espontaneo', label: '✨ Personalizado', color: '#A855F7', icon: FileText, categoria: 'outros' },
         { value: 'outros', label: '📦 Outros', color: '#64748B', icon: FileText, categoria: 'outros' },
     ];

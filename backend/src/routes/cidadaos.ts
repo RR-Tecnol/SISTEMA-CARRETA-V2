@@ -56,6 +56,95 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
     }
 });
 
+/**
+ * POST /api/cidadaos
+ * Criar novo cidadão (admin only)
+ */
+router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
+    try {
+        // Check if user is admin
+        if (req.user!.tipo !== 'admin') {
+            res.status(403).json({ error: 'Acesso negado' });
+            return;
+        }
+
+        const {
+            nome_completo,
+            nome_mae,
+            cpf,
+            data_nascimento,
+            sexo,
+            raca,
+            telefone,
+            email,
+            cep,
+            rua,
+            numero,
+            complemento,
+            bairro,
+            municipio,
+            estado,
+            senha
+        } = req.body;
+
+        // Validações básicas
+        if (!nome_completo || !cpf || !data_nascimento) {
+            res.status(400).json({ error: 'Nome completo, CPF e data de nascimento são obrigatórios' });
+            return;
+        }
+
+        // Verificar se CPF já existe
+        const cleanCPF = cpf.replace(/\D/g, '');
+        const formattedCPF = cleanCPF.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4');
+
+        const cidadaoExistente = await Cidadao.findOne({
+            where: {
+                [Op.or]: [
+                    { cpf: cleanCPF },
+                    { cpf: formattedCPF },
+                ],
+            },
+        });
+
+        if (cidadaoExistente) {
+            res.status(400).json({ error: 'CPF já cadastrado' });
+            return;
+        }
+
+        // Criar cidadão
+        const novoCidadao = await Cidadao.create({
+            nome_completo,
+            nome_mae,
+            cpf: formattedCPF,
+            data_nascimento,
+            sexo,
+            raca,
+            telefone,
+            email,
+            cep,
+            rua,
+            numero,
+            complemento,
+            bairro,
+            municipio,
+            estado,
+            senha: senha || '123456', // Senha padrão se não fornecida
+        } as any);
+
+        // Return cidadao data without senha
+        const cidadaoData = novoCidadao.toJSON();
+        delete cidadaoData.senha;
+
+        res.status(201).json({
+            message: 'Cidadão criado com sucesso',
+            cidadao: cidadaoData,
+        });
+    } catch (error) {
+        console.error('Error creating cidadao:', error);
+        res.status(500).json({ error: 'Erro ao criar cidadão' });
+    }
+});
+
 
 /**
  * GET /api/cidadaos/me

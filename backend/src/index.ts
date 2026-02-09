@@ -73,7 +73,6 @@ app.use('/api/auth', authRoutes);
 app.use('/api/instituicoes', instituicoesRoutes);
 app.use('/api/cursos-exames', cursosExamesRoutes);
 app.use('/api/acoes', acoesRoutes);
-app.use('/api/cidadaos', cidadaosRoutes);
 app.use('/api/inscricoes', inscricoesRoutes);
 app.use('/api/notificacoes', notificacoesRoutes);
 app.use('/api/noticias', noticiasRoutes);
@@ -86,8 +85,11 @@ app.use('/api', abastecimentosRoutes);
 app.use('/api/contas-pagar', contasPagarRoutes);
 app.use('/api/relatorios', relatoriosRoutes);
 app.use('/api/analytics', analyticsRoutes);
-app.use('/api/cidadaos', cidadaoExamesRoutes);
 app.use('/api/estoque', estoqueRoutes);
+// IMPORTANTE: cidadaoExamesRoutes deve vir ANTES de cidadaosRoutes
+// porque define rotas mais específicas (/:cidadaoId/exames)
+app.use('/api/cidadaos', cidadaoExamesRoutes);
+app.use('/api/cidadaos', cidadaosRoutes);
 
 // 404 handler
 app.use((_req: Request, res: Response) => {

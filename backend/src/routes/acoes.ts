@@ -477,6 +477,8 @@ router.post('/:id/funcionarios', authenticate, authorizeAdmin, async (req: Reque
         const { id } = req.params;
         const { funcionario_id, data_vencimento } = req.body;
 
+        console.log('📝 Vinculando funcionário:', { acao_id: id, funcionario_id, data_vencimento });
+
         if (!funcionario_id) {
             res.status(400).json({ error: 'funcionario_id é obrigatório' });
             return;
@@ -484,13 +486,31 @@ router.post('/:id/funcionarios', authenticate, authorizeAdmin, async (req: Reque
 
         const acao = await Acao.findByPk(id);
         if (!acao) {
+            console.log('❌ Ação não encontrada:', id);
             res.status(404).json({ error: 'Ação não encontrada' });
             return;
         }
+        console.log('✅ Ação encontrada:', acao.numero_acao);
 
         const func = await Funcionario.findByPk(funcionario_id);
         if (!func) {
+            console.log('❌ Funcionário não encontrado:', funcionario_id);
             res.status(404).json({ error: 'Funcionário não encontrado' });
+            return;
+        }
+        console.log('✅ Funcionário encontrado:', func.nome);
+
+        // Verificar se já existe vínculo
+        const vinculoExistente = await AcaoFuncionario.findOne({
+            where: {
+                acao_id: id,
+                funcionario_id
+            }
+        });
+
+        if (vinculoExistente) {
+            console.log('⚠️ Funcionário já vinculado a esta ação');
+            res.status(400).json({ error: 'Funcionário já está vinculado a esta ação' });
             return;
         }
 
@@ -504,26 +524,49 @@ router.post('/:id/funcionarios', authenticate, authorizeAdmin, async (req: Reque
         const custoDiario = func.custo_diaria || 0;
         const valorTotal = custoDiario * dias;
 
+        console.log('💰 Cálculo:', { custoDiario, dias, valorTotal });
+
         // Criar vínculo funcionário-ação
-        await AcaoFuncionario.create({
+        const vinculo = await AcaoFuncionario.create({
             acao_id: id,
             funcionario_id,
             valor_diaria: custoDiario,
             dias_trabalhados: dias
         } as any);
+        console.log('✅ Vínculo criado:', vinculo.id);
+
+        // Função para interpretar data no timezone local (Brasil UTC-3)
+        const parseLocalDate = (dateInput: string | Date): Date => {
+            if (dateInput instanceof Date) {
+                // Se já é Date, extrair ano/mês/dia e recriar no timezone local
+                const year = dateInput.getFullYear();
+                const month = dateInput.getMonth();
+                const day = dateInput.getDate();
+                return new Date(year, month, day, 12, 0, 0);
+            }
+            const [year, month, day] = dateInput.split('-').map(Number);
+            return new Date(year, month - 1, day, 12, 0, 0);
+        };
 
         // Criar conta a pagar automaticamente
-        await ContaPagar.create({
+        const dataVencimentoConta = data_vencimento
+            ? parseLocalDate(data_vencimento)
+            : parseLocalDate(acao.data_fim);
+
+        console.log('📅 Data vencimento conta:', dataVencimentoConta);
+
+        const conta = await ContaPagar.create({
             tipo_conta: 'funcionario',
             descricao: `Funcionário: ${func.nome} - Ação ${acao.numero_acao}`,
             valor: valorTotal,
-            data_vencimento: data_vencimento || acao.data_fim, // Usa data customizada ou fim da ação
+            data_vencimento: dataVencimentoConta,
             status: 'pendente',
             recorrente: false,
-            observacoes: `Custo diário: R$ ${custoDiario.toFixed(2)} × ${dias} dias`,
+            observacoes: `Custo diário: R$ ${Number(custoDiario).toFixed(2)} × ${dias} dias`,
             acao_id: id,
             cidade: acao.municipio,
-        });
+        } as any);
+        console.log('✅ Conta a pagar criada:', conta.id);
 
         res.status(201).json({
             message: 'Funcionário vinculado com sucesso',
@@ -533,8 +576,12 @@ router.post('/:id/funcionarios', authenticate, authorizeAdmin, async (req: Reque
         });
 
     } catch (error) {
-        console.error('Error linking funcionario:', error);
-        res.status(500).json({ error: 'Erro ao vincular funcionário' });
+        console.error('❌ Error linking funcionario:', error);
+        console.error('Stack:', error instanceof Error ? error.stack : 'No stack');
+        res.status(500).json({
+            error: 'Erro ao vincular funcionário',
+            details: error instanceof Error ? error.message : 'Unknown error'
+        });
     }
 });
 

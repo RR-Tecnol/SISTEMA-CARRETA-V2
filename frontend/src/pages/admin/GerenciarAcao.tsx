@@ -1824,6 +1824,86 @@ const GerenciarAcao = () => {
                                             </Box>
                                         </Box>
                                     </Grid>
+
+                                    {/* NOVO: Custos Reais da Ação */}
+                                    <Grid item xs={12}>
+                                        <Box sx={{
+                                            background: 'linear-gradient(135deg, #28a745 0%, #20c997 100%)',
+                                            borderRadius: '12px',
+                                            p: 3,
+                                            boxShadow: '0 4px 12px rgba(40, 167, 69, 0.3)'
+                                        }}>
+                                            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', mb: 1 }}>
+                                                Custos Reais Observados da Ação
+                                            </Typography>
+                                            <Typography variant="h4" sx={{ color: '#fff', fontWeight: 700, mb: 2 }}>
+                                                R$ {(() => {
+                                                    // Abastecimentos reais
+                                                    const custoAbastecimentos = custos
+                                                        .filter((c: any) => c.tipo_conta === 'abastecimento')
+                                                        .reduce((total: number, abast: any) => total + Number(abast.valor_total || abast.valor || 0), 0);
+
+                                                    // Despesas gerais
+                                                    const despesasGerais = custos
+                                                        .filter((c: any) => c.tipo_conta === 'espontaneo')
+                                                        .reduce((total: number, despesa: any) => total + Number(despesa.valor || 0), 0);
+
+                                                    // Funcionários (usar funcionariosAcao, não custos)
+                                                    const custoFuncionarios = funcionariosAcao.reduce((total: number, func: any) => {
+                                                        const valorDiaria = Number(func.valor_diaria) || 0;
+                                                        const diasTrabalhados = Number(func.dias_trabalhados) || 1;
+                                                        return total + (valorDiaria * diasTrabalhados);
+                                                    }, 0);
+
+                                                    const custoTotalReal = custoAbastecimentos + despesasGerais + custoFuncionarios;
+                                                    return custoTotalReal.toFixed(2);
+                                                })()}
+                                            </Typography>
+                                            <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+                                                <Box>
+                                                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.8)' }}>
+                                                        • Abastecimentos
+                                                    </Typography>
+                                                    <Typography variant="body2" sx={{ color: '#fff', fontWeight: 600 }}>
+                                                        R$ {(() => {
+                                                            const custoAbastecimentos = custos
+                                                                .filter((c: any) => c.tipo_conta === 'abastecimento')
+                                                                .reduce((total: number, abast: any) => total + Number(abast.valor_total || abast.valor || 0), 0);
+                                                            return custoAbastecimentos.toFixed(2);
+                                                        })()}
+                                                    </Typography>
+                                                </Box>
+                                                <Box>
+                                                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.8)' }}>
+                                                        • Despesas Gerais
+                                                    </Typography>
+                                                    <Typography variant="body2" sx={{ color: '#fff', fontWeight: 600 }}>
+                                                        R$ {(() => {
+                                                            const despesasGerais = custos
+                                                                .filter((c: any) => c.tipo_conta === 'espontaneo')
+                                                                .reduce((total: number, despesa: any) => total + Number(despesa.valor || 0), 0);
+                                                            return despesasGerais.toFixed(2);
+                                                        })()}
+                                                    </Typography>
+                                                </Box>
+                                                <Box>
+                                                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.8)' }}>
+                                                        • Funcionários
+                                                    </Typography>
+                                                    <Typography variant="body2" sx={{ color: '#fff', fontWeight: 600 }}>
+                                                        R$ {(() => {
+                                                            const custoFuncionarios = funcionariosAcao.reduce((total: number, func: any) => {
+                                                                const valorDiaria = Number(func.valor_diaria) || 0;
+                                                                const diasTrabalhados = Number(func.dias_trabalhados) || 1;
+                                                                return total + (valorDiaria * diasTrabalhados);
+                                                            }, 0);
+                                                            return custoFuncionarios.toFixed(2);
+                                                        })()}
+                                                    </Typography>
+                                                </Box>
+                                            </Box>
+                                        </Box>
+                                    </Grid>
                                 </Grid>
                                 {caminhoesVinculados.length === 0 && (
                                     <Alert severity="info" sx={{ mt: 2 }}>
