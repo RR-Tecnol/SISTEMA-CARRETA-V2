@@ -158,6 +158,10 @@ router.get('/:id', async (req: Request, res: Response) => {
                     model: Funcionario,
                     as: 'funcionarios',
                 },
+                {
+                    model: ContaPagar,
+                    as: 'contas_pagar',
+                },
             ],
         });
 
@@ -177,7 +181,15 @@ router.get('/:id', async (req: Request, res: Response) => {
             const custo = f.custo_diario ? Number(f.custo_diario) : 0;
             return acc + (custo * dias);
         }, 0);
-        const custoTotal = custoFuncionarios;
+
+        // Somar despesas de contas a pagar
+        const contasPagarList = (acao as any).contas_pagar || [];
+        const custoDespesas = contasPagarList.reduce((acc: number, conta: any) => {
+            const valor = conta.valor ? Number(conta.valor) : 0;
+            return acc + valor;
+        }, 0);
+
+        const custoTotal = custoFuncionarios + custoDespesas;
 
         // Contar atendidos (status 'atendido')
         const atendidos = await Inscricao.count({

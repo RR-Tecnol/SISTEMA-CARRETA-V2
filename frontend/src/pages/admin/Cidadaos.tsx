@@ -575,7 +575,8 @@ const Cidadaos: React.FC = () => {
                                     <TextField
                                         fullWidth
                                         label="Nome Completo"
-                                        defaultValue={editData.nome_completo}
+                                        value={editData.nome_completo || ''}
+                                        onChange={(e) => setEditData({ ...editData, nome_completo: e.target.value })}
                                         sx={{
                                             '& .MuiOutlinedInput-root': {
                                                 borderRadius: systemTruckTheme.borderRadius.medium,
@@ -590,7 +591,8 @@ const Cidadaos: React.FC = () => {
                                     <TextField
                                         fullWidth
                                         label="Telefone"
-                                        defaultValue={editData.telefone}
+                                        value={editData.telefone || ''}
+                                        onChange={(e) => setEditData({ ...editData, telefone: e.target.value })}
                                         sx={{
                                             '& .MuiOutlinedInput-root': {
                                                 borderRadius: systemTruckTheme.borderRadius.medium,
@@ -605,7 +607,8 @@ const Cidadaos: React.FC = () => {
                                     <TextField
                                         fullWidth
                                         label="E-mail"
-                                        defaultValue={editData.email}
+                                        value={editData.email || ''}
+                                        onChange={(e) => setEditData({ ...editData, email: e.target.value })}
                                         sx={{
                                             '& .MuiOutlinedInput-root': {
                                                 borderRadius: systemTruckTheme.borderRadius.medium,
@@ -616,10 +619,213 @@ const Cidadaos: React.FC = () => {
                                         }}
                                     />
                                 </Grid>
-                                <Grid item xs={12}>
-                                    <Typography variant="body2" sx={{ color: systemTruckTheme.colors.textSecondary, fontStyle: 'italic' }}>
-                                        Funcionalidade de edição em desenvolvimento. Em breve você poderá editar todos os dados do cidadão.
-                                    </Typography>
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        fullWidth
+                                        label="CPF *"
+                                        defaultValue={editData.cpf}
+                                        disabled
+                                        sx={{
+                                            '& .MuiOutlinedInput-root': {
+                                                borderRadius: systemTruckTheme.borderRadius.medium,
+                                            },
+                                            '& .MuiInputBase-input': {
+                                                fontWeight: '600 !important',
+                                            },
+                                        }}
+                                    />
+                                </Grid>
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        fullWidth
+                                        label="Data de Nascimento"
+                                        type="date"
+                                        value={(editData as any).data_nascimento || ''}
+                                        onChange={(e) => setEditData({ ...editData, data_nascimento: e.target.value } as any)}
+                                        InputLabelProps={{ shrink: true }}
+                                        sx={{
+                                            '& .MuiOutlinedInput-root': {
+                                                borderRadius: systemTruckTheme.borderRadius.medium,
+                                            },
+                                            '& .MuiInputBase-input': {
+                                                fontWeight: '600 !important',
+                                            },
+                                        }}
+                                    />
+                                </Grid>
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        fullWidth
+                                        select
+                                        label="Sexo"
+                                        value={(editData as any).genero || ''}
+                                        onChange={(e) => setEditData({ ...editData, genero: e.target.value } as any)}
+                                        sx={{
+                                            '& .MuiOutlinedInput-root': {
+                                                borderRadius: systemTruckTheme.borderRadius.medium,
+                                            },
+                                            '& .MuiInputBase-input': {
+                                                fontWeight: '600 !important',
+                                            },
+                                        }}
+                                    >
+                                        <MenuItem value="masculino">Masculino</MenuItem>
+                                        <MenuItem value="feminino">Feminino</MenuItem>
+                                        <MenuItem value="outro">Outro</MenuItem>
+                                        <MenuItem value="nao_declarado">Não declarado</MenuItem>
+                                    </TextField>
+                                </Grid>
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        fullWidth
+                                        select
+                                        label="Raça/Cor"
+                                        value={(editData as any).raca_cor || ''}
+                                        onChange={(e) => setEditData({ ...editData, raca_cor: e.target.value } as any)}
+                                        sx={{
+                                            '& .MuiOutlinedInput-root': {
+                                                borderRadius: systemTruckTheme.borderRadius.medium,
+                                            },
+                                            '& .MuiInputBase-input': {
+                                                fontWeight: '600 !important',
+                                            },
+                                        }}
+                                    >
+                                        <MenuItem value="branca">Branca</MenuItem>
+                                        <MenuItem value="preta">Preta</MenuItem>
+                                        <MenuItem value="parda">Parda</MenuItem>
+                                        <MenuItem value="amarela">Amarela</MenuItem>
+                                        <MenuItem value="indigena">Indígena</MenuItem>
+                                        <MenuItem value="nao_declarado">Não declarado</MenuItem>
+                                    </TextField>
+                                </Grid>
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        fullWidth
+                                        label="Nome da Mãe"
+                                        value={(editData as any).nome_mae || ''}
+                                        onChange={(e) => setEditData({ ...editData, nome_mae: e.target.value } as any)}
+                                        sx={{
+                                            '& .MuiOutlinedInput-root': {
+                                                borderRadius: systemTruckTheme.borderRadius.medium,
+                                            },
+                                            '& .MuiInputBase-input': {
+                                                fontWeight: '600 !important',
+                                            },
+                                        }}
+                                    />
+                                </Grid>
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        fullWidth
+                                        label="CEP"
+                                        value={editData.cep || ''}
+                                        onChange={(e) => setEditData({ ...editData, cep: e.target.value })}
+                                        sx={{
+                                            '& .MuiOutlinedInput-root': {
+                                                borderRadius: systemTruckTheme.borderRadius.medium,
+                                            },
+                                            '& .MuiInputBase-input': {
+                                                fontWeight: '600 !important',
+                                            },
+                                        }}
+                                    />
+                                </Grid>
+                                <Grid item xs={12} sm={8}>
+                                    <TextField
+                                        fullWidth
+                                        label="Rua"
+                                        value={editData.rua || ''}
+                                        onChange={(e) => setEditData({ ...editData, rua: e.target.value })}
+                                        sx={{
+                                            '& .MuiOutlinedInput-root': {
+                                                borderRadius: systemTruckTheme.borderRadius.medium,
+                                            },
+                                            '& .MuiInputBase-input': {
+                                                fontWeight: '600 !important',
+                                            },
+                                        }}
+                                    />
+                                </Grid>
+                                <Grid item xs={12} sm={4}>
+                                    <TextField
+                                        fullWidth
+                                        label="Número"
+                                        value={editData.numero || ''}
+                                        onChange={(e) => setEditData({ ...editData, numero: e.target.value })}
+                                        sx={{
+                                            '& .MuiOutlinedInput-root': {
+                                                borderRadius: systemTruckTheme.borderRadius.medium,
+                                            },
+                                            '& .MuiInputBase-input': {
+                                                fontWeight: '600 !important',
+                                            },
+                                        }}
+                                    />
+                                </Grid>
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        fullWidth
+                                        label="Complemento"
+                                        value={editData.complemento || ''}
+                                        onChange={(e) => setEditData({ ...editData, complemento: e.target.value })}
+                                        sx={{
+                                            '& .MuiOutlinedInput-root': {
+                                                borderRadius: systemTruckTheme.borderRadius.medium,
+                                            },
+                                            '& .MuiInputBase-input': {
+                                                fontWeight: '600 !important',
+                                            },
+                                        }}
+                                    />
+                                </Grid>
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        fullWidth
+                                        label="Bairro"
+                                        value={editData.bairro || ''}
+                                        onChange={(e) => setEditData({ ...editData, bairro: e.target.value })}
+                                        sx={{
+                                            '& .MuiOutlinedInput-root': {
+                                                borderRadius: systemTruckTheme.borderRadius.medium,
+                                            },
+                                            '& .MuiInputBase-input': {
+                                                fontWeight: '600 !important',
+                                            },
+                                        }}
+                                    />
+                                </Grid>
+                                <Grid item xs={12} sm={8}>
+                                    <TextField
+                                        fullWidth
+                                        label="Cidade"
+                                        value={(editData as any).cidade || ''}
+                                        onChange={(e) => setEditData({ ...editData, cidade: e.target.value } as any)}
+                                        sx={{
+                                            '& .MuiOutlinedInput-root': {
+                                                borderRadius: systemTruckTheme.borderRadius.medium,
+                                            },
+                                            '& .MuiInputBase-input': {
+                                                fontWeight: '600 !important',
+                                            },
+                                        }}
+                                    />
+                                </Grid>
+                                <Grid item xs={12} sm={4}>
+                                    <TextField
+                                        fullWidth
+                                        label="Estado"
+                                        value={editData.estado || ''}
+                                        onChange={(e) => setEditData({ ...editData, estado: e.target.value })}
+                                        sx={{
+                                            '& .MuiOutlinedInput-root': {
+                                                borderRadius: systemTruckTheme.borderRadius.medium,
+                                            },
+                                            '& .MuiInputBase-input': {
+                                                fontWeight: '600 !important',
+                                            },
+                                        }}
+                                    />
                                 </Grid>
                             </Grid>
                         </DialogContent>

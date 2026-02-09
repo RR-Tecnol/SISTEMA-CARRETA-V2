@@ -27,8 +27,10 @@ import abastecimentosRoutes from './routes/abastecimentos';
 import contasPagarRoutes from './routes/contasPagar';
 import relatoriosRoutes from './routes/relatorios';
 import analyticsRoutes from './routes/analytics';
+import debugRoutes from './routes/debug';
 import cidadaoExamesRoutes from './routes/cidadaoExames';
 import estoqueRoutes from './routes/estoque';
+import utilsRoutes from './routes/utils';
 
 const app: Application = express();
 
@@ -85,7 +87,9 @@ app.use('/api', abastecimentosRoutes);
 app.use('/api/contas-pagar', contasPagarRoutes);
 app.use('/api/relatorios', relatoriosRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/debug', debugRoutes);
 app.use('/api/estoque', estoqueRoutes);
+app.use('/api/utils', utilsRoutes);
 // IMPORTANTE: cidadaoExamesRoutes deve vir ANTES de cidadaosRoutes
 // porque define rotas mais específicas (/:cidadaoId/exames)
 app.use('/api/cidadaos', cidadaoExamesRoutes);
