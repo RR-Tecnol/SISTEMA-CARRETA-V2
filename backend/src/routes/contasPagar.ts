@@ -143,18 +143,51 @@ router.post('/', authenticate, upload.single('comprovante'), async (req: Request
 
         const comprovante_url = req.file ? `/uploads/comprovantes/${req.file.filename}` : undefined;
 
+        // Função para converter string de data (YYYY-MM-DD) para Date no timezone local
+        const parseLocalDate = (dateString: string): Date => {
+            if (!dateString) return new Date();
+
+            // Se já tem informação de hora, usar diretamente
+            if (dateString.includes('T')) {
+                return new Date(dateString);
+            }
+
+            // Separar ano, mês e dia
+            const [year, month, day] = dateString.split('-').map(Number);
+
+            // Criar data no timezone local (mês é 0-indexed)
+            return new Date(year, month - 1, day, 12, 0, 0, 0);
+        };
+
+        console.log('📝 Criando conta a pagar:', {
+            tipo_conta,
+            descricao,
+            valor,
+            acao_id: req.body.acao_id,
+            cidade: req.body.cidade
+        });
+
         const conta = await ContaPagar.create({
             tipo_conta,
             tipo_espontaneo: tipo_conta === 'espontaneo' ? tipo_espontaneo : null,
             descricao,
             valor: parseFloat(valor),
-            data_vencimento: new Date(data_vencimento),
-            data_pagamento: data_pagamento ? new Date(data_pagamento) : undefined,
+            data_vencimento: parseLocalDate(data_vencimento),
+            data_pagamento: data_pagamento ? parseLocalDate(data_pagamento) : undefined,
             status: status || 'pendente',
             comprovante_url,
             recorrente: recorrente === 'true' || recorrente === true,
             observacoes,
+            acao_id: req.body.acao_id || null,
+            cidade: req.body.cidade || null,
+            caminhao_id: req.body.caminhao_id || null,
         } as any);
+
+        console.log('✅ Conta criada com sucesso:', {
+            id: conta.id,
+            acao_id: conta.acao_id,
+            descricao: conta.descricao
+        });
 
         res.status(201).json(conta);
     } catch (error: any) {
@@ -193,13 +226,29 @@ router.put('/:id', authenticate, upload.single('comprovante'), async (req: Reque
             ? `/uploads/comprovantes/${req.file.filename}`
             : conta.comprovante_url;
 
+        // Função para converter string de data (YYYY-MM-DD) para Date no timezone local
+        const parseLocalDate = (dateString: string): Date => {
+            if (!dateString) return new Date();
+
+            // Se já tem informação de hora, usar diretamente
+            if (dateString.includes('T')) {
+                return new Date(dateString);
+            }
+
+            // Separar ano, mês e dia
+            const [year, month, day] = dateString.split('-').map(Number);
+
+            // Criar data no timezone local (mês é 0-indexed)
+            return new Date(year, month - 1, day, 12, 0, 0, 0);
+        };
+
         await conta.update({
             tipo_conta,
             tipo_espontaneo: tipo_conta === 'espontaneo' ? tipo_espontaneo : null,
             descricao,
             valor: valor ? parseFloat(valor) : conta.valor,
-            data_vencimento: data_vencimento ? new Date(data_vencimento) : conta.data_vencimento,
-            data_pagamento: data_pagamento ? new Date(data_pagamento) : conta.data_pagamento,
+            data_vencimento: data_vencimento ? parseLocalDate(data_vencimento) : conta.data_vencimento,
+            data_pagamento: data_pagamento ? parseLocalDate(data_pagamento) : conta.data_pagamento,
             status: status || conta.status,
             comprovante_url,
             recorrente: recorrente !== undefined ? (recorrente === 'true' || recorrente === true) : conta.recorrente,

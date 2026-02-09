@@ -101,7 +101,7 @@ const GerenciarAcao = () => {
     const [despesaGeral, setDespesaGeral] = useState({
         descricao: '',
         valor: '',
-        data_vencimento: '',
+        data_vencimento: new Date().toISOString().split('T')[0],
         observacoes: ''
     });
     // Funcion�rios state
@@ -234,7 +234,7 @@ const GerenciarAcao = () => {
 
             // Buscar outras contas a pagar (funcionários, despesas gerais, etc)
             const contasRes = await api.get(`/contas-pagar`, {
-                params: { acao_id: id }
+                params: { acao_id: id, limit: 1000 }
             });
 
             const contas = contasRes.data.contas || contasRes.data || [];
@@ -383,7 +383,7 @@ const GerenciarAcao = () => {
             setDespesaGeral({
                 descricao: '',
                 valor: '',
-                data_vencimento: '',
+                data_vencimento: new Date().toISOString().split('T')[0],
                 observacoes: ''
             });
         } catch (error: any) {
@@ -1849,15 +1849,15 @@ const GerenciarAcao = () => {
                                     startIcon={<Plus size={16} />}
                                     onClick={() => setOpenDespesaDialog(true)}
                                     sx={{
-                                        borderColor: '#9b59b6',
-                                        color: '#9b59b6',
+                                        borderColor: '#5DADE2',
+                                        color: '#5DADE2',
                                         fontWeight: 600,
                                         textTransform: 'none',
                                         '&:hover': {
-                                            borderColor: '#8e44ad',
-                                            backgroundColor: 'rgba(155, 89, 182, 0.05)',
+                                            borderColor: '#1B4F72',
+                                            backgroundColor: 'rgba(93, 173, 226, 0.05)',
                                             transform: 'translateY(-1px)',
-                                            boxShadow: '0 4px 12px rgba(155, 89, 182, 0.2)'
+                                            boxShadow: '0 4px 12px rgba(93, 173, 226, 0.2)'
                                         },
                                         transition: 'all 0.2s ease'
                                     }}

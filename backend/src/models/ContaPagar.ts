@@ -84,11 +84,11 @@ ContaPagar.init(
             allowNull: false,
         },
         data_vencimento: {
-            type: DataTypes.DATEONLY,
+            type: DataTypes.DATE,
             allowNull: false,
         },
         data_pagamento: {
-            type: DataTypes.DATEONLY,
+            type: DataTypes.DATE,
             allowNull: true,
         },
         status: {
