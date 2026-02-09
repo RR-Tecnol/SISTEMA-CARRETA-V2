@@ -1472,7 +1472,7 @@ const GerenciarAcao = () => {
                                         transition: 'all 0.2s ease'
                                     }}
                                 >
-                                    Inscrever Aluno
+                                    Inscrever Cidadão
                                 </Button>
                             </Box>
                         </Box>
@@ -1556,7 +1556,7 @@ const GerenciarAcao = () => {
                         )}
 
                         <Dialog open={openInscricaoDialog} onClose={() => setOpenInscricaoDialog(false)} maxWidth="sm" fullWidth>
-                            <DialogTitle>Inscrever Aluno</DialogTitle>
+                            <DialogTitle>Inscrever Cidadão</DialogTitle>
                             <DialogContent>
                                 <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
                                     <TextField

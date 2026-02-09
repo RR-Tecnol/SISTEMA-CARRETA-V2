@@ -9,7 +9,6 @@ import {
     Users,
     Stethoscope,
     UserCheck,
-    FileText,
     BarChart3,
     DollarSign,
     Package,
@@ -26,7 +25,6 @@ const menuItems = [
     { title: 'Funcionários', icon: Users, path: '/admin/funcionarios', description: 'Equipe e colaboradores' },
     { title: 'Exames', icon: Stethoscope, path: '/admin/cursos-exames', description: 'Exames de saúde' },
     { title: 'Cidadãos', icon: UserCheck, path: '/admin/cidadaos', description: 'Cadastro de cidadãos' },
-    { title: 'Inscrições', icon: FileText, path: '/admin/inscricoes', description: 'Gerenciar inscrições' },
 ];
 
 const containerVariants = {

@@ -10,7 +10,6 @@ import {
     Users,
     Stethoscope,
     UserCheck,
-    FileText,
     Menu,
     X,
     ChevronRight,
@@ -37,7 +36,6 @@ const menuItems: MenuItem[] = [
     { title: 'Funcionários', icon: Users, path: '/admin/funcionarios' },
     { title: 'Exames', icon: Stethoscope, path: '/admin/cursos-exames' },
     { title: 'Cidadãos', icon: UserCheck, path: '/admin/cidadaos' },
-    { title: 'Inscrições', icon: FileText, path: '/admin/inscricoes' },
 ];
 
 const sidebarVariants = {
