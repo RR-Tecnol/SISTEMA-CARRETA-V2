@@ -173,24 +173,6 @@ export const AdminSidebar: React.FC = () => {
                             >
                                 System Truck
                             </Box>
-                            <Box
-                                sx={{
-                                    fontSize: '0.5rem',
-                                    color: 'rgba(255,255,255,0.4)',
-                                    fontWeight: 300,
-                                    fontStyle: 'italic',
-                                    letterSpacing: '0.8px',
-                                    mb: 1,
-                                    opacity: 0.6,
-                                    textAlign: 'right',
-                                    transition: 'opacity 0.3s ease',
-                                    '&:hover': {
-                                        opacity: 0.85
-                                    }
-                                }}
-                            >
-                                Developed by RR Tecnol
-                            </Box>
                             <Box sx={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.9)', fontWeight: 500 }}>
                                 Sistema de Gestão
                             </Box>
@@ -291,11 +273,52 @@ export const AdminSidebar: React.FC = () => {
                         textAlign: 'center',
                     }}
                 >
-                    <Box sx={{ fontSize: '0.75rem', color: systemTruckTheme.colors.textSecondary }}>
+                    <Box sx={{ fontSize: '0.75rem', color: systemTruckTheme.colors.textSecondary, mb: 1 }}>
                         © 2026 System Truck
                     </Box>
-                    <Box sx={{ fontSize: '0.7rem', color: systemTruckTheme.colors.textLight, mt: 0.5 }}>
+                    <Box sx={{ fontSize: '0.7rem', color: systemTruckTheme.colors.textLight, mb: 1.5 }}>
                         v1.0.0
+                    </Box>
+                    {/* Developed by com logo */}
+                    <Box
+                        sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 0.5,
+                            opacity: 0.85,
+                            transition: 'opacity 0.3s ease',
+                            '&:hover': {
+                                opacity: 1,
+                            },
+                        }}
+                    >
+                        <Box
+                            sx={{
+                                fontSize: '0.7rem',
+                                color: systemTruckTheme.colors.textSecondary,
+                                fontWeight: 400,
+                                fontStyle: 'italic',
+                                letterSpacing: '0.5px',
+                            }}
+                        >
+                            Developed by
+                        </Box>
+                        <Box
+                            component="img"
+                            src="/assets/rr-tecnol-logo.png"
+                            alt="RR Tecnol"
+                            sx={{
+                                height: 40,
+                                width: 'auto',
+                                objectFit: 'contain',
+                                filter: 'brightness(0.9)',
+                                transition: 'filter 0.3s ease',
+                                '&:hover': {
+                                    filter: 'brightness(1.1)',
+                                },
+                            }}
+                        />
                     </Box>
                 </Box>
             </motion.div>

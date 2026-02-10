@@ -123,14 +123,31 @@ const Relatorios: React.FC = () => {
                 return acc;
             }, {});
 
-            // Inscrições por tipo (baseado no tipo da ação)
+            // Inscrições por tipo de exame (baseado nos exames cadastrados em cada ação)
             const inscricoesPorTipo = acoesComDetalhes.reduce((acc: any, acao: any) => {
-                const tipo = acao.tipo || 'Geral';
+                // Pegar exames da ação (já vem do backend no relacionamento cursos_exames)
+                const examesAcao = acao.cursos_exames || [];
+
+                // Contar inscrições desta ação
                 const inscricoesAcao = inscricoesData.filter((i: any) => i.acao_id === acao.id);
-                if (!acc[tipo]) {
-                    acc[tipo] = { tipo_exame: tipo, nome_exame: tipo, quantidade: 0 };
+                const totalInscricoesAcao = inscricoesAcao.length;
+
+                // Se a ação tem exames cadastrados, distribuir as inscrições
+                if (examesAcao.length > 0 && totalInscricoesAcao > 0) {
+                    examesAcao.forEach((acaoExame: any) => {
+                        const exame = acaoExame.curso_exame;
+                        if (exame && exame.nome) {
+                            const nomeExame = exame.nome;
+                            if (!acc[nomeExame]) {
+                                acc[nomeExame] = { tipo_exame: nomeExame, nome_exame: nomeExame, quantidade: 0 };
+                            }
+                            // Distribuir inscrições proporcionalmente entre os exames da ação
+                            const quantidadePorExame = Math.ceil(totalInscricoesAcao / examesAcao.length);
+                            acc[nomeExame].quantidade += quantidadePorExame;
+                        }
+                    });
                 }
-                acc[tipo].quantidade += inscricoesAcao.length;
+
                 return acc;
             }, {});
 
@@ -500,7 +517,7 @@ const Relatorios: React.FC = () => {
                                 <ResponsiveContainer width="100%" height="85%">
                                     <BarChart data={dataCustos}>
                                         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                                        <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} interval={0} tick={{ fontSize: 11, fill: '#1e293b' }} />
+                                        <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#1e293b' }} height={60} />
                                         <YAxis tick={{ fill: '#1e293b' }} />
                                         <Tooltip
                                             wrapperStyle={{ zIndex: 9999, overflow: 'visible' }}
@@ -623,7 +640,66 @@ const Relatorios: React.FC = () => {
                                                 <Cell key={`cell-${index}`} fill={entry.color} />
                                             ))}
                                         </Pie>
-                                        <Tooltip contentStyle={{ background: 'rgba(0,0,0,0.8)', border: 'none', borderRadius: '8px', color: expressoTheme.colors.primaryDark }} />
+                                        <Tooltip
+                                            wrapperStyle={{ zIndex: 9999, overflow: 'visible' }}
+                                            content={({ active, payload }) => {
+                                                if (active && payload && payload.length) {
+                                                    const data = payload[0].payload;
+                                                    // Calcular o total manualmente
+                                                    const total = dataAtendimentos.reduce((sum, item) => sum + item.value, 0);
+                                                    const percent = total > 0 ? (data.value / total) : 0;
+                                                    return (
+                                                        <div style={{
+                                                            background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+                                                            border: `2px solid ${data.color}`,
+                                                            borderRadius: '16px',
+                                                            padding: '16px',
+                                                            boxShadow: `0 20px 40px -10px ${data.color}66, 0 10px 20px -5px rgba(0,0,0,0.1)`,
+                                                            minWidth: '220px'
+                                                        }}>
+                                                            <div style={{
+                                                                background: data.color,
+                                                                color: 'white',
+                                                                padding: '8px 12px',
+                                                                borderRadius: '10px',
+                                                                marginBottom: '12px',
+                                                                fontWeight: 700,
+                                                                fontSize: '14px',
+                                                                boxShadow: `0 4px 12px ${data.color}50`
+                                                            }}>
+                                                                📊 {data.name}
+                                                            </div>
+                                                            <div style={{ marginBottom: '8px' }}>
+                                                                <div style={{
+                                                                    display: 'flex',
+                                                                    justifyContent: 'space-between',
+                                                                    alignItems: 'center',
+                                                                    padding: '8px 12px',
+                                                                    background: '#f1f5f9',
+                                                                    borderRadius: '8px',
+                                                                    marginBottom: '6px'
+                                                                }}>
+                                                                    <span style={{ color: '#64748b', fontSize: '13px', fontWeight: 600 }}>👥 Quantidade</span>
+                                                                    <span style={{ color: '#1e293b', fontSize: '16px', fontWeight: 800 }}>{data.value}</span>
+                                                                </div>
+                                                                <div style={{
+                                                                    display: 'flex',
+                                                                    justifyContent: 'space-between',
+                                                                    alignItems: 'center',
+                                                                    padding: '8px 12px',
+                                                                    background: '#f1f5f9',
+                                                                    borderRadius: '8px'
+                                                                }}>
+                                                                    <span style={{ color: '#64748b', fontSize: '13px', fontWeight: 600 }}>📈 Percentual</span>
+                                                                    <span style={{ color: '#1e293b', fontSize: '16px', fontWeight: 800 }}>{(percent * 100).toFixed(1)}%</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                }
+                                                return null;
+                                            }}
+                                        />
                                     </PieChart>
                                 </ResponsiveContainer>
                             </Box>
@@ -650,14 +726,8 @@ const Relatorios: React.FC = () => {
                                 </Typography>
                                 <ResponsiveContainer width="100%" height="85%">
                                     <BarChart data={examesPorTipo}>
-                                        <defs>
-                                            <linearGradient id="colorBar" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8} />
-                                                <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0.8} />
-                                            </linearGradient>
-                                        </defs>
                                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.2)" />
-                                        <XAxis dataKey="nome_exame" tick={{ fontSize: 10, fill: '#1e293b' }} angle={-15} textAnchor="end" height={80} />
+                                        <XAxis dataKey="nome_exame" tick={{ fontSize: 11, fill: '#1e293b' }} height={60} />
                                         <YAxis tick={{ fill: '#1e293b' }} />
                                         <Tooltip
                                             wrapperStyle={{ zIndex: 9999, overflow: 'visible' }}
@@ -702,7 +772,7 @@ const Relatorios: React.FC = () => {
                                                 return null;
                                             }}
                                         />
-                                        <Bar dataKey="quantidade" fill="url(#colorBar)" radius={[8, 8, 0, 0]} />
+                                        <Bar dataKey="quantidade" fill="#3B82F6" radius={[8, 8, 0, 0]} />
                                     </BarChart>
                                 </ResponsiveContainer>
                             </Box>
@@ -736,7 +806,9 @@ const Relatorios: React.FC = () => {
                                             content={({ active, payload }) => {
                                                 if (active && payload && payload.length) {
                                                     const data = payload[0].payload;
-                                                    const percent = (payload[0] as any).percent || 0;
+                                                    // Calcular o total manualmente
+                                                    const total = examesPorCidade.reduce((sum, item) => sum + item.quantidade, 0);
+                                                    const percent = total > 0 ? (data.quantidade / total) : 0;
                                                     return (
                                                         <div style={{
                                                             background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
@@ -825,7 +897,9 @@ const Relatorios: React.FC = () => {
                                             content={({ active, payload }) => {
                                                 if (active && payload && payload.length) {
                                                     const data = payload[0].payload;
-                                                    const percent = (payload[0] as any).percent || 0;
+                                                    // Calcular o total manualmente
+                                                    const total = examesPorGenero.reduce((sum, item) => sum + item.quantidade, 0);
+                                                    const percent = total > 0 ? (data.quantidade / total) : 0;
                                                     return (
                                                         <div style={{
                                                             background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',

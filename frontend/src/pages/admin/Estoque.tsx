@@ -774,8 +774,8 @@ const Estoque: React.FC = () => {
                                                 onChange={(e) => setFormInsumo({ ...formInsumo, categoria: e.target.value as any })}
                                                 label="Categoria"
                                                 sx={{
-                                                    color: 'white',
-                                                    '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(148, 163, 184, 0.2)' },
+                                                    color: '#1e293b',
+                                                    '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' },
                                                     '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
                                                     '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#5DADE2' },
                                                 }}

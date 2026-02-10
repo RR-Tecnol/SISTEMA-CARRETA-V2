@@ -60,6 +60,47 @@ router.get('/me', authenticate, authorizeAdmin, async (req: AuthRequest, res: Re
 });
 
 /**
+ * POST /admins/foto
+ * Upload de foto de perfil do admin
+ */
+router.post(
+    '/foto',
+    authenticate,
+    authorizeAdmin,
+    uploadPerfil.single('foto'),
+    async (req: AuthRequest, res: Response) => {
+        try {
+            const admin = await Cidadao.findByPk(req.user!.id);
+
+            if (!admin) {
+                return res.status(404).json({ error: 'Admin não encontrado' });
+            }
+
+            if (!req.file) {
+                return res.status(400).json({ error: 'Nenhuma foto foi enviada' });
+            }
+
+            // Remove foto antiga se existir
+            if (admin.foto_perfil) {
+                const oldPhotoPath = path.join(__dirname, '../..', admin.foto_perfil);
+                if (fs.existsSync(oldPhotoPath)) {
+                    fs.unlinkSync(oldPhotoPath);
+                }
+            }
+
+            // Atualiza apenas a foto
+            const fotoPath = `/uploads/perfil/${req.file.filename}`;
+            await admin.update({ foto_perfil: fotoPath });
+
+            return res.json({ foto_perfil: fotoPath });
+        } catch (error) {
+            console.error('Erro ao atualizar foto:', error);
+            return res.status(500).json({ error: 'Erro ao atualizar foto de perfil' });
+        }
+    }
+);
+
+/**
  * PUT /admins/me
  * Atualiza dados do admin logado
  */

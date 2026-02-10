@@ -21,7 +21,7 @@ import {
     Edit,
 } from 'lucide-react';
 import { useSnackbar } from 'notistack';
-import api, { API_URL } from '../../services/api';
+import api, { BASE_URL } from '../../services/api';
 import { systemTruckTheme } from '../../theme/systemTruckTheme';
 
 interface AdminData {
@@ -64,9 +64,24 @@ const MeuPerfil: React.FC = () => {
     const fetchPerfil = async () => {
         try {
             const response = await api.get('/admins/me');
-            setFormData(response.data);
+            console.log('📸 Dados do perfil:', response.data);
+            // Garantir que não haja valores null
+            const data = {
+                ...response.data,
+                nome: response.data.nome_completo || '',
+                telefone: response.data.telefone || '',
+                cep: response.data.cep || '',
+                rua_logradouro: response.data.rua || '',
+                numero: response.data.numero || '',
+                complemento: response.data.complemento || '',
+                bairro: response.data.bairro || '',
+                municipio_uf: response.data.municipio_uf || '',
+            };
+            setFormData(data);
             if (response.data.foto_perfil) {
-                setFotoPreview(`${API_URL}${response.data.foto_perfil}`);
+                const fotoUrl = `${BASE_URL}${response.data.foto_perfil}`;
+                console.log('📸 URL da foto:', fotoUrl);
+                setFotoPreview(fotoUrl);
             }
         } catch (error: any) {
             enqueueSnackbar(error.response?.data?.error || 'Erro ao carregar perfil', { variant: 'error' });
@@ -90,8 +105,10 @@ const MeuPerfil: React.FC = () => {
             const response = await api.post('/admins/foto', formDataUpload, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
-            setFotoPreview(`${API_URL}${response.data.foto_perfil}`);
+            setFotoPreview(`${BASE_URL}${response.data.foto_perfil}`);
             enqueueSnackbar('Foto atualizada com sucesso!', { variant: 'success' });
+            // Recarregar dados do perfil para atualizar a foto
+            await fetchPerfil();
         } catch (error: any) {
             enqueueSnackbar(error.response?.data?.error || 'Erro ao atualizar foto', { variant: 'error' });
         }

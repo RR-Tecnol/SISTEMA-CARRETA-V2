@@ -1,7 +1,8 @@
 import axios from 'axios';
 
 const isLocal = process.env.NODE_ENV === 'development';
-export const API_URL = process.env.REACT_APP_API_URL || (isLocal ? 'http://localhost:3001' : '');
+export const API_URL = process.env.REACT_APP_API_URL || (isLocal ? 'http://localhost:3001/api' : '');
+export const BASE_URL = isLocal ? 'http://localhost:3001' : ''; // URL base sem /api para uploads
 
 const api = axios.create({
     baseURL: API_URL,

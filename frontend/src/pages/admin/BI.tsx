@@ -230,12 +230,6 @@ const BI: React.FC = () => {
                     </div>
                     <ResponsiveContainer width="100%" height={300}>
                         <BarChart data={examesPorTipo}>
-                            <defs>
-                                <linearGradient id="colorBar" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8} />
-                                    <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0.8} />
-                                </linearGradient>
-                            </defs>
                             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
                             <XAxis dataKey="nome_exame" stroke="#94a3b8" />
                             <YAxis stroke="#94a3b8" />
@@ -247,7 +241,7 @@ const BI: React.FC = () => {
                                     backdropFilter: 'blur(20px)'
                                 }}
                             />
-                            <Bar dataKey="quantidade" fill="url(#colorBar)" radius={[8, 8, 0, 0]} />
+                            <Bar dataKey="quantidade" fill="#3B82F6" radius={[8, 8, 0, 0]} />
                         </BarChart>
                     </ResponsiveContainer>
                 </motion.div>
