@@ -449,9 +449,18 @@ const ContasPagar = () => {
                                         startIcon={<MapPin size={18} />}
                                         onClick={async () => {
                                             try {
-                                                const response = await api.get('/contas-pagar/relatorios/por-cidade');
-                                                console.log('Relatório por cidade:', response.data);
-                                                enqueueSnackbar('Relatório por cidade gerado!', { variant: 'info' });
+                                                const response = await api.get('/contas-pagar/relatorios/por-cidade', {
+                                                    responseType: 'blob',
+                                                });
+                                                const url = window.URL.createObjectURL(new Blob([response.data]));
+                                                const link = document.createElement('a');
+                                                link.href = url;
+                                                const dataAtual = new Date().toISOString().slice(0, 10);
+                                                link.setAttribute('download', `relatorio-por-cidade-${dataAtual}.pdf`);
+                                                document.body.appendChild(link);
+                                                link.click();
+                                                link.remove();
+                                                enqueueSnackbar('Relatório PDF por cidade baixado com sucesso!', { variant: 'success' });
                                             } catch (error: any) {
                                                 enqueueSnackbar('Erro ao gerar relatório', { variant: 'error' });
                                             }
@@ -480,9 +489,18 @@ const ContasPagar = () => {
                                         startIcon={<Truck size={18} />}
                                         onClick={async () => {
                                             try {
-                                                const response = await api.get('/contas-pagar/relatorios/por-acao');
-                                                console.log('Relatório por ação:', response.data);
-                                                enqueueSnackbar('Relatório por ação gerado!', { variant: 'info' });
+                                                const response = await api.get('/contas-pagar/relatorios/por-acao', {
+                                                    responseType: 'blob',
+                                                });
+                                                const url = window.URL.createObjectURL(new Blob([response.data]));
+                                                const link = document.createElement('a');
+                                                link.href = url;
+                                                const dataAtual = new Date().toISOString().slice(0, 10);
+                                                link.setAttribute('download', `relatorio-por-acao-${dataAtual}.pdf`);
+                                                document.body.appendChild(link);
+                                                link.click();
+                                                link.remove();
+                                                enqueueSnackbar('Relatório PDF por ação baixado com sucesso!', { variant: 'success' });
                                             } catch (error: any) {
                                                 enqueueSnackbar('Erro ao gerar relatório', { variant: 'error' });
                                             }

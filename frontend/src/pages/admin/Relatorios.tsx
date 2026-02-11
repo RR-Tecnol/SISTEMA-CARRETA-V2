@@ -34,7 +34,6 @@ const Relatorios: React.FC = () => {
 
     // Estados dos filtros de ações
     const [filterNomeAcao, setFilterNomeAcao] = useState('');
-    const [filterTipo, setFilterTipo] = useState('');
     const [filterStatus, setFilterStatus] = useState('');
     const [filterMunicipio, setFilterMunicipio] = useState('');
     const [filterEstado, setFilterEstado] = useState('');
@@ -205,7 +204,6 @@ const Relatorios: React.FC = () => {
 
     const filteredAcoes = acoes.filter((acao: any) => {
         const matchesNomeAcao = !filterNomeAcao || (acao.nome && acao.nome.toLowerCase().includes(filterNomeAcao.toLowerCase()));
-        const matchesTipo = !filterTipo || acao.tipo === filterTipo;
         const matchesStatus = !filterStatus || acao.status === filterStatus;
         const matchesMunicipio = !filterMunicipio || acao.municipio.toLowerCase().includes(filterMunicipio.toLowerCase());
         const matchesEstado = !filterEstado || acao.estado.toLowerCase().includes(filterEstado.toLowerCase());
@@ -215,13 +213,12 @@ const Relatorios: React.FC = () => {
         const matchesCustoMin = !filterCustoMin || custo >= parseFloat(filterCustoMin);
         const matchesCustoMax = !filterCustoMax || custo <= parseFloat(filterCustoMax);
 
-        return matchesNomeAcao && matchesTipo && matchesStatus && matchesMunicipio && matchesEstado &&
+        return matchesNomeAcao && matchesStatus && matchesMunicipio && matchesEstado &&
             matchesDataInicio && matchesDataFim && matchesCustoMin && matchesCustoMax;
     });
 
     const clearFilters = () => {
         setFilterNomeAcao('');
-        setFilterTipo('');
         setFilterStatus('');
         setFilterMunicipio('');
         setFilterEstado('');
@@ -231,10 +228,10 @@ const Relatorios: React.FC = () => {
         setFilterCustoMax('');
     };
 
-    const hasActiveFilters = filterNomeAcao || filterTipo || filterStatus || filterMunicipio || filterEstado ||
+    const hasActiveFilters = filterNomeAcao || filterStatus || filterMunicipio || filterEstado ||
         filterDataInicio || filterDataFim || filterCustoMin || filterCustoMax;
 
-    const activeFilterCount = [filterNomeAcao, filterTipo, filterStatus, filterMunicipio, filterEstado,
+    const activeFilterCount = [filterNomeAcao, filterStatus, filterMunicipio, filterEstado,
         filterDataInicio, filterDataFim, filterCustoMin, filterCustoMax].filter(Boolean).length;
 
     const totalCusto = filteredAcoes.reduce((acc, acao: any) => acc + (acao.resumo_financeiro?.custo_total || 0), 0);
@@ -347,17 +344,10 @@ const Relatorios: React.FC = () => {
 
                         <Collapse in={showFilters}>
                             <Grid container spacing={2} sx={{ mt: 1 }}>
-                                <Grid item xs={12} sm={6} md={3}>
+                                <Grid item xs={12} sm={6} md={4}>
                                     <TextField fullWidth label="Nome da Ação" value={filterNomeAcao} onChange={(e) => setFilterNomeAcao(e.target.value)} size="small" sx={{ '& .MuiOutlinedInput-root': { background: 'white', borderRadius: '8px', '& fieldset': { borderColor: '#e2e8f0' } } }} />
                                 </Grid>
-                                <Grid item xs={12} sm={6} md={3}>
-                                    <TextField select fullWidth label="Tipo" value={filterTipo} onChange={(e) => setFilterTipo(e.target.value)} size="small" sx={{ '& .MuiOutlinedInput-root': { background: 'white', borderRadius: '8px', '& fieldset': { borderColor: '#e2e8f0' } } }}>
-                                        <MenuItem value="">Todos</MenuItem>
-                                        <MenuItem value="curso">Curso</MenuItem>
-                                        <MenuItem value="saude">Saúde</MenuItem>
-                                    </TextField>
-                                </Grid>
-                                <Grid item xs={12} sm={6} md={3}>
+                                <Grid item xs={12} sm={6} md={4}>
                                     <TextField select fullWidth label="Status" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} size="small" sx={{ '& .MuiOutlinedInput-root': { background: 'white', borderRadius: '8px', '& fieldset': { borderColor: '#e2e8f0' } } }}>
                                         <MenuItem value="">Todos</MenuItem>
                                         <MenuItem value="planejada">Planejada</MenuItem>
@@ -365,7 +355,7 @@ const Relatorios: React.FC = () => {
                                         <MenuItem value="concluida">Concluída</MenuItem>
                                     </TextField>
                                 </Grid>
-                                <Grid item xs={12} sm={6} md={3}>
+                                <Grid item xs={12} sm={6} md={4}>
                                     <TextField fullWidth label="Município" value={filterMunicipio} onChange={(e) => setFilterMunicipio(e.target.value)} size="small" sx={{ '& .MuiOutlinedInput-root': { background: 'white', borderRadius: '8px', '& fieldset': { borderColor: '#e2e8f0' } } }} />
                                 </Grid>
                             </Grid>

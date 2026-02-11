@@ -49,6 +49,11 @@ interface Cidadao {
     complemento?: string;
     bairro?: string;
     foto_perfil?: string;
+    nome_mae?: string;
+    data_nascimento?: string;
+    genero?: 'masculino' | 'feminino' | 'outro' | 'nao_declarado';
+    raca?: 'branca' | 'preta' | 'parda' | 'amarela' | 'indigena' | 'nao_declarada';
+    cartao_sus?: string;
 }
 
 interface CidadaosResponse {
@@ -502,6 +507,55 @@ const Cidadaos: React.FC = () => {
                         </DialogTitle>
                         <DialogContent sx={{ pt: 3 }}>
                             <Grid container spacing={3}>
+                                {/* Personal Information */}
+                                <Grid item xs={12}>
+                                    <Typography variant="h6" sx={{ fontWeight: 700, color: systemTruckTheme.colors.primaryDark, mb: 2 }}>
+                                        Dados Pessoais
+                                    </Typography>
+                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                        {selectedCidadao.data_nascimento && (
+                                            <Box>
+                                                <Typography sx={{ fontWeight: 600, color: systemTruckTheme.colors.textSecondary, fontSize: '0.85rem' }}>Data de Nascimento</Typography>
+                                                <Typography>{new Date(selectedCidadao.data_nascimento).toLocaleDateString('pt-BR')}</Typography>
+                                            </Box>
+                                        )}
+                                        {selectedCidadao.genero && (
+                                            <Box>
+                                                <Typography sx={{ fontWeight: 600, color: systemTruckTheme.colors.textSecondary, fontSize: '0.85rem' }}>Gênero</Typography>
+                                                <Typography>
+                                                    {selectedCidadao.genero === 'masculino' ? 'Masculino' :
+                                                        selectedCidadao.genero === 'feminino' ? 'Feminino' :
+                                                            selectedCidadao.genero === 'outro' ? 'Outro' : 'Não declarado'}
+                                                </Typography>
+                                            </Box>
+                                        )}
+                                        {selectedCidadao.nome_mae && (
+                                            <Box>
+                                                <Typography sx={{ fontWeight: 600, color: systemTruckTheme.colors.textSecondary, fontSize: '0.85rem' }}>Nome da Mãe</Typography>
+                                                <Typography>{selectedCidadao.nome_mae}</Typography>
+                                            </Box>
+                                        )}
+                                        {selectedCidadao.raca && (
+                                            <Box>
+                                                <Typography sx={{ fontWeight: 600, color: systemTruckTheme.colors.textSecondary, fontSize: '0.85rem' }}>Raça/Cor</Typography>
+                                                <Typography>
+                                                    {selectedCidadao.raca === 'branca' ? 'Branca' :
+                                                        selectedCidadao.raca === 'preta' ? 'Preta' :
+                                                            selectedCidadao.raca === 'parda' ? 'Parda' :
+                                                                selectedCidadao.raca === 'amarela' ? 'Amarela' :
+                                                                    selectedCidadao.raca === 'indigena' ? 'Indígena' : 'Não declarada'}
+                                                </Typography>
+                                            </Box>
+                                        )}
+                                        {selectedCidadao.cartao_sus && (
+                                            <Box>
+                                                <Typography sx={{ fontWeight: 600, color: systemTruckTheme.colors.textSecondary, fontSize: '0.85rem' }}>Cartão SUS</Typography>
+                                                <Typography>{selectedCidadao.cartao_sus}</Typography>
+                                            </Box>
+                                        )}
+                                    </Box>
+                                </Grid>
+
                                 {/* Contact Information */}
                                 <Grid item xs={12}>
                                     <Typography variant="h6" sx={{ fontWeight: 700, color: systemTruckTheme.colors.primaryDark, mb: 2 }}>
@@ -835,10 +889,20 @@ const Cidadaos: React.FC = () => {
                             </Button>
                             <Button
                                 variant="contained"
-                                onClick={() => {
-                                    enqueueSnackbar('Funcionalidade em desenvolvimento', { variant: 'info' });
-                                    setEditOpen(false);
+                                onClick={async () => {
+                                    try {
+                                        setSubmitting(true);
+                                        await api.put(`/cidadaos/${editData.id}`, editData);
+                                        enqueueSnackbar('Cidadão atualizado com sucesso!', { variant: 'success' });
+                                        setEditOpen(false);
+                                        fetchCidadaos();
+                                    } catch (error: any) {
+                                        enqueueSnackbar(error.response?.data?.error || 'Erro ao atualizar cidadão', { variant: 'error' });
+                                    } finally {
+                                        setSubmitting(false);
+                                    }
                                 }}
+                                disabled={submitting}
                                 sx={{
                                     background: systemTruckTheme.gradients.primary,
                                     color: 'white',
@@ -847,7 +911,7 @@ const Cidadaos: React.FC = () => {
                                     boxShadow: systemTruckTheme.shadows.button,
                                 }}
                             >
-                                Salvar
+                                {submitting ? 'Salvando...' : 'Salvar'}
                             </Button>
                         </DialogActions>
                     </>

@@ -218,6 +218,77 @@ router.put('/me', authenticate, uploadPerfil.single('foto'), async (req: AuthReq
 });
 
 /**
+ * PUT /api/cidadaos/:id
+ * Atualizar cidadão por ID (admin only)
+ */
+router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
+    try {
+        // Check if user is admin
+        if (req.user!.tipo !== 'admin') {
+            res.status(403).json({ error: 'Acesso negado' });
+            return;
+        }
+
+        const { id } = req.params;
+        const {
+            nome_completo,
+            nome_mae,
+            data_nascimento,
+            genero,
+            raca,
+            telefone,
+            email,
+            cep,
+            rua,
+            numero,
+            complemento,
+            bairro,
+            municipio,
+            estado,
+            cartao_sus,
+        } = req.body;
+
+        // Find cidadao
+        const cidadao = await Cidadao.findByPk(id);
+        if (!cidadao) {
+            res.status(404).json({ error: 'Cidadão não encontrado' });
+            return;
+        }
+
+        // Update cidadao data
+        await cidadao.update({
+            nome_completo: nome_completo || cidadao.nome_completo,
+            nome_mae: nome_mae !== undefined ? nome_mae : cidadao.nome_mae,
+            data_nascimento: data_nascimento || cidadao.data_nascimento,
+            genero: genero !== undefined ? genero : cidadao.genero,
+            raca: raca !== undefined ? raca : cidadao.raca,
+            telefone: telefone || cidadao.telefone,
+            email: email || cidadao.email,
+            cep: cep !== undefined ? cep : cidadao.cep,
+            rua: rua !== undefined ? rua : cidadao.rua,
+            numero: numero !== undefined ? numero : cidadao.numero,
+            complemento: complemento !== undefined ? complemento : cidadao.complemento,
+            bairro: bairro !== undefined ? bairro : cidadao.bairro,
+            municipio: municipio || cidadao.municipio,
+            estado: estado || cidadao.estado,
+            cartao_sus: cartao_sus !== undefined ? cartao_sus : cidadao.cartao_sus,
+        });
+
+        // Return updated cidadao without senha
+        const cidadaoData = cidadao.toJSON();
+        delete cidadaoData.senha;
+
+        res.json({
+            message: 'Cidadão atualizado com sucesso',
+            cidadao: cidadaoData,
+        });
+    } catch (error) {
+        console.error('Error updating cidadao:', error);
+        res.status(500).json({ error: 'Erro ao atualizar cidadão' });
+    }
+});
+
+/**
  * GET /api/cidadaos/buscar-cpf/:cpf
  * Buscar cidadão por CPF (admin only)
  */

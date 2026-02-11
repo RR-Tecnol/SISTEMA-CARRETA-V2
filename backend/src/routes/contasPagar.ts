@@ -5,6 +5,8 @@ import { Op } from 'sequelize';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { RelatorioCidadePDF } from '../services/pdf/relatorioCidadePDF';
+import { RelatorioAcaoPDF } from '../services/pdf/relatorioAcaoPDF';
 
 const router = Router();
 
@@ -353,37 +355,13 @@ router.get('/relatorio/mensal', authenticate, async (req: Request, res: Response
  */
 router.get('/relatorios/por-acao', authenticate, async (req: Request, res: Response) => {
     try {
-        const { acao_id } = req.query;
+        const pdfService = new RelatorioAcaoPDF();
+        const pdfBuffer = await pdfService.gerarPDF();
 
-        const where: any = {};
-        if (acao_id) {
-            where.acao_id = acao_id;
-        }
-
-        const contas = await ContaPagar.findAll({
-            where,
-            order: [['data_vencimento', 'DESC']],
-        });
-
-        // Agrupar por ação
-        const relatorio: any = {};
-        contas.forEach(conta => {
-            const acaoId = conta.acao_id || 'sem_acao';
-            if (!relatorio[acaoId]) {
-                relatorio[acaoId] = {
-                    acao_id: acaoId,
-                    total: 0,
-                    contas: [],
-                };
-            }
-            relatorio[acaoId].total += Number(conta.valor);
-            relatorio[acaoId].contas.push(conta);
-        });
-
-        res.json({
-            success: true,
-            relatorio: Object.values(relatorio),
-        });
+        const dataAtual = new Date().toISOString().slice(0, 10);
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename=relatorio-por-acao-${dataAtual}.pdf`);
+        res.send(pdfBuffer);
     } catch (error: any) {
         console.error('Erro ao gerar relatório por ação:', error);
         res.status(500).json({ error: 'Erro ao gerar relatório por ação' });
@@ -396,37 +374,13 @@ router.get('/relatorios/por-acao', authenticate, async (req: Request, res: Respo
  */
 router.get('/relatorios/por-cidade', authenticate, async (req: Request, res: Response) => {
     try {
-        const { cidade } = req.query;
+        const pdfService = new RelatorioCidadePDF();
+        const pdfBuffer = await pdfService.gerarPDF();
 
-        const where: any = {};
-        if (cidade) {
-            where.cidade = { [Op.iLike]: `%${cidade}%` };
-        }
-
-        const contas = await ContaPagar.findAll({
-            where,
-            order: [['cidade', 'ASC'], ['data_vencimento', 'DESC']],
-        });
-
-        // Agrupar por cidade
-        const relatorio: any = {};
-        contas.forEach(conta => {
-            const cidadeNome = conta.cidade || 'sem_cidade';
-            if (!relatorio[cidadeNome]) {
-                relatorio[cidadeNome] = {
-                    cidade: cidadeNome,
-                    total: 0,
-                    contas: [],
-                };
-            }
-            relatorio[cidadeNome].total += Number(conta.valor);
-            relatorio[cidadeNome].contas.push(conta);
-        });
-
-        res.json({
-            success: true,
-            relatorio: Object.values(relatorio),
-        });
+        const dataAtual = new Date().toISOString().slice(0, 10);
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename=relatorio-por-cidade-${dataAtual}.pdf`);
+        res.send(pdfBuffer);
     } catch (error: any) {
         console.error('Erro ao gerar relatório por cidade:', error);
         res.status(500).json({ error: 'Erro ao gerar relatório por cidade' });
