@@ -11,7 +11,7 @@
         "@reduxjs/toolkit": "^2.0.1",
         "axios": "^1.6.2",
         "date-fns": "^3.0.6",
-        "framer-motion": "^12.33.0",
+        "framer-motion": "^12.34.0",
         "jspdf": "^4.1.0",
         "jspdf-autotable": "^5.0.7",
         "lucide-react": "^0.563.0",
@@ -24,6 +24,7 @@
         "react-redux": "^9.0.4",
         "react-router-dom": "^6.21.0",
         "recharts": "^2.15.4",
+        "swiper": "^12.1.0",
         "xlsx": "^0.18.5"
     },
     "devDependencies": {
