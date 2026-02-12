@@ -29,13 +29,14 @@ const PublicLayout: React.FC = () => {
                     borderBottom: '1px solid rgba(93, 173, 226, 0.1)',
                 }}
             >
-                <Box maxWidth="xl" sx={{ mx: 'auto', px: 3, width: '100%' }}>
+                <Box maxWidth="xl" sx={{ mx: 'auto', px: 0, width: '100%' }}>
                     <Box
                         sx={{
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
                             py: 0,
+                            px: 3,
                         }}
                     >
                         {/* Logo */}
@@ -52,7 +53,7 @@ const PublicLayout: React.FC = () => {
                                     alignItems: 'center',
                                     textDecoration: 'none',
                                     transition: 'all 0.3s ease',
-                                    ml: -2,
+                                    ml: -3,
                                     '&:hover': {
                                         transform: 'scale(1.05)',
                                     },
