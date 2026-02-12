@@ -209,7 +209,7 @@ async function exportInscritosPDF(acao: any, inscricoes: any[], res: Response) {
 
         // Título da seção com fundo
         doc.fontSize(12).font('Helvetica-Bold');
-        doc.fillColor('#4682b4').text(`📋 ${cursoNome.toUpperCase()} (${lista.length} inscritos)`, {
+        doc.fillColor('#4682b4').text(`${cursoNome.toUpperCase()} (${lista.length} inscritos)`, {
             align: 'left'
         });
         doc.fillColor('#000000');
@@ -223,7 +223,12 @@ async function exportInscritosPDF(acao: any, inscricoes: any[], res: Response) {
         // Cabeçalho da tabela
         let tableY = doc.y;
         doc.fontSize(9).font('Helvetica-Bold');
-        doc.text('Nº', 50, tableY, { width: 30, align: 'left' });
+
+        // Fundo do cabeçalho
+        doc.fillColor('#f0f4f8').rect(50, tableY - 2, 495, 15).fill();
+        doc.fillColor('#000000');
+
+        doc.text('Nº', 55, tableY, { width: 25, align: 'left' });
         doc.text('Nome', 85, tableY, { width: 150, align: 'left' });
         doc.text('CPF', 240, tableY, { width: 100, align: 'left' });
         doc.text('Data Nasc.', 345, tableY, { width: 70, align: 'left' });
@@ -246,7 +251,12 @@ async function exportInscritosPDF(acao: any, inscricoes: any[], res: Response) {
                 // Repetir cabeçalho da tabela na nova página
                 tableY = 50;
                 doc.fontSize(9).font('Helvetica-Bold');
-                doc.text('Nº', 50, tableY, { width: 30, align: 'left' });
+
+                // Fundo do cabeçalho
+                doc.fillColor('#f0f4f8').rect(50, tableY - 2, 495, 15).fill();
+                doc.fillColor('#000000');
+
+                doc.text('Nº', 55, tableY, { width: 25, align: 'left' });
                 doc.text('Nome', 85, tableY, { width: 150, align: 'left' });
                 doc.text('CPF', 240, tableY, { width: 100, align: 'left' });
                 doc.text('Data Nasc.', 345, tableY, { width: 70, align: 'left' });
@@ -270,10 +280,17 @@ async function exportInscritosPDF(acao: any, inscricoes: any[], res: Response) {
             const dataNasc = formatDate(insc.cidadao?.data_nascimento);
             const status = insc.status === 'atendido' ? 'Atendido' : 'Pendente';
 
-            doc.text(numero, 50, tableY, { width: 30, align: 'left' });
-            doc.text(nome.substring(0, 25), 85, tableY, { width: 150, align: 'left' });
-            doc.text(cpf, 240, tableY, { width: 100, align: 'left' });
-            doc.text(dataNasc, 345, tableY, { width: 70, align: 'left' });
+            // Desenhar bordas verticais das colunas
+            doc.strokeColor('#e5e7eb').lineWidth(0.3);
+            doc.moveTo(80, tableY - 2).lineTo(80, tableY + 16).stroke();
+            doc.moveTo(235, tableY - 2).lineTo(235, tableY + 16).stroke();
+            doc.moveTo(340, tableY - 2).lineTo(340, tableY + 16).stroke();
+            doc.moveTo(415, tableY - 2).lineTo(415, tableY + 16).stroke();
+
+            doc.text(numero, 55, tableY, { width: 25, align: 'left' });
+            doc.text(nome.substring(0, 25), 85, tableY, { width: 145, align: 'left' });
+            doc.text(cpf, 240, tableY, { width: 95, align: 'left' });
+            doc.text(dataNasc, 345, tableY, { width: 65, align: 'left' });
 
             // Status com cor
             if (status === 'Atendido') {
