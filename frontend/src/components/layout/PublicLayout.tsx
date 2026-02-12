@@ -5,7 +5,7 @@ import { Link as RouterLink, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../store';
 import { motion } from 'framer-motion';
-import { Home, LogIn, UserPlus, LayoutDashboard, Truck } from 'lucide-react';
+import { Home, LogIn, UserPlus, LayoutDashboard } from 'lucide-react';
 import { systemTruckTheme } from '../../theme/systemTruckTheme';
 
 const PublicLayout: React.FC = () => {
@@ -50,7 +50,6 @@ const PublicLayout: React.FC = () => {
                                 sx={{
                                     display: 'flex',
                                     alignItems: 'center',
-                                    gap: 1.5,
                                     textDecoration: 'none',
                                     transition: 'all 0.3s ease',
                                     '&:hover': {
@@ -59,32 +58,15 @@ const PublicLayout: React.FC = () => {
                                 }}
                             >
                                 <Box
+                                    component="img"
+                                    src={`${process.env.PUBLIC_URL}/images/logo-system-truck.png`}
+                                    alt="System Truck Logo"
                                     sx={{
-                                        width: 40,
-                                        height: 40,
-                                        borderRadius: '12px',
-                                        background: `linear-gradient(135deg, ${systemTruckTheme.colors.primary}, ${systemTruckTheme.colors.primaryDark})`,
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        boxShadow: `0 4px 16px ${systemTruckTheme.colors.primary}40`,
+                                        height: 50,
+                                        width: 'auto',
+                                        filter: 'drop-shadow(0 2px 8px rgba(93, 173, 226, 0.3))',
                                     }}
-                                >
-                                    <Truck size={24} color="#fff" />
-                                </Box>
-                                <Typography
-                                    variant="h6"
-                                    sx={{
-                                        fontWeight: 700,
-                                        background: `linear-gradient(135deg, ${systemTruckTheme.colors.primary}, ${systemTruckTheme.colors.primaryDark})`,
-                                        backgroundClip: 'text',
-                                        WebkitBackgroundClip: 'text',
-                                        WebkitTextFillColor: 'transparent',
-                                        fontSize: '1.5rem',
-                                    }}
-                                >
-                                    System Truck
-                                </Typography>
+                                />
                             </Box>
                         </motion.div>
 
