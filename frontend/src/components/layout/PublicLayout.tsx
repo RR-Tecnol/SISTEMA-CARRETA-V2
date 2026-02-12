@@ -37,6 +37,7 @@ const PublicLayout: React.FC = () => {
                             justifyContent: 'space-between',
                             py: 0,
                             px: 3,
+                            position: 'relative',
                         }}
                     >
                         {/* Logo */}
@@ -44,6 +45,7 @@ const PublicLayout: React.FC = () => {
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ duration: 0.5 }}
+                            style={{ position: 'absolute', left: 0 }}
                         >
                             <Box
                                 component={RouterLink}
@@ -53,7 +55,7 @@ const PublicLayout: React.FC = () => {
                                     alignItems: 'center',
                                     textDecoration: 'none',
                                     transition: 'all 0.3s ease',
-                                    ml: -3,
+                                    pl: 1,
                                     '&:hover': {
                                         transform: 'scale(1.05)',
                                     },
