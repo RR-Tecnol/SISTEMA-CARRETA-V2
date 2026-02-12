@@ -62,8 +62,9 @@ const PublicLayout: React.FC = () => {
                                     src={`${process.env.PUBLIC_URL}/images/logo-system-truck.png`}
                                     alt="System Truck Logo"
                                     sx={{
-                                        height: 60,
+                                        height: 100,
                                         width: 'auto',
+                                        my: -1,
                                         filter: 'drop-shadow(0 2px 8px rgba(93, 173, 226, 0.3))',
                                     }}
                                 />
