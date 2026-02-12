@@ -1,8 +1,8 @@
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
-import path from 'path';
+import * as path from 'path';
 
-dotenv.config({ path: path.join(__dirname, '../.env') });
+dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 console.log('🔧 SMTP Configuration:');
 console.log('  Host:', process.env.SMTP_HOST);
