@@ -35,7 +35,7 @@ const PublicLayout: React.FC = () => {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
-                            py: 2.5,
+                            py: 0,
                         }}
                     >
                         {/* Logo */}
@@ -62,7 +62,7 @@ const PublicLayout: React.FC = () => {
                                     src={`${process.env.PUBLIC_URL}/images/logo-system-truck.png`}
                                     alt="System Truck Logo"
                                     sx={{
-                                        height: 140,
+                                        height: 60,
                                         width: 'auto',
                                         filter: 'drop-shadow(0 2px 8px rgba(93, 173, 226, 0.3))',
                                     }}
