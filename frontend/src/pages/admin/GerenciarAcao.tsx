@@ -27,6 +27,7 @@ import {
     FormControlLabel,
     FormControl,
     FormLabel,
+    Switch,
 } from '@mui/material';
 import {
     Plus,
@@ -36,7 +37,8 @@ import {
     UserPlus,
     Truck,
     Stethoscope,
-    CheckCircle
+    CheckCircle,
+    Globe
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useSnackbar } from 'notistack';
@@ -85,6 +87,7 @@ const GerenciarAcao = () => {
         distancia_km: 0,
         preco_combustivel_referencia: 0,
         descricao: '',
+        permitir_inscricao_previa: true,
     });
 
     // Instituições
@@ -901,6 +904,45 @@ const GerenciarAcao = () => {
                                         <MenuItem value="ativa">Ativa</MenuItem>
                                         <MenuItem value="concluida">Concluída</MenuItem>
                                     </TextField>
+                                </Grid>
+
+                                <Grid item xs={12}>
+                                    <Box sx={{
+                                        background: 'rgba(70, 130, 180, 0.05)',
+                                        borderRadius: '8px',
+                                        border: '1px solid rgba(70, 130, 180, 0.1)',
+                                        p: 2,
+                                    }}>
+                                        <FormControlLabel
+                                            control={
+                                                <Switch
+                                                    checked={formData.permitir_inscricao_previa !== false}
+                                                    onChange={(e) => setFormData({ ...formData, permitir_inscricao_previa: e.target.checked })}
+                                                    sx={{
+                                                        '& .MuiSwitch-switchBase.Mui-checked': {
+                                                            color: '#4682b4',
+                                                        },
+                                                        '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                                                            backgroundColor: '#4682b4',
+                                                        },
+                                                    }}
+                                                />
+                                            }
+                                            label={
+                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                    <Globe size={20} color="#4682b4" />
+                                                    <Box>
+                                                        <Typography variant="body1" sx={{ fontWeight: 600, color: '#1a1a1a' }}>
+                                                            Permitir Inscrições Online
+                                                        </Typography>
+                                                        <Typography variant="caption" sx={{ color: '#6c757d' }}>
+                                                            Quando ativado, cidadãos podem se inscrever antecipadamente pelo portal
+                                                        </Typography>
+                                                    </Box>
+                                                </Box>
+                                            }
+                                        />
+                                    </Box>
                                 </Grid>
 
                                 <Grid item xs={12} sm={6}>
