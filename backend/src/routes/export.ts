@@ -39,7 +39,7 @@ router.get('/acoes/:acaoId/export/inscritos', authenticate, authorizeAdmin, asyn
                 {
                     model: Cidadao,
                     as: 'cidadao',
-                    attributes: ['id', 'nome_completo', 'cpf', 'telefone', 'email'],
+                    attributes: ['id', 'nome_completo', 'cpf', 'telefone', 'email', 'data_nascimento'],
                 },
             ],
             order: [['created_at', 'ASC']],
@@ -145,7 +145,11 @@ router.get('/acoes/:acaoId/export/atendidos', authenticate, authorizeAdmin, asyn
 // Melhor ler o resto do arquivo para garantir integridade.
 
 async function exportInscritosPDF(acao: any, inscricoes: any[], res: Response) {
-    const doc = new PDFDocument();
+    const doc = new PDFDocument({
+        margin: 50,
+        size: 'A4',
+        bufferPages: true
+    });
 
     // Configurar cabeçalhos de resposta
     res.setHeader('Content-Type', 'application/pdf');
@@ -153,36 +157,174 @@ async function exportInscritosPDF(acao: any, inscricoes: any[], res: Response) {
 
     doc.pipe(res);
 
-    // Título
-    doc.fontSize(18).text(`Lista de Inscritos - Ação ${acao.numero_acao}`, { align: 'center' });
-    doc.fontSize(12).text(`${acao.tipo.toUpperCase()} - ${acao.municipio}/${acao.estado}`, { align: 'center' });
-    doc.moveDown();
+    // Função para formatar data
+    const formatDate = (date: any): string => {
+        if (!date) return 'N/A';
+        const d = new Date(date);
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const year = d.getFullYear();
+        return `${day}/${month}/${year}`;
+    };
 
-    // Tabela
-    let y = 150;
-    doc.font('Helvetica-Bold').fontSize(10);
-    doc.text('Nome', 50, y);
-    doc.text('CPF', 250, y);
-    doc.text('Curso/Exame', 400, y);
-
-    y += 20;
-    doc.font('Helvetica').fontSize(10);
-
+    // Agrupar inscrições por curso/exame
+    const inscricoesPorCurso: Record<string, any[]> = {};
     inscricoes.forEach((insc) => {
-        if (y > 700) {
+        const cursoNome = insc.curso_exame?.nome || 'Sem Curso/Exame';
+        if (!inscricoesPorCurso[cursoNome]) {
+            inscricoesPorCurso[cursoNome] = [];
+        }
+        inscricoesPorCurso[cursoNome].push(insc);
+    });
+
+    // Ordenar grupos alfabeticamente
+    const gruposOrdenados = Object.keys(inscricoesPorCurso).sort();
+
+    // Cabeçalho principal
+    doc.fontSize(20).font('Helvetica-Bold').text('LISTA DE INSCRITOS', { align: 'center' });
+    doc.fontSize(14).font('Helvetica').text(`Ação ${acao.numero_acao} - ${acao.nome}`, { align: 'center' });
+    doc.fontSize(11).text(`${acao.tipo.toUpperCase()} - ${acao.municipio}/${acao.estado}`, { align: 'center' });
+    doc.fontSize(10).text(`Período: ${formatDate(acao.data_inicio)} a ${formatDate(acao.data_fim)}`, { align: 'center' });
+    doc.moveDown(2);
+
+    let totalGeral = 0;
+
+    // Para cada grupo de curso/exame
+    gruposOrdenados.forEach((cursoNome, grupoIndex) => {
+        const lista = inscricoesPorCurso[cursoNome];
+        totalGeral += lista.length;
+
+        // Cabeçalho da seção
+        const y = doc.y;
+
+        // Verificar se precisa de nova página
+        if (y > 650) {
             doc.addPage();
-            y = 50;
         }
 
-        const nome = insc.cidadao?.nome_completo || 'N/A';
-        const cpf = insc.cidadao?.cpf || 'N/A';
-        const curso = insc.curso_exame?.nome || 'N/A';
+        // Linha separadora superior
+        doc.strokeColor('#4682b4').lineWidth(2);
+        doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke();
+        doc.moveDown(0.5);
 
-        doc.text(nome, 50, y);
-        doc.text(cpf, 250, y);
-        doc.text(curso, 400, y);
-        y += 20;
+        // Título da seção com fundo
+        doc.fontSize(12).font('Helvetica-Bold');
+        doc.fillColor('#4682b4').text(`📋 ${cursoNome.toUpperCase()} (${lista.length} inscritos)`, {
+            align: 'left'
+        });
+        doc.fillColor('#000000');
+        doc.moveDown(0.5);
+
+        // Linha separadora inferior
+        doc.strokeColor('#4682b4').lineWidth(1);
+        doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke();
+        doc.moveDown(1);
+
+        // Cabeçalho da tabela
+        let tableY = doc.y;
+        doc.fontSize(9).font('Helvetica-Bold');
+        doc.text('Nº', 50, tableY, { width: 30, align: 'left' });
+        doc.text('Nome', 85, tableY, { width: 150, align: 'left' });
+        doc.text('CPF', 240, tableY, { width: 100, align: 'left' });
+        doc.text('Data Nasc.', 345, tableY, { width: 70, align: 'left' });
+        doc.text('Status', 420, tableY, { width: 125, align: 'left' });
+
+        tableY += 15;
+
+        // Linha abaixo do cabeçalho
+        doc.strokeColor('#cccccc').lineWidth(0.5);
+        doc.moveTo(50, tableY).lineTo(545, tableY).stroke();
+        tableY += 5;
+
+        // Dados da tabela
+        doc.font('Helvetica').fontSize(9);
+        lista.forEach((insc, index) => {
+            // Verificar se precisa de nova página
+            if (tableY > 720) {
+                doc.addPage();
+
+                // Repetir cabeçalho da tabela na nova página
+                tableY = 50;
+                doc.fontSize(9).font('Helvetica-Bold');
+                doc.text('Nº', 50, tableY, { width: 30, align: 'left' });
+                doc.text('Nome', 85, tableY, { width: 150, align: 'left' });
+                doc.text('CPF', 240, tableY, { width: 100, align: 'left' });
+                doc.text('Data Nasc.', 345, tableY, { width: 70, align: 'left' });
+                doc.text('Status', 420, tableY, { width: 125, align: 'left' });
+                tableY += 15;
+                doc.strokeColor('#cccccc').lineWidth(0.5);
+                doc.moveTo(50, tableY).lineTo(545, tableY).stroke();
+                tableY += 5;
+                doc.font('Helvetica').fontSize(9);
+            }
+
+            // Linhas zebradas
+            if (index % 2 === 0) {
+                doc.fillColor('#f8f9fa').rect(50, tableY - 2, 495, 18).fill();
+                doc.fillColor('#000000');
+            }
+
+            const numero = String(index + 1).padStart(2, '0');
+            const nome = insc.cidadao?.nome_completo || 'N/A';
+            const cpf = insc.cidadao?.cpf || 'N/A';
+            const dataNasc = formatDate(insc.cidadao?.data_nascimento);
+            const status = insc.status === 'atendido' ? 'Atendido' : 'Pendente';
+
+            doc.text(numero, 50, tableY, { width: 30, align: 'left' });
+            doc.text(nome.substring(0, 25), 85, tableY, { width: 150, align: 'left' });
+            doc.text(cpf, 240, tableY, { width: 100, align: 'left' });
+            doc.text(dataNasc, 345, tableY, { width: 70, align: 'left' });
+
+            // Status com cor
+            if (status === 'Atendido') {
+                doc.fillColor('#10b981').text(status, 420, tableY, { width: 125, align: 'left' });
+                doc.fillColor('#000000');
+            } else {
+                doc.fillColor('#f59e0b').text(status, 420, tableY, { width: 125, align: 'left' });
+                doc.fillColor('#000000');
+            }
+
+            tableY += 18;
+        });
+
+        doc.moveDown(2);
     });
+
+    // Rodapé com total geral
+    const finalY = doc.y;
+    if (finalY > 700) {
+        doc.addPage();
+    }
+
+    doc.strokeColor('#4682b4').lineWidth(2);
+    doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke();
+    doc.moveDown(0.5);
+
+    doc.fontSize(12).font('Helvetica-Bold').fillColor('#4682b4');
+    doc.text(`TOTAL GERAL: ${totalGeral} inscritos`, { align: 'center' });
+    doc.fillColor('#000000');
+
+    // Informações de geração
+    const now = new Date();
+    const dataGeracao = formatDate(now);
+    const horaGeracao = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+    doc.moveDown(1);
+    doc.fontSize(9).font('Helvetica');
+    doc.text(`Gerado em: ${dataGeracao} às ${horaGeracao}`, { align: 'center' });
+
+    // Adicionar números de página
+    const range = doc.bufferedPageRange();
+    for (let i = 0; i < range.count; i++) {
+        doc.switchToPage(i);
+        doc.fontSize(9).font('Helvetica');
+        doc.text(
+            `Página ${i + 1} de ${range.count}`,
+            50,
+            doc.page.height - 50,
+            { align: 'center' }
+        );
+    }
 
     doc.end();
 }
