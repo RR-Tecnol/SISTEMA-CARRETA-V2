@@ -29,7 +29,7 @@ const PublicLayout: React.FC = () => {
                     borderBottom: '1px solid rgba(93, 173, 226, 0.1)',
                 }}
             >
-                <Container maxWidth="xl">
+                <Box maxWidth="xl" sx={{ mx: 'auto', px: 3, width: '100%' }}>
                     <Box
                         sx={{
                             display: 'flex',
@@ -52,6 +52,7 @@ const PublicLayout: React.FC = () => {
                                     alignItems: 'center',
                                     textDecoration: 'none',
                                     transition: 'all 0.3s ease',
+                                    ml: -2,
                                     '&:hover': {
                                         transform: 'scale(1.05)',
                                     },
@@ -195,7 +196,7 @@ const PublicLayout: React.FC = () => {
                             </Box>
                         </motion.div>
                     </Box>
-                </Container>
+                </Box>
             </Box>
 
             {/* Main Content */}
