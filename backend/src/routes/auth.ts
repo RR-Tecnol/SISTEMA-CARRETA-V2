@@ -37,6 +37,8 @@ const cadastroSchema = Joi.object({
     }),
     municipio: Joi.string().required(),
     estado: Joi.string().length(2).required(),
+    genero: Joi.string().valid('masculino', 'feminino', 'outro', 'nao_declarado', '').optional(),
+    raca: Joi.string().valid('branca', 'preta', 'parda', 'amarela', 'indigena', 'nao_declarada', '').optional(),
     consentimento_lgpd: Joi.boolean().valid(true).required().messages({
         'any.only': 'Você deve aceitar os termos LGPD para prosseguir',
     }),
@@ -138,6 +140,8 @@ router.post('/cadastro', validate(cadastroSchema), async (req: Request, res: Res
             senha,
             municipio,
             estado,
+            genero,
+            raca,
             consentimento_lgpd,
             campos_customizados,
         } = req.body;
@@ -192,6 +196,8 @@ router.post('/cadastro', validate(cadastroSchema), async (req: Request, res: Res
             senha: senhaHash,
             municipio,
             estado,
+            genero: genero || 'nao_declarado',
+            raca: raca || 'nao_declarada',
             consentimento_lgpd,
             data_consentimento: new Date(),
             ip_consentimento: ipAddress,

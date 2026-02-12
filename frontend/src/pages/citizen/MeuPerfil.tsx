@@ -1,588 +1,663 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Container,
     Typography,
+    Box,
     TextField,
     Button,
-    Grid,
-    Box,
-    Alert,
     Avatar,
-    Card,
-    CardContent,
-    Divider,
+    Grid,
     IconButton,
     CircularProgress,
-    Stack,
+    MenuItem,
 } from '@mui/material';
+import { motion } from 'framer-motion';
 import {
-    PhotoCamera,
-    Save,
-    Person,
-    Edit,
-    Cancel,
-    Email,
+    User,
+    Mail,
     Phone,
-    LocationOn,
-    Lock,
-} from '@mui/icons-material';
-import api from '../../services/api';
-import { formatCPF, formatPhone, formatCEP } from '../../utils/formatters';
-import { API_URL } from '../../services/api';
+    MapPin,
+    Camera,
+    Save,
+    Edit,
+    Users,
+} from 'lucide-react';
+import { useSnackbar } from 'notistack';
+import api, { BASE_URL } from '../../services/api';
+import { systemTruckTheme } from '../../theme/systemTruckTheme';
 
-interface ViewFieldProps {
-    label: string;
-    value: string;
-    icon: React.ReactNode;
-    locked?: boolean;
+interface CidadaoData {
+    nome_completo: string;
+    email: string;
+    cpf: string;
+    telefone: string;
+    data_nascimento: string;
+    genero?: string;
+    raca?: string;
+    cep: string;
+    rua: string;
+    numero: string;
+    complemento: string;
+    bairro: string;
+    municipio: string;
+    estado: string;
+    foto_perfil?: string;
 }
 
-const ViewField: React.FC<ViewFieldProps> = ({ label, value, icon, locked = false }) => (
-    <Box
-        sx={{
-            p: 2.5,
-            mb: 2,
-            border: '1px solid',
-            borderColor: locked ? 'warning.light' : 'divider',
-            borderRadius: 2,
-            bgcolor: locked ? 'warning.50' : 'background.paper',
-            transition: 'all 0.2s',
-            '&:hover': {
-                borderColor: locked ? 'warning.main' : 'primary.light',
-                boxShadow: 1,
-            },
-        }}
-    >
-        <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1 }}>
-            <Box sx={{ color: locked ? 'warning.main' : 'primary.main' }}>
-                {icon}
-            </Box>
-            <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    letterSpacing: 0.5,
-                    fontSize: '0.7rem',
-                }}
-            >
-                {label}
-            </Typography>
-        </Stack>
-        <Typography
-            variant="h6"
-            sx={{
-                fontWeight: 600,
-                fontSize: '1.1rem',
-                color: 'text.primary',
-                pl: 4,
-            }}
-        >
-            {value || '—'}
-        </Typography>
-    </Box>
-);
-
 const MeuPerfil: React.FC = () => {
-    const [perfil, setPerfil] = useState<any>(null);
-    const [formData, setFormData] = useState<any>(null);
-    const [originalData, setOriginalData] = useState<any>(null);
+    const { enqueueSnackbar } = useSnackbar();
     const [loading, setLoading] = useState(true);
-    const [uploading, setUploading] = useState(false);
-    const [isEditMode, setIsEditMode] = useState(false);
-    const [message, setMessage] = useState({ type: '', text: '' });
-    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [saving, setSaving] = useState(false);
+    const [editing, setEditing] = useState(false);
+    const [formData, setFormData] = useState<CidadaoData>({
+        nome_completo: '',
+        email: '',
+        cpf: '',
+        telefone: '',
+        data_nascimento: '',
+        genero: '',
+        raca: '',
+        cep: '',
+        rua: '',
+        numero: '',
+        complemento: '',
+        bairro: '',
+        municipio: '',
+        estado: '',
+    });
+    const [fotoPreview, setFotoPreview] = useState<string>('');
 
     useEffect(() => {
-        const fetchPerfil = async () => {
-            try {
-                const response = await api.get('/cidadaos/me');
-                setPerfil(response.data);
-                setFormData(response.data);
-                setOriginalData(response.data);
-            } catch (error) {
-                console.error('Erro ao buscar perfil', error);
-                setMessage({ type: 'error', text: 'Erro ao carregar perfil.' });
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchPerfil();
     }, []);
 
-    const handleEditMode = () => {
-        setIsEditMode(true);
-        setMessage({ type: '', text: '' });
-    };
-
-    const handleCancel = () => {
-        setFormData(originalData);
-        setIsEditMode(false);
-        setMessage({ type: '', text: '' });
-    };
-
-    const handleSave = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setUploading(true);
-        setMessage({ type: '', text: '' });
-
+    const fetchPerfil = async () => {
         try {
-            const dataToSend = new FormData();
-            dataToSend.append('nome_completo', formData.nome_completo);
-            dataToSend.append('telefone', formData.telefone);
-            dataToSend.append('email', formData.email);
-            dataToSend.append('municipio', formData.municipio);
-            dataToSend.append('estado', formData.estado);
-            if (formData.cep) dataToSend.append('cep', formData.cep);
-            if (formData.rua) dataToSend.append('rua', formData.rua);
-            if (formData.numero) dataToSend.append('numero', formData.numero);
-            if (formData.complemento) dataToSend.append('complemento', formData.complemento);
-            if (formData.bairro) dataToSend.append('bairro', formData.bairro);
-
-            const response = await api.put('/cidadaos/me', dataToSend, {
-                headers: { 'Content-Type': 'multipart/form-data' },
-            });
-
-            setPerfil(response.data.cidadao);
-            setFormData(response.data.cidadao);
-            setOriginalData(response.data.cidadao);
-            setIsEditMode(false);
-            setMessage({ type: 'success', text: 'Dados atualizados com sucesso!' });
-        } catch (error) {
-            setMessage({ type: 'error', text: 'Erro ao atualizar dados.' });
+            const response = await api.get('/cidadaos/me');
+            console.log('📸 Dados do perfil:', response.data);
+            const data = {
+                ...response.data,
+                telefone: response.data.telefone || '',
+                cep: response.data.cep || '',
+                rua: response.data.rua || '',
+                numero: response.data.numero || '',
+                complemento: response.data.complemento || '',
+                bairro: response.data.bairro || '',
+                genero: response.data.genero || '',
+                raca: response.data.raca || '',
+            };
+            setFormData(data);
+            if (response.data.foto_perfil) {
+                const fotoUrl = `${BASE_URL}${response.data.foto_perfil}`;
+                console.log('📸 URL da foto:', fotoUrl);
+                setFotoPreview(fotoUrl);
+            }
+        } catch (error: any) {
+            enqueueSnackbar(error.response?.data?.error || 'Erro ao carregar perfil', { variant: 'error' });
         } finally {
-            setUploading(false);
+            setLoading(false);
         }
     };
 
-    const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (!e.target.files || e.target.files.length === 0) return;
+    const handleChange = (field: keyof CidadaoData) => (e: React.ChangeEvent<HTMLInputElement>) => {
+        setFormData({ ...formData, [field]: e.target.value });
+    };
 
-        const file = e.target.files[0];
-        setUploading(true);
-        setMessage({ type: '', text: '' });
+    const handleFotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const formDataUpload = new FormData();
+        formDataUpload.append('foto', file);
+        // Incluir todos os campos obrigatórios
+        formDataUpload.append('nome_completo', formData.nome_completo);
+        formDataUpload.append('telefone', formData.telefone);
+        formDataUpload.append('email', formData.email);
+        formDataUpload.append('municipio', formData.municipio);
+        formDataUpload.append('estado', formData.estado);
+        if (formData.cep) formDataUpload.append('cep', formData.cep);
+        if (formData.rua) formDataUpload.append('rua', formData.rua);
+        if (formData.numero) formDataUpload.append('numero', formData.numero);
+        if (formData.complemento) formDataUpload.append('complemento', formData.complemento);
+        if (formData.bairro) formDataUpload.append('bairro', formData.bairro);
+        if (formData.genero) formDataUpload.append('genero', formData.genero);
+        if (formData.raca) formDataUpload.append('raca', formData.raca);
 
         try {
-            const dataToSend = new FormData();
-            dataToSend.append('foto', file);
-            dataToSend.append('nome_completo', formData.nome_completo);
-            dataToSend.append('telefone', formData.telefone);
-            dataToSend.append('email', formData.email);
-            dataToSend.append('municipio', formData.municipio);
-            dataToSend.append('estado', formData.estado);
-            if (formData.cep) dataToSend.append('cep', formData.cep);
-            if (formData.rua) dataToSend.append('rua', formData.rua);
-            if (formData.numero) dataToSend.append('numero', formData.numero);
-            if (formData.complemento) dataToSend.append('complemento', formData.complemento);
-            if (formData.bairro) dataToSend.append('bairro', formData.bairro);
-
-            const response = await api.put('/cidadaos/me', dataToSend, {
+            const response = await api.put('/cidadaos/me', formDataUpload, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
+            const newPhotoUrl = `${BASE_URL}${response.data.cidadao.foto_perfil}?t=${Date.now()}`;
+            console.log('📸 Nova foto URL:', newPhotoUrl);
+            setFotoPreview(newPhotoUrl);
+            enqueueSnackbar('Foto atualizada com sucesso!', { variant: 'success' });
 
-            setPerfil(response.data.cidadao);
-            setFormData(response.data.cidadao);
-            setOriginalData(response.data.cidadao);
-            setMessage({ type: 'success', text: 'Foto atualizada com sucesso!' });
-        } catch (error) {
-            setMessage({ type: 'error', text: 'Erro ao atualizar foto.' });
+            // Dispatch event to update avatar in layout
+            console.log('🔔 Disparando evento profilePhotoUpdated');
+            window.dispatchEvent(new Event('profilePhotoUpdated'));
+
+            await fetchPerfil();
+        } catch (error: any) {
+            enqueueSnackbar(error.response?.data?.error || 'Erro ao atualizar foto', { variant: 'error' });
+        }
+    };
+
+    const handleSubmit = async () => {
+        setSaving(true);
+        try {
+            await api.put('/cidadaos/me', formData);
+            enqueueSnackbar('Perfil atualizado com sucesso!', { variant: 'success' });
+            setEditing(false);
+            fetchPerfil();
+        } catch (error: any) {
+            enqueueSnackbar(error.response?.data?.error || 'Erro ao atualizar perfil', { variant: 'error' });
         } finally {
-            setUploading(false);
+            setSaving(false);
         }
     };
 
     if (loading) {
         return (
-            <Container maxWidth="md" sx={{ py: 4, display: 'flex', justifyContent: 'center' }}>
-                <CircularProgress />
-            </Container>
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh' }}>
+                <CircularProgress sx={{ color: systemTruckTheme.colors.primary }} size={60} />
+            </Box>
         );
     }
 
-    // URL base da API (sem /api)
-    // URL base da API (sem /api)
-    // const API_BASE_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:3001';
-
-    const avatarUrl = perfil?.foto_perfil
-        ? `${API_URL}${perfil.foto_perfil}`
-        : undefined;
-
     return (
-        <Container maxWidth="lg" sx={{ py: 4 }}>
-            <Typography variant="h4" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
-                Meu Perfil
-            </Typography>
+        <Box sx={{ minHeight: '100vh', background: systemTruckTheme.colors.background, py: 4 }}>
+            <Container maxWidth="lg">
+                {/* Header */}
+                <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
+                    <Box sx={{ mb: 4 }}>
+                        <Typography
+                            variant="h4"
+                            sx={{
+                                fontWeight: 700,
+                                color: systemTruckTheme.colors.primaryDark,
+                                mb: 0.5,
+                            }}
+                        >
+                            Meu Perfil
+                        </Typography>
+                        <Typography sx={{ color: systemTruckTheme.colors.textSecondary }}>
+                            Gerencie suas informações pessoais
+                        </Typography>
+                    </Box>
+                </motion.div>
 
-            {message.text && (
-                <Alert severity={message.type as any} sx={{ mb: 3 }}>
-                    {message.text}
-                </Alert>
-            )}
+                <Grid container spacing={3}>
+                    {/* Card de Foto e Info Básica */}
+                    <Grid item xs={12} md={4}>
+                        <motion.div
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.1 }}
+                        >
+                            <Box
+                                sx={{
+                                    background: systemTruckTheme.colors.cardBackground,
+                                    borderRadius: systemTruckTheme.borderRadius.large,
+                                    border: `1px solid ${systemTruckTheme.colors.border}`,
+                                    p: 4,
+                                    textAlign: 'center',
+                                    boxShadow: systemTruckTheme.shadows.card,
+                                }}
+                            >
+                                {/* Avatar */}
+                                <Box sx={{ position: 'relative', display: 'inline-block', mb: 3 }}>
+                                    <Avatar
+                                        src={fotoPreview}
+                                        sx={{
+                                            width: 150,
+                                            height: 150,
+                                            border: `4px solid ${systemTruckTheme.colors.primary}`,
+                                            fontSize: '3rem',
+                                            background: systemTruckTheme.gradients.primary,
+                                        }}
+                                    >
+                                        {formData.nome_completo?.charAt(0).toUpperCase() || 'C'}
+                                    </Avatar>
+                                    <input
+                                        accept="image/*"
+                                        style={{ display: 'none' }}
+                                        id="foto-upload"
+                                        type="file"
+                                        onChange={handleFotoChange}
+                                    />
+                                    <label htmlFor="foto-upload">
+                                        <IconButton
+                                            component="span"
+                                            sx={{
+                                                position: 'absolute',
+                                                bottom: 0,
+                                                right: 0,
+                                                background: systemTruckTheme.colors.primary,
+                                                color: 'white',
+                                                '&:hover': {
+                                                    background: systemTruckTheme.colors.primaryDark,
+                                                },
+                                            }}
+                                        >
+                                            <Camera size={20} />
+                                        </IconButton>
+                                    </label>
+                                </Box>
 
-            <Grid container spacing={3}>
-                {/* Profile Picture Card */}
-                <Grid item xs={12} md={4}>
-                    <Card elevation={3}>
-                        <CardContent sx={{ textAlign: 'center', py: 4 }}>
-                            <Box sx={{ position: 'relative', display: 'inline-block' }}>
-                                <Avatar
-                                    src={avatarUrl}
+                                {/* Nome e Email */}
+                                <Typography variant="h5" sx={{ fontWeight: 700, color: systemTruckTheme.colors.text, mb: 0.5 }}>
+                                    {formData.nome_completo || 'Cidadão'}
+                                </Typography>
+                                <Typography sx={{ color: systemTruckTheme.colors.textSecondary, mb: 3 }}>
+                                    {formData.email || ''}
+                                </Typography>
+
+                                {/* Botão Editar */}
+                                <Button
+                                    fullWidth
+                                    variant={editing ? 'outlined' : 'contained'}
+                                    startIcon={editing ? <Save size={20} /> : <Edit size={20} />}
+                                    onClick={() => (editing ? handleSubmit() : setEditing(true))}
+                                    disabled={saving}
                                     sx={{
-                                        width: 160,
-                                        height: 160,
-                                        mb: 2,
-                                        border: '4px solid',
-                                        borderColor: 'primary.main',
-                                        cursor: 'pointer',
-                                        transition: 'transform 0.2s',
+                                        background: editing ? 'transparent' : systemTruckTheme.gradients.primary,
+                                        color: editing ? systemTruckTheme.colors.primary : 'white',
+                                        borderColor: systemTruckTheme.colors.primary,
+                                        py: 1.5,
+                                        fontWeight: 600,
+                                        borderRadius: systemTruckTheme.borderRadius.medium,
+                                        textTransform: 'none',
                                         '&:hover': {
-                                            transform: 'scale(1.05)',
+                                            background: editing ? systemTruckTheme.colors.cardHover : systemTruckTheme.colors.primaryDark,
                                         },
                                     }}
-                                    onClick={() => fileInputRef.current?.click()}
                                 >
-                                    <Person sx={{ fontSize: 80 }} />
-                                </Avatar>
-                                <IconButton
-                                    color="primary"
-                                    sx={{
-                                        position: 'absolute',
-                                        bottom: 16,
-                                        right: 0,
-                                        bgcolor: 'background.paper',
-                                        boxShadow: 2,
-                                        '&:hover': { bgcolor: 'background.paper' },
-                                    }}
-                                    onClick={() => fileInputRef.current?.click()}
-                                    disabled={uploading}
-                                >
-                                    <PhotoCamera />
-                                </IconButton>
-                                <input
-                                    ref={fileInputRef}
-                                    type="file"
-                                    hidden
-                                    accept="image/*"
-                                    onChange={handlePhotoChange}
-                                />
+                                    {saving ? 'Salvando...' : editing ? 'Salvar Alterações' : 'Editar Perfil'}
+                                </Button>
                             </Box>
-                            <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                                {perfil?.nome_completo}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                                {perfil?.email}
-                            </Typography>
-                        </CardContent>
-                    </Card>
-                </Grid>
+                        </motion.div>
+                    </Grid>
 
-                {/* Profile Information Card */}
-                <Grid item xs={12} md={8}>
-                    <Card elevation={3}>
-                        <CardContent sx={{ p: 4 }}>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                                <Typography
-                                    variant="h5"
-                                    sx={{
-                                        fontWeight: 700,
-                                        color: 'primary.main',
-                                        letterSpacing: -0.5,
-                                    }}
-                                >
-                                    Informações Pessoais
-                                </Typography>
-                                {!isEditMode && (
-                                    <Button
-                                        variant="contained"
-                                        size="large"
-                                        startIcon={<Edit />}
-                                        onClick={handleEditMode}
-                                        sx={{
-                                            px: 3,
-                                            py: 1.5,
-                                            fontWeight: 600,
-                                            boxShadow: 2,
-                                        }}
-                                    >
-                                        Editar meus dados
-                                    </Button>
-                                )}
-                            </Box>
-                            <Divider sx={{ mb: 4, borderColor: 'primary.light' }} />
+                    {/* Card de Informações Detalhadas */}
+                    <Grid item xs={12} md={8}>
+                        <motion.div
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.2 }}
+                        >
+                            <Box
+                                sx={{
+                                    background: systemTruckTheme.colors.cardBackground,
+                                    borderRadius: systemTruckTheme.borderRadius.large,
+                                    border: `1px solid ${systemTruckTheme.colors.border}`,
+                                    p: 4,
+                                    boxShadow: systemTruckTheme.shadows.card,
+                                }}
+                            >
+                                {/* Informações Pessoais */}
+                                <Box sx={{ mb: 4 }}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+                                        <User size={24} color={systemTruckTheme.colors.primary} />
+                                        <Typography variant="h6" sx={{ fontWeight: 700, color: systemTruckTheme.colors.primaryDark }}>
+                                            Informações Pessoais
+                                        </Typography>
+                                    </Box>
 
-                            {!isEditMode ? (
-                                // VIEW MODE
-                                <Box>
-                                    <ViewField
-                                        label="Nome Completo"
-                                        value={perfil?.nome_completo}
-                                        icon={<Person fontSize="medium" />}
-                                    />
-                                    <Grid container spacing={2}>
-                                        <Grid item xs={12} sm={6}>
-                                            <ViewField
-                                                label="CPF (Documento Institucional)"
-                                                value={formatCPF(perfil?.cpf)}
-                                                icon={<Lock fontSize="medium" />}
-                                                locked
-                                            />
-                                        </Grid>
-                                        <Grid item xs={12} sm={6}>
-                                            <ViewField
-                                                label="E-mail"
-                                                value={perfil?.email}
-                                                icon={<Email fontSize="medium" />}
-                                            />
-                                        </Grid>
-                                    </Grid>
-                                    <ViewField
-                                        label="Telefone"
-                                        value={formatPhone(perfil?.telefone)}
-                                        icon={<Phone fontSize="medium" />}
-                                    />
-
-                                    <Divider sx={{ my: 4, borderColor: 'divider' }} />
-
-                                    <Typography
-                                        variant="h6"
-                                        sx={{
-                                            fontWeight: 700,
-                                            color: 'primary.main',
-                                            mb: 3,
-                                        }}
-                                    >
-                                        Endereço Residencial
-                                    </Typography>
-
-                                    <Grid container spacing={2}>
-                                        <Grid item xs={12} sm={6}>
-                                            <ViewField
-                                                label="CEP"
-                                                value={formatCEP(perfil?.cep)}
-                                                icon={<LocationOn fontSize="medium" />}
-                                            />
-                                        </Grid>
-                                        <Grid item xs={12} sm={6}>
-                                            <ViewField
-                                                label="Município"
-                                                value={perfil?.municipio}
-                                                icon={<LocationOn fontSize="medium" />}
-                                            />
-                                        </Grid>
-                                    </Grid>
-                                    <ViewField
-                                        label="Rua/Logradouro"
-                                        value={perfil?.rua}
-                                        icon={<LocationOn fontSize="medium" />}
-                                    />
-                                    <Grid container spacing={2}>
-                                        <Grid item xs={12} sm={4}>
-                                            <ViewField
-                                                label="Número"
-                                                value={perfil?.numero}
-                                                icon={<LocationOn fontSize="medium" />}
-                                            />
-                                        </Grid>
-                                        <Grid item xs={12} sm={4}>
-                                            <ViewField
-                                                label="Complemento"
-                                                value={perfil?.complemento}
-                                                icon={<LocationOn fontSize="medium" />}
-                                            />
-                                        </Grid>
-                                        <Grid item xs={12} sm={4}>
-                                            <ViewField
-                                                label="Bairro"
-                                                value={perfil?.bairro}
-                                                icon={<LocationOn fontSize="medium" />}
-                                            />
-                                        </Grid>
-                                    </Grid>
-                                    <ViewField
-                                        label="Estado"
-                                        value={perfil?.estado}
-                                        icon={<LocationOn fontSize="medium" />}
-                                    />
-                                </Box>
-                            ) : (
-                                // EDIT MODE
-                                <Box component="form" onSubmit={handleSave}>
                                     <Grid container spacing={2}>
                                         <Grid item xs={12}>
                                             <TextField
                                                 fullWidth
                                                 label="Nome Completo"
-                                                value={formData?.nome_completo || ''}
-                                                onChange={(e) =>
-                                                    setFormData({ ...formData, nome_completo: e.target.value })
-                                                }
-                                                variant="outlined"
-                                                required
-                                            />
-                                        </Grid>
-                                        <Grid item xs={12} sm={6}>
-                                            <TextField
-                                                fullWidth
-                                                label="CPF (não editável)"
-                                                value={formatCPF(formData?.cpf) || ''}
-                                                disabled
-                                                variant="outlined"
-                                                InputProps={{
-                                                    startAdornment: <Lock fontSize="small" sx={{ mr: 1, color: 'text.disabled' }} />,
+                                                value={formData.nome_completo}
+                                                onChange={handleChange('nome_completo')}
+                                                disabled={!editing}
+                                                sx={{
+                                                    '& .MuiOutlinedInput-root': {
+                                                        borderRadius: systemTruckTheme.borderRadius.medium,
+                                                    },
+                                                    '& .MuiInputBase-input': {
+                                                        fontWeight: editing ? 400 : '600 !important',
+                                                    },
+                                                    '& .MuiInputBase-input.Mui-disabled': {
+                                                        fontWeight: '600 !important',
+                                                        WebkitTextFillColor: systemTruckTheme.colors.text,
+                                                    },
                                                 }}
-                                                helperText="CPF não pode ser alterado"
                                             />
                                         </Grid>
                                         <Grid item xs={12} sm={6}>
                                             <TextField
                                                 fullWidth
-                                                label="E-mail"
-                                                type="email"
-                                                value={formData?.email || ''}
-                                                onChange={(e) =>
-                                                    setFormData({ ...formData, email: e.target.value })
-                                                }
-                                                variant="outlined"
-                                                required
+                                                label="CPF"
+                                                value={formData.cpf}
+                                                disabled
+                                                InputProps={{
+                                                    startAdornment: <User size={20} style={{ marginRight: 8, color: systemTruckTheme.colors.textSecondary }} />,
+                                                }}
+                                                sx={{
+                                                    '& .MuiOutlinedInput-root': {
+                                                        borderRadius: systemTruckTheme.borderRadius.medium,
+                                                    },
+                                                    '& .MuiInputBase-input.Mui-disabled': {
+                                                        fontWeight: '600 !important',
+                                                        WebkitTextFillColor: systemTruckTheme.colors.text,
+                                                    },
+                                                }}
                                             />
                                         </Grid>
                                         <Grid item xs={12} sm={6}>
                                             <TextField
                                                 fullWidth
                                                 label="Telefone"
-                                                value={formData?.telefone || ''}
-                                                onChange={(e) =>
-                                                    setFormData({ ...formData, telefone: e.target.value })
-                                                }
-                                                variant="outlined"
-                                                required
+                                                value={formData.telefone}
+                                                onChange={handleChange('telefone')}
+                                                disabled={!editing}
+                                                InputProps={{
+                                                    startAdornment: <Phone size={20} style={{ marginRight: 8, color: systemTruckTheme.colors.textSecondary }} />,
+                                                }}
+                                                sx={{
+                                                    '& .MuiOutlinedInput-root': {
+                                                        borderRadius: systemTruckTheme.borderRadius.medium,
+                                                    },
+                                                    '& .MuiInputBase-input': {
+                                                        fontWeight: editing ? 400 : '600 !important',
+                                                    },
+                                                    '& .MuiInputBase-input.Mui-disabled': {
+                                                        fontWeight: '600 !important',
+                                                        WebkitTextFillColor: systemTruckTheme.colors.text,
+                                                    },
+                                                }}
                                             />
                                         </Grid>
-
                                         <Grid item xs={12}>
-                                            <Divider sx={{ my: 2 }} />
-                                            <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                                                Endereço Residencial
-                                            </Typography>
+                                            <TextField
+                                                fullWidth
+                                                label="E-mail"
+                                                value={formData.email}
+                                                onChange={handleChange('email')}
+                                                disabled={!editing}
+                                                InputProps={{
+                                                    startAdornment: <Mail size={20} style={{ marginRight: 8, color: systemTruckTheme.colors.textSecondary }} />,
+                                                }}
+                                                sx={{
+                                                    '& .MuiOutlinedInput-root': {
+                                                        borderRadius: systemTruckTheme.borderRadius.medium,
+                                                    },
+                                                    '& .MuiInputBase-input': {
+                                                        fontWeight: editing ? 400 : '600 !important',
+                                                    },
+                                                    '& .MuiInputBase-input.Mui-disabled': {
+                                                        fontWeight: '600 !important',
+                                                        WebkitTextFillColor: systemTruckTheme.colors.text,
+                                                    },
+                                                }}
+                                            />
                                         </Grid>
-
                                         <Grid item xs={12} sm={6}>
+                                            <TextField
+                                                select
+                                                fullWidth
+                                                label="Gênero"
+                                                value={formData.genero || ''}
+                                                onChange={handleChange('genero')}
+                                                disabled={!editing}
+                                                InputProps={{
+                                                    startAdornment: <Users size={20} style={{ marginRight: 8, color: systemTruckTheme.colors.textSecondary }} />,
+                                                }}
+                                                sx={{
+                                                    '& .MuiOutlinedInput-root': {
+                                                        borderRadius: systemTruckTheme.borderRadius.medium,
+                                                    },
+                                                    '& .MuiInputBase-input': {
+                                                        fontWeight: editing ? 400 : '600 !important',
+                                                    },
+                                                    '& .MuiInputBase-input.Mui-disabled': {
+                                                        fontWeight: '600 !important',
+                                                        WebkitTextFillColor: systemTruckTheme.colors.text,
+                                                    },
+                                                }}
+                                            >
+                                                <MenuItem value="">Prefiro não informar</MenuItem>
+                                                <MenuItem value="masculino">Masculino</MenuItem>
+                                                <MenuItem value="feminino">Feminino</MenuItem>
+                                                <MenuItem value="outro">Outro</MenuItem>
+                                            </TextField>
+                                        </Grid>
+                                        <Grid item xs={12} sm={6}>
+                                            <TextField
+                                                select
+                                                fullWidth
+                                                label="Raça/Cor"
+                                                value={formData.raca || ''}
+                                                onChange={handleChange('raca')}
+                                                disabled={!editing}
+                                                InputProps={{
+                                                    startAdornment: <Users size={20} style={{ marginRight: 8, color: systemTruckTheme.colors.textSecondary }} />,
+                                                }}
+                                                sx={{
+                                                    '& .MuiOutlinedInput-root': {
+                                                        borderRadius: systemTruckTheme.borderRadius.medium,
+                                                    },
+                                                    '& .MuiInputBase-input': {
+                                                        fontWeight: editing ? 400 : '600 !important',
+                                                    },
+                                                    '& .MuiInputBase-input.Mui-disabled': {
+                                                        fontWeight: '600 !important',
+                                                        WebkitTextFillColor: systemTruckTheme.colors.text,
+                                                    },
+                                                }}
+                                            >
+                                                <MenuItem value="">Prefiro não informar</MenuItem>
+                                                <MenuItem value="branca">Branca</MenuItem>
+                                                <MenuItem value="preta">Preta</MenuItem>
+                                                <MenuItem value="parda">Parda</MenuItem>
+                                                <MenuItem value="amarela">Amarela</MenuItem>
+                                                <MenuItem value="indigena">Indígena</MenuItem>
+                                            </TextField>
+                                        </Grid>
+                                    </Grid>
+                                </Box>
+
+                                {/* Endereço Residencial */}
+                                <Box>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+                                        <MapPin size={24} color={systemTruckTheme.colors.primary} />
+                                        <Typography variant="h6" sx={{ fontWeight: 700, color: systemTruckTheme.colors.primaryDark }}>
+                                            Endereço Residencial
+                                        </Typography>
+                                    </Box>
+
+                                    <Grid container spacing={2}>
+                                        <Grid item xs={12} sm={4}>
                                             <TextField
                                                 fullWidth
                                                 label="CEP"
-                                                value={formData?.cep || ''}
-                                                onChange={(e) =>
-                                                    setFormData({ ...formData, cep: e.target.value })
-                                                }
-                                                variant="outlined"
-                                                placeholder="00000-000"
+                                                value={formData.cep}
+                                                onChange={handleChange('cep')}
+                                                disabled={!editing}
+                                                sx={{
+                                                    '& .MuiOutlinedInput-root': {
+                                                        borderRadius: systemTruckTheme.borderRadius.medium,
+                                                    },
+                                                    '& .MuiInputBase-input': {
+                                                        fontWeight: editing ? 400 : '600 !important',
+                                                    },
+                                                    '& .MuiInputBase-input.Mui-disabled': {
+                                                        fontWeight: '600 !important',
+                                                        WebkitTextFillColor: systemTruckTheme.colors.text,
+                                                    },
+                                                }}
                                             />
                                         </Grid>
-                                        <Grid item xs={12} sm={6}>
+                                        <Grid item xs={12} sm={8}>
                                             <TextField
                                                 fullWidth
                                                 label="Município"
-                                                value={formData?.municipio || ''}
-                                                onChange={(e) =>
-                                                    setFormData({ ...formData, municipio: e.target.value })
-                                                }
-                                                variant="outlined"
-                                                required
+                                                value={formData.municipio}
+                                                onChange={handleChange('municipio')}
+                                                disabled={!editing}
+                                                sx={{
+                                                    '& .MuiOutlinedInput-root': {
+                                                        borderRadius: systemTruckTheme.borderRadius.medium,
+                                                    },
+                                                    '& .MuiInputBase-input': {
+                                                        fontWeight: editing ? 400 : '600 !important',
+                                                    },
+                                                    '& .MuiInputBase-input.Mui-disabled': {
+                                                        fontWeight: '600 !important',
+                                                        WebkitTextFillColor: systemTruckTheme.colors.text,
+                                                    },
+                                                }}
                                             />
                                         </Grid>
-                                        <Grid item xs={12}>
+                                        <Grid item xs={12} sm={8}>
                                             <TextField
                                                 fullWidth
-                                                label="Rua/Logradouro"
-                                                value={formData?.rua || ''}
-                                                onChange={(e) =>
-                                                    setFormData({ ...formData, rua: e.target.value })
-                                                }
-                                                variant="outlined"
+                                                label="Rua / Logradouro"
+                                                value={formData.rua}
+                                                onChange={handleChange('rua')}
+                                                disabled={!editing}
+                                                sx={{
+                                                    '& .MuiOutlinedInput-root': {
+                                                        borderRadius: systemTruckTheme.borderRadius.medium,
+                                                    },
+                                                    '& .MuiInputBase-input': {
+                                                        fontWeight: editing ? 400 : '600 !important',
+                                                    },
+                                                    '& .MuiInputBase-input.Mui-disabled': {
+                                                        fontWeight: '600 !important',
+                                                        WebkitTextFillColor: systemTruckTheme.colors.text,
+                                                    },
+                                                }}
                                             />
                                         </Grid>
                                         <Grid item xs={12} sm={4}>
                                             <TextField
                                                 fullWidth
                                                 label="Número"
-                                                value={formData?.numero || ''}
-                                                onChange={(e) =>
-                                                    setFormData({ ...formData, numero: e.target.value })
-                                                }
-                                                variant="outlined"
+                                                value={formData.numero}
+                                                onChange={handleChange('numero')}
+                                                disabled={!editing}
+                                                sx={{
+                                                    '& .MuiOutlinedInput-root': {
+                                                        borderRadius: systemTruckTheme.borderRadius.medium,
+                                                    },
+                                                    '& .MuiInputBase-input': {
+                                                        fontWeight: editing ? 400 : '600 !important',
+                                                    },
+                                                    '& .MuiInputBase-input.Mui-disabled': {
+                                                        fontWeight: '600 !important',
+                                                        WebkitTextFillColor: systemTruckTheme.colors.text,
+                                                    },
+                                                }}
                                             />
                                         </Grid>
-                                        <Grid item xs={12} sm={4}>
+                                        <Grid item xs={12} sm={6}>
                                             <TextField
                                                 fullWidth
                                                 label="Complemento"
-                                                value={formData?.complemento || ''}
-                                                onChange={(e) =>
-                                                    setFormData({ ...formData, complemento: e.target.value })
-                                                }
-                                                variant="outlined"
+                                                value={formData.complemento}
+                                                onChange={handleChange('complemento')}
+                                                disabled={!editing}
+                                                sx={{
+                                                    '& .MuiOutlinedInput-root': {
+                                                        borderRadius: systemTruckTheme.borderRadius.medium,
+                                                    },
+                                                    '& .MuiInputBase-input': {
+                                                        fontWeight: editing ? 400 : '600 !important',
+                                                    },
+                                                    '& .MuiInputBase-input.Mui-disabled': {
+                                                        fontWeight: '600 !important',
+                                                        WebkitTextFillColor: systemTruckTheme.colors.text,
+                                                    },
+                                                }}
+                                            />
+                                        </Grid>
+                                        <Grid item xs={12} sm={6}>
+                                            <TextField
+                                                fullWidth
+                                                label="Bairro"
+                                                value={formData.bairro}
+                                                onChange={handleChange('bairro')}
+                                                disabled={!editing}
+                                                sx={{
+                                                    '& .MuiOutlinedInput-root': {
+                                                        borderRadius: systemTruckTheme.borderRadius.medium,
+                                                    },
+                                                    '& .MuiInputBase-input': {
+                                                        fontWeight: editing ? 400 : '600 !important',
+                                                    },
+                                                    '& .MuiInputBase-input.Mui-disabled': {
+                                                        fontWeight: '600 !important',
+                                                        WebkitTextFillColor: systemTruckTheme.colors.text,
+                                                    },
+                                                }}
                                             />
                                         </Grid>
                                         <Grid item xs={12} sm={4}>
                                             <TextField
                                                 fullWidth
-                                                label="Bairro"
-                                                value={formData?.bairro || ''}
-                                                onChange={(e) =>
-                                                    setFormData({ ...formData, bairro: e.target.value })
-                                                }
-                                                variant="outlined"
-                                            />
-                                        </Grid>
-                                        <Grid item xs={12}>
-                                            <TextField
-                                                fullWidth
                                                 label="Estado"
-                                                value={formData?.estado || ''}
-                                                onChange={(e) =>
-                                                    setFormData({ ...formData, estado: e.target.value })
-                                                }
-                                                variant="outlined"
-                                                required
-                                                placeholder="UF (ex: MA)"
-                                                inputProps={{ maxLength: 2 }}
+                                                value={formData.estado}
+                                                onChange={handleChange('estado')}
+                                                disabled={!editing}
+                                                sx={{
+                                                    '& .MuiOutlinedInput-root': {
+                                                        borderRadius: systemTruckTheme.borderRadius.medium,
+                                                    },
+                                                    '& .MuiInputBase-input': {
+                                                        fontWeight: editing ? 400 : '600 !important',
+                                                    },
+                                                    '& .MuiInputBase-input.Mui-disabled': {
+                                                        fontWeight: '600 !important',
+                                                        WebkitTextFillColor: systemTruckTheme.colors.text,
+                                                    },
+                                                }}
                                             />
-                                        </Grid>
-                                        <Grid item xs={12}>
-                                            <Stack direction="row" spacing={2}>
-                                                <Button
-                                                    type="submit"
-                                                    variant="contained"
-                                                    color="primary"
-                                                    size="large"
-                                                    startIcon={uploading ? <CircularProgress size={20} /> : <Save />}
-                                                    disabled={uploading}
-                                                    fullWidth
-                                                >
-                                                    {uploading ? 'Salvando...' : 'Salvar Alterações'}
-                                                </Button>
-                                                <Button
-                                                    variant="outlined"
-                                                    color="secondary"
-                                                    size="large"
-                                                    startIcon={<Cancel />}
-                                                    onClick={handleCancel}
-                                                    disabled={uploading}
-                                                    fullWidth
-                                                >
-                                                    Cancelar
-                                                </Button>
-                                            </Stack>
                                         </Grid>
                                     </Grid>
                                 </Box>
-                            )}
-                        </CardContent>
-                    </Card>
+
+                                {/* Botões de Ação (Mobile) */}
+                                {editing && (
+                                    <Box sx={{ mt: 4, display: { xs: 'flex', md: 'none' }, gap: 2 }}>
+                                        <Button
+                                            fullWidth
+                                            variant="outlined"
+                                            onClick={() => {
+                                                setEditing(false);
+                                                fetchPerfil();
+                                            }}
+                                            sx={{
+                                                borderColor: systemTruckTheme.colors.border,
+                                                color: systemTruckTheme.colors.text,
+                                                borderRadius: systemTruckTheme.borderRadius.medium,
+                                                textTransform: 'none',
+                                            }}
+                                        >
+                                            Cancelar
+                                        </Button>
+                                        <Button
+                                            fullWidth
+                                            variant="contained"
+                                            onClick={handleSubmit}
+                                            disabled={saving}
+                                            sx={{
+                                                background: systemTruckTheme.gradients.primary,
+                                                borderRadius: systemTruckTheme.borderRadius.medium,
+                                                textTransform: 'none',
+                                            }}
+                                        >
+                                            {saving ? 'Salvando...' : 'Salvar'}
+                                        </Button>
+                                    </Box>
+                                )}
+                            </Box>
+                        </motion.div>
+                    </Grid>
                 </Grid>
-            </Grid>
-        </Container>
+            </Container>
+        </Box>
     );
 };
 

@@ -19,9 +19,6 @@ const PublicLayout: React.FC = () => {
                     <Button color="inherit" component={RouterLink} to="/">
                         Início
                     </Button>
-                    <Button color="inherit" component={RouterLink} to="/acoes">
-                        Ações
-                    </Button>
 
                     {isAuthenticated ? (
                         <Button color="inherit" component={RouterLink} to="/portal">

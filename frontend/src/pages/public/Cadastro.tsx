@@ -34,6 +34,8 @@ const Cadastro: React.FC = () => {
         confirmarSenha: '',
         municipio: '',
         estado: '',
+        genero: '',
+        raca: '',
     });
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -181,6 +183,40 @@ const Cadastro: React.FC = () => {
                                 onChange={handleChange}
                                 InputLabelProps={{ shrink: true }}
                             />
+                        </Grid>
+
+                        <Grid item xs={12} sm={6}>
+                            <TextField
+                                select
+                                fullWidth
+                                label="Gênero"
+                                name="genero"
+                                value={formData.genero}
+                                onChange={handleChange}
+                            >
+                                <MenuItem value="">Prefiro não informar</MenuItem>
+                                <MenuItem value="masculino">Masculino</MenuItem>
+                                <MenuItem value="feminino">Feminino</MenuItem>
+                                <MenuItem value="outro">Outro</MenuItem>
+                            </TextField>
+                        </Grid>
+
+                        <Grid item xs={12} sm={6}>
+                            <TextField
+                                select
+                                fullWidth
+                                label="Raça/Cor"
+                                name="raca"
+                                value={formData.raca}
+                                onChange={handleChange}
+                            >
+                                <MenuItem value="">Prefiro não informar</MenuItem>
+                                <MenuItem value="branca">Branca</MenuItem>
+                                <MenuItem value="preta">Preta</MenuItem>
+                                <MenuItem value="parda">Parda</MenuItem>
+                                <MenuItem value="amarela">Amarela</MenuItem>
+                                <MenuItem value="indigena">Indígena</MenuItem>
+                            </TextField>
                         </Grid>
 
                         <Grid item xs={12} sm={6}>

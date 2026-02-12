@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Link as RouterLink } from 'react-router-dom';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../store';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, EffectFade } from 'swiper/modules';
 import {
@@ -21,7 +23,18 @@ interface Acao {
 }
 
 const Home: React.FC = () => {
+    const navigate = useNavigate();
+    const { isAuthenticated } = useSelector((state: RootState) => state.auth);
     const [acoes, setAcoes] = useState<Acao[]>([]);
+
+    const handleCTAClick = (e: React.MouseEvent) => {
+        e.preventDefault();
+        if (isAuthenticated || localStorage.getItem('token')) {
+            navigate('/portal');
+        } else {
+            navigate('/login');
+        }
+    };
 
     useEffect(() => {
         loadData();
@@ -138,10 +151,10 @@ const Home: React.FC = () => {
                         <p className="hero-subtitle">
                             Sistema integrado para gerenciar ações de saúde itinerantes com eficiência e praticidade
                         </p>
-                        <RouterLink to="/login" className="hero-cta">
+                        <a href="#" onClick={handleCTAClick} className="hero-cta">
                             <span>Acessar Sistema</span>
                             <ArrowRight size={20} />
-                        </RouterLink>
+                        </a>
                     </div>
                 </div>
             </section>
@@ -313,10 +326,10 @@ const Home: React.FC = () => {
                     <div className="cta-content">
                         <h2 className="cta-title">Transforme a gestão da sua operação de saúde móvel</h2>
                         <p className="cta-subtitle">Comece agora e descubra como o System Truck pode otimizar seus processos</p>
-                        <RouterLink to="/login" className="cta-button">
+                        <a href="#" onClick={handleCTAClick} className="cta-button">
                             <span>Começar Agora</span>
                             <ArrowRight size={20} />
-                        </RouterLink>
+                        </a>
                     </div>
                 </div>
             </section>

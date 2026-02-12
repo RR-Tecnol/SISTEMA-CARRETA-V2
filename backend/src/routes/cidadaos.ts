@@ -176,7 +176,7 @@ router.get('/me', authenticate, async (req: AuthRequest, res: Response) => {
 router.put('/me', authenticate, uploadPerfil.single('foto'), async (req: AuthRequest, res: Response) => {
     try {
         const cidadao_id = req.user!.id;
-        const { nome_completo, telefone, email, municipio, estado, cep, rua, numero, complemento, bairro, campos_customizados } = req.body;
+        const { nome_completo, telefone, email, municipio, estado, cep, rua, numero, complemento, bairro, genero, raca, campos_customizados } = req.body;
 
         const cidadao = await Cidadao.findByPk(cidadao_id);
         if (!cidadao) {
@@ -196,6 +196,8 @@ router.put('/me', authenticate, uploadPerfil.single('foto'), async (req: AuthReq
             numero: numero || cidadao.numero,
             complemento: complemento || cidadao.complemento,
             bairro: bairro || cidadao.bairro,
+            genero: genero !== undefined ? genero : cidadao.genero,
+            raca: raca !== undefined ? raca : cidadao.raca,
             campos_customizados: campos_customizados || cidadao.campos_customizados,
         };
 
