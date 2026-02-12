@@ -1551,6 +1551,7 @@ const GerenciarAcao = () => {
                                         }}>
                                             <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Cidadão</TableCell>
                                             <TableCell sx={{ color: '#fff', fontWeight: 600 }}>CPF</TableCell>
+                                            <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Curso/Exame</TableCell>
                                             <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Data Inscrição</TableCell>
                                             <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Status</TableCell>
                                             <TableCell sx={{ color: '#fff', fontWeight: 600 }}>Ações</TableCell>
@@ -1561,6 +1562,17 @@ const GerenciarAcao = () => {
                                             <TableRow key={inscricao.id}>
                                                 <TableCell>{inscricao.cidadao?.nome_completo || '-'}</TableCell>
                                                 <TableCell>{inscricao.cidadao?.cpf || '-'}</TableCell>
+                                                <TableCell>
+                                                    <Chip
+                                                        label={inscricao.curso_exame?.nome || 'N/A'}
+                                                        size="small"
+                                                        sx={{
+                                                            background: 'rgba(70, 130, 180, 0.1)',
+                                                            color: '#4682b4',
+                                                            fontWeight: 600
+                                                        }}
+                                                    />
+                                                </TableCell>
                                                 <TableCell>
                                                     {new Date(inscricao.data_inscricao).toLocaleDateString('pt-BR')}
                                                 </TableCell>
