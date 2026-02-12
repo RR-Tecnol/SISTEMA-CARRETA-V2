@@ -2,7 +2,14 @@ import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 import path from 'path';
 
-dotenv.config({ path: path.join(__dirname, '../../.env') });
+dotenv.config({ path: path.join(__dirname, '../.env') });
+
+console.log('🔧 SMTP Configuration:');
+console.log('  Host:', process.env.SMTP_HOST);
+console.log('  Port:', process.env.SMTP_PORT);
+console.log('  User:', process.env.SMTP_USER);
+console.log('  From:', process.env.SMTP_FROM);
+console.log('  Pass configured:', !!process.env.SMTP_PASS);
 
 const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
@@ -15,6 +22,15 @@ const transporter = nodemailer.createTransport({
     tls: {
         rejectUnauthorized: false
     },
+});
+
+// Verify connection configuration
+transporter.verify(function (error, success) {
+    if (error) {
+        console.error('❌ SMTP Connection Error:', error);
+    } else {
+        console.log('✅ SMTP Server is ready to send emails');
+    }
 });
 
 export const sendPasswordResetEmail = async (email: string, token: string) => {
@@ -44,11 +60,15 @@ export const sendPasswordResetEmail = async (email: string, token: string) => {
     };
 
     try {
+        console.log(`📧 Tentando enviar e-mail para: ${email}`);
         const info = await transporter.sendMail(mailOptions);
-        console.log('📧 E-mail enviado: %s', info.messageId);
+        console.log('✅ E-mail enviado com sucesso! ID:', info.messageId);
         return info;
-    } catch (error) {
-        console.error('❌ Erro ao enviar e-mail:', error);
+    } catch (error: any) {
+        console.error('❌ Erro ao enviar e-mail:');
+        console.error('  Mensagem:', error.message);
+        console.error('  Código:', error.code);
+        console.error('  Detalhes:', error);
         throw error;
     }
 };
