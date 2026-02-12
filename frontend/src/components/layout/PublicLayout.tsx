@@ -1,49 +1,244 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
-import { Box, AppBar, Toolbar, Typography, Button, Container } from '@mui/material';
-import { Link as RouterLink } from 'react-router-dom';
+import { Box, Container, Typography } from '@mui/material';
+import { Link as RouterLink, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../store';
+import { motion } from 'framer-motion';
+import { Home, LogIn, UserPlus, LayoutDashboard, Truck } from 'lucide-react';
+import { systemTruckTheme } from '../../theme/systemTruckTheme';
 
 const PublicLayout: React.FC = () => {
     const { isAuthenticated } = useSelector((state: RootState) => state.auth);
+    const location = useLocation();
+
+    const isActive = (path: string) => location.pathname === path;
 
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-            <AppBar position="static">
-                <Toolbar>
-                    <Typography variant="h6" component={RouterLink} to="/" sx={{ flexGrow: 1, textDecoration: 'none', color: 'inherit' }}>
-                        System Truck
-                    </Typography>
+            {/* Modern Header */}
+            <Box
+                component="header"
+                sx={{
+                    position: 'sticky',
+                    top: 0,
+                    zIndex: 1100,
+                    background: '#ffffff',
+                    backdropFilter: 'blur(20px)',
+                    boxShadow: '0 4px 30px rgba(0, 0, 0, 0.08)',
+                    borderBottom: '1px solid rgba(93, 173, 226, 0.1)',
+                }}
+            >
+                <Container maxWidth="xl">
+                    <Box
+                        sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            py: 2,
+                        }}
+                    >
+                        {/* Logo */}
+                        <motion.div
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ duration: 0.5 }}
+                        >
+                            <Box
+                                component={RouterLink}
+                                to="/"
+                                sx={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 1.5,
+                                    textDecoration: 'none',
+                                    transition: 'all 0.3s ease',
+                                    '&:hover': {
+                                        transform: 'scale(1.05)',
+                                    },
+                                }}
+                            >
+                                <Box
+                                    sx={{
+                                        width: 40,
+                                        height: 40,
+                                        borderRadius: '12px',
+                                        background: `linear-gradient(135deg, ${systemTruckTheme.colors.primary}, ${systemTruckTheme.colors.primaryDark})`,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        boxShadow: `0 4px 16px ${systemTruckTheme.colors.primary}40`,
+                                    }}
+                                >
+                                    <Truck size={24} color="#fff" />
+                                </Box>
+                                <Typography
+                                    variant="h6"
+                                    sx={{
+                                        fontWeight: 700,
+                                        background: `linear-gradient(135deg, ${systemTruckTheme.colors.primary}, ${systemTruckTheme.colors.primaryDark})`,
+                                        backgroundClip: 'text',
+                                        WebkitBackgroundClip: 'text',
+                                        WebkitTextFillColor: 'transparent',
+                                        fontSize: '1.5rem',
+                                    }}
+                                >
+                                    System Truck
+                                </Typography>
+                            </Box>
+                        </motion.div>
 
-                    <Button color="inherit" component={RouterLink} to="/">
-                        Início
-                    </Button>
+                        {/* Navigation Buttons */}
+                        <motion.div
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ duration: 0.5, delay: 0.1 }}
+                        >
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                {/* Início Button */}
+                                <Box
+                                    component={RouterLink}
+                                    to="/"
+                                    sx={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 0.75,
+                                        px: 2,
+                                        py: 1,
+                                        borderRadius: '10px',
+                                        textDecoration: 'none',
+                                        color: isActive('/') ? systemTruckTheme.colors.primary : systemTruckTheme.colors.textSecondary,
+                                        fontWeight: 600,
+                                        fontSize: '0.95rem',
+                                        transition: 'all 0.3s ease',
+                                        background: isActive('/') ? `${systemTruckTheme.colors.primary}15` : 'transparent',
+                                        '&:hover': {
+                                            background: `${systemTruckTheme.colors.primary}15`,
+                                            color: systemTruckTheme.colors.primary,
+                                            transform: 'translateY(-2px)',
+                                        },
+                                    }}
+                                >
+                                    <Home size={18} />
+                                    <span>Início</span>
+                                </Box>
 
-                    {isAuthenticated ? (
-                        <Button color="inherit" component={RouterLink} to="/portal">
-                            Meu Portal
-                        </Button>
-                    ) : (
-                        <>
-                            <Button color="inherit" component={RouterLink} to="/login">
-                                Entrar
-                            </Button>
-                            <Button variant="contained" color="secondary" component={RouterLink} to="/cadastro" sx={{ ml: 1 }}>
-                                Cadastrar
-                            </Button>
-                        </>
-                    )}
-                </Toolbar>
-            </AppBar>
+                                {isAuthenticated ? (
+                                    <Box
+                                        component={RouterLink}
+                                        to="/portal"
+                                        sx={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 0.75,
+                                            px: 3,
+                                            py: 1.25,
+                                            borderRadius: '12px',
+                                            textDecoration: 'none',
+                                            color: '#fff',
+                                            fontWeight: 600,
+                                            fontSize: '0.95rem',
+                                            background: `linear-gradient(135deg, ${systemTruckTheme.colors.primary}, ${systemTruckTheme.colors.primaryDark})`,
+                                            boxShadow: `0 4px 16px ${systemTruckTheme.colors.primary}40`,
+                                            transition: 'all 0.3s ease',
+                                            '&:hover': {
+                                                transform: 'translateY(-2px)',
+                                                boxShadow: `0 6px 24px ${systemTruckTheme.colors.primary}60`,
+                                            },
+                                        }}
+                                    >
+                                        <LayoutDashboard size={18} />
+                                        <span>Meu Portal</span>
+                                    </Box>
+                                ) : (
+                                    <>
+                                        {/* Entrar Button */}
+                                        <Box
+                                            component={RouterLink}
+                                            to="/login"
+                                            sx={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: 0.75,
+                                                px: 2.5,
+                                                py: 1.25,
+                                                borderRadius: '12px',
+                                                textDecoration: 'none',
+                                                color: systemTruckTheme.colors.primary,
+                                                fontWeight: 600,
+                                                fontSize: '0.95rem',
+                                                border: `2px solid ${systemTruckTheme.colors.primary}`,
+                                                transition: 'all 0.3s ease',
+                                                '&:hover': {
+                                                    background: `${systemTruckTheme.colors.primary}10`,
+                                                    transform: 'translateY(-2px)',
+                                                    boxShadow: `0 4px 16px ${systemTruckTheme.colors.primary}30`,
+                                                },
+                                            }}
+                                        >
+                                            <LogIn size={18} />
+                                            <span>Entrar</span>
+                                        </Box>
 
+                                        {/* Cadastrar Button */}
+                                        <Box
+                                            component={RouterLink}
+                                            to="/cadastro"
+                                            sx={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: 0.75,
+                                                px: 3,
+                                                py: 1.25,
+                                                borderRadius: '12px',
+                                                textDecoration: 'none',
+                                                color: '#fff',
+                                                fontWeight: 600,
+                                                fontSize: '0.95rem',
+                                                background: `linear-gradient(135deg, ${systemTruckTheme.colors.primary}, ${systemTruckTheme.colors.primaryDark})`,
+                                                boxShadow: `0 4px 16px ${systemTruckTheme.colors.primary}40`,
+                                                transition: 'all 0.3s ease',
+                                                '&:hover': {
+                                                    transform: 'translateY(-2px)',
+                                                    boxShadow: `0 6px 24px ${systemTruckTheme.colors.primary}60`,
+                                                },
+                                            }}
+                                        >
+                                            <UserPlus size={18} />
+                                            <span>Cadastrar</span>
+                                        </Box>
+                                    </>
+                                )}
+                            </Box>
+                        </motion.div>
+                    </Box>
+                </Container>
+            </Box>
+
+            {/* Main Content */}
             <Box component="main" sx={{ flexGrow: 1, bgcolor: 'background.default' }}>
                 <Outlet />
             </Box>
 
-            <Box component="footer" sx={{ bgcolor: 'grey.200', p: 3, mt: 'auto' }}>
+            {/* Footer */}
+            <Box
+                component="footer"
+                sx={{
+                    bgcolor: '#f8f9fa',
+                    p: 3,
+                    mt: 'auto',
+                    borderTop: '1px solid rgba(0, 0, 0, 0.08)',
+                }}
+            >
                 <Container>
-                    <Typography variant="body2" align="center" color="text.secondary">
+                    <Typography
+                        variant="body2"
+                        align="center"
+                        sx={{
+                            color: systemTruckTheme.colors.textSecondary,
+                            fontWeight: 500,
+                        }}
+                    >
                         © {new Date().getFullYear()} System Truck. Todos os direitos reservados.
                     </Typography>
                 </Container>
