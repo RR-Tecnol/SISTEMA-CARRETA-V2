@@ -209,9 +209,7 @@ async function exportInscritosPDF(acao: any, inscricoes: any[], res: Response) {
 
         // Título da seção com fundo
         doc.fontSize(12).font('Helvetica-Bold');
-        doc.fillColor('#4682b4').text(`${cursoNome.toUpperCase()} (${lista.length} inscritos)`, {
-            align: 'left'
-        });
+        doc.fillColor('#4682b4').text(`${cursoNome.toUpperCase()} (${lista.length} inscritos)`, 50, doc.y);
         doc.fillColor('#000000');
         doc.moveDown(0.5);
 
