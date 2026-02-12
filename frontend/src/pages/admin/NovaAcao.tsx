@@ -9,6 +9,8 @@ import {
     Box,
     CircularProgress,
     IconButton,
+    FormControlLabel,
+    Switch,
 } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -22,6 +24,7 @@ import {
     Activity,
     Users,
     Trash2,
+    Globe,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSnackbar } from 'notistack';
@@ -69,6 +72,7 @@ const NovaAcao = () => {
         vagas_disponiveis: 0,
         distancia_km: 0,
         preco_combustivel_referencia: 0,
+        permitir_inscricao_previa: true,
     });
 
     const loadInstituicoes = useCallback(async () => {
@@ -351,6 +355,47 @@ const NovaAcao = () => {
                                                 <MenuItem value="ativa">Ativa</MenuItem>
                                                 <MenuItem value="concluida">Concluída</MenuItem>
                                             </TextField>
+                                        </Grid>
+
+                                        <Grid item xs={12}>
+                                            <Box
+                                                sx={{
+                                                    background: systemTruckTheme.colors.background,
+                                                    borderRadius: systemTruckTheme.borderRadius.medium,
+                                                    border: `1px solid ${systemTruckTheme.colors.border}`,
+                                                    p: 2,
+                                                }}
+                                            >
+                                                <FormControlLabel
+                                                    control={
+                                                        <Switch
+                                                            checked={formData.permitir_inscricao_previa}
+                                                            onChange={(e) => setFormData({ ...formData, permitir_inscricao_previa: e.target.checked })}
+                                                            sx={{
+                                                                '& .MuiSwitch-switchBase.Mui-checked': {
+                                                                    color: systemTruckTheme.colors.primary,
+                                                                },
+                                                                '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                                                                    backgroundColor: systemTruckTheme.colors.primary,
+                                                                },
+                                                            }}
+                                                        />
+                                                    }
+                                                    label={
+                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                            <Globe size={20} color={systemTruckTheme.colors.primary} />
+                                                            <Box>
+                                                                <Typography variant="body1" sx={{ fontWeight: 600, color: systemTruckTheme.colors.text }}>
+                                                                    Permitir Inscrições Online
+                                                                </Typography>
+                                                                <Typography variant="caption" sx={{ color: systemTruckTheme.colors.textSecondary }}>
+                                                                    Quando ativado, cidadãos podem se inscrever antecipadamente pelo portal
+                                                                </Typography>
+                                                            </Box>
+                                                        </Box>
+                                                    }
+                                                />
+                                            </Box>
                                         </Grid>
                                     </Grid>
                                 </Box>

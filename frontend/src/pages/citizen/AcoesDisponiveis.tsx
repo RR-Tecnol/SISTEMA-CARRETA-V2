@@ -35,6 +35,7 @@ interface Acao {
     descricao: string;
     vagas_disponiveis: number;
     cursos_exames: AcaoCursoExame[];
+    permitir_inscricao_previa?: boolean;
 }
 
 interface AcaoCursoExame {
@@ -371,33 +372,53 @@ const AcoesDisponiveis: React.FC = () => {
                                                 )}
                                             </Box>
 
-                                            {/* Botão de Inscrição */}
-                                            <Button
-                                                fullWidth
-                                                variant="contained"
-                                                onClick={() => handleAbrirInscricao(acao)}
-                                                disabled={acao.vagas_disponiveis === 0}
-                                                sx={{
-                                                    mt: 2,
-                                                    background: systemTruckTheme.gradients.primary,
-                                                    color: 'white',
-                                                    fontWeight: 600,
-                                                    py: 1.5,
-                                                    borderRadius: systemTruckTheme.borderRadius.medium,
-                                                    textTransform: 'none',
-                                                    fontSize: '1rem',
-                                                    '&:hover': {
-                                                        background: systemTruckTheme.gradients.primaryHover,
-                                                        transform: 'scale(1.02)',
-                                                    },
-                                                    '&:disabled': {
-                                                        background: '#ccc',
-                                                        color: '#666',
-                                                    },
-                                                }}
-                                            >
-                                                {acao.vagas_disponiveis === 0 ? 'Sem vagas' : 'Inscrever-se'}
-                                            </Button>
+                                            {/* Botão de Inscrição ou Badge */}
+                                            {acao.permitir_inscricao_previa !== false ? (
+                                                <Button
+                                                    fullWidth
+                                                    variant="contained"
+                                                    onClick={() => handleAbrirInscricao(acao)}
+                                                    disabled={acao.vagas_disponiveis === 0}
+                                                    sx={{
+                                                        mt: 2,
+                                                        background: systemTruckTheme.gradients.primary,
+                                                        color: 'white',
+                                                        fontWeight: 600,
+                                                        py: 1.5,
+                                                        borderRadius: systemTruckTheme.borderRadius.medium,
+                                                        textTransform: 'none',
+                                                        fontSize: '1rem',
+                                                        '&:hover': {
+                                                            background: systemTruckTheme.gradients.primaryHover,
+                                                            transform: 'scale(1.02)',
+                                                        },
+                                                        '&:disabled': {
+                                                            background: '#ccc',
+                                                            color: '#666',
+                                                        },
+                                                    }}
+                                                >
+                                                    {acao.vagas_disponiveis === 0 ? 'Sem vagas' : 'Inscrever-se'}
+                                                </Button>
+                                            ) : (
+                                                <Chip
+                                                    icon={<MapPin size={18} />}
+                                                    label="Inscrições apenas no local"
+                                                    sx={{
+                                                        mt: 2,
+                                                        width: '100%',
+                                                        height: '48px',
+                                                        background: systemTruckTheme.gradients.warning,
+                                                        color: 'white',
+                                                        fontWeight: 600,
+                                                        fontSize: '1rem',
+                                                        borderRadius: systemTruckTheme.borderRadius.medium,
+                                                        '& .MuiChip-icon': {
+                                                            color: 'white',
+                                                        },
+                                                    }}
+                                                />
+                                            )}
                                         </CardContent>
                                     </Card>
                                 </motion.div>
@@ -488,7 +509,7 @@ const AcoesDisponiveis: React.FC = () => {
                     </DialogActions>
                 </Dialog>
             </Container>
-        </Box>
+        </Box >
     );
 };
 

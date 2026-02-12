@@ -32,6 +32,7 @@ const createAcaoSchema = Joi.object({
     campos_customizados: Joi.object().optional(),
     distancia_km: Joi.number().optional().allow(null), // Permitir envio direto se o front mandar number
     preco_combustivel_referencia: Joi.number().optional().allow(null),
+    permitir_inscricao_previa: Joi.boolean().optional().default(true),
     cursos_exames: Joi.array().items(
         Joi.object({
             curso_exame_id: Joi.string().uuid().required(),
