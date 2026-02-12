@@ -270,25 +270,6 @@ const EsqueciSenha: React.FC = () => {
                         )}
                     </Box>
                 </motion.div>
-
-                {/* Footer */}
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.6 }}
-                >
-                    <Typography
-                        variant="caption"
-                        sx={{
-                            display: 'block',
-                            textAlign: 'center',
-                            color: 'rgba(255, 255, 255, 0.8)',
-                            mt: 3,
-                        }}
-                    >
-                        © 2026 System Truck. Todos os direitos reservados.
-                    </Typography>
-                </motion.div>
             </Box>
         </Box>
     );
