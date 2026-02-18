@@ -18,8 +18,8 @@ COPY . .
 # Definir variável de ambiente para o build do React
 ENV REACT_APP_API_URL=$REACT_APP_API_URL
 
-# Build da aplicação React
-RUN npm run build
+# Build da aplicação React (sem source maps para produção)
+RUN GENERATE_SOURCEMAP=false npm run build
 
 # Production stage com nginx
 FROM nginx:alpine
