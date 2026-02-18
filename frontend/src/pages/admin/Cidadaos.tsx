@@ -32,7 +32,7 @@ import {
     Save,
 } from 'lucide-react';
 import { useSnackbar } from 'notistack';
-import api from '../../services/api';
+import api, { BASE_URL } from '../../services/api';
 import { systemTruckTheme } from '../../theme/systemTruckTheme';
 
 interface Cidadao {
@@ -325,7 +325,7 @@ const Cidadaos: React.FC = () => {
                                                 {/* Header with Avatar and ID */}
                                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
                                                     <Avatar
-                                                        src={cidadao.foto_perfil ? `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${cidadao.foto_perfil}` : undefined}
+                                                        src={cidadao.foto_perfil ? `${BASE_URL}${cidadao.foto_perfil}` : undefined}
                                                         sx={{
                                                             width: 44,
                                                             height: 44,
