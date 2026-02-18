@@ -734,8 +734,8 @@ const Cidadaos: React.FC = () => {
                                         fullWidth
                                         select
                                         label="Raça/Cor"
-                                        value={(editData as any).raca_cor || ''}
-                                        onChange={(e) => setEditData({ ...editData, raca_cor: e.target.value } as any)}
+                                        value={(editData as any).raca || ''}
+                                        onChange={(e) => setEditData({ ...editData, raca: e.target.value } as any)}
                                         sx={{
                                             '& .MuiOutlinedInput-root': {
                                                 borderRadius: systemTruckTheme.borderRadius.medium,
