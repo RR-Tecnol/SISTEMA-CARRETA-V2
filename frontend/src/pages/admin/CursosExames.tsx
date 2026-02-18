@@ -29,8 +29,8 @@ const ExamesSaude: React.FC = () => {
     const fetchExames = async () => {
         try {
             const response = await api.get('/cursos-exames');
-            // Filtrar apenas exames de saúde
-            const examesSaude = response.data.filter((item: ExameSaude) => item.tipo === 'exame');
+            const data = Array.isArray(response.data) ? response.data : (response.data?.data || response.data?.cursosExames || []);
+            const examesSaude = data.filter((item: ExameSaude) => item.tipo === 'exame');
             setExames(examesSaude);
         } catch (error: any) {
             enqueueSnackbar(error.response?.data?.error || 'Erro ao carregar exames', { variant: 'error' });

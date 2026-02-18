@@ -154,7 +154,8 @@ const GerenciarAcao = () => {
             ]);
 
             setFormData(acaoResponse.data);
-            setInstituicoes(instituicoesResponse.data);
+            const instData = instituicoesResponse.data;
+            setInstituicoes(Array.isArray(instData) ? instData : (instData.instituicoes || instData.data || []));
             setLoading(false);
         } catch (error: any) {
             enqueueSnackbar(
@@ -170,7 +171,8 @@ const GerenciarAcao = () => {
 
         try {
             const response = await api.get(`/inscricoes/acoes/${id}/inscricoes`);
-            setInscricoes(response.data);
+            const inscData = response.data;
+            setInscricoes(Array.isArray(inscData) ? inscData : (inscData.inscricoes || inscData.data || []));
         } catch (error: any) {
             enqueueSnackbar(
                 error.response?.data?.error || 'Erro ao carregar inscrições',
@@ -183,7 +185,8 @@ const GerenciarAcao = () => {
         if (!id) return;
         try {
             const response = await api.get(`/acoes/${id}/funcionarios`);
-            setFuncionariosAcao(response.data);
+            const funcData = response.data;
+            setFuncionariosAcao(Array.isArray(funcData) ? funcData : (funcData.funcionarios || funcData.data || []));
         } catch (error: any) {
             enqueueSnackbar(error.response?.data?.error || 'Erro ao carregar funcionários', { variant: 'error' });
         }
@@ -192,7 +195,8 @@ const GerenciarAcao = () => {
     const loadFuncionariosDisponiveis = useCallback(async () => {
         try {
             const response = await api.get('/funcionarios');
-            setFuncionariosDisponiveis(response.data.filter((f: any) => f.ativo === true));
+            const dispData = Array.isArray(response.data) ? response.data : (response.data.funcionarios || response.data.data || []);
+            setFuncionariosDisponiveis(dispData.filter((f: any) => f.ativo === true));
         } catch (error: any) {
             enqueueSnackbar('Erro ao carregar funcionários disponíveis', { variant: 'error' });
         }
@@ -405,8 +409,10 @@ const GerenciarAcao = () => {
                 api.get(`/acoes/${id}`),
             ]);
 
-            setCaminhoes(caminhoesRes.data);
-            setCursosExames(cursosExamesRes.data);
+            const camData = caminhoesRes.data;
+            const ceData = cursosExamesRes.data;
+            setCaminhoes(Array.isArray(camData) ? camData : (camData.caminhoes || camData.data || []));
+            setCursosExames(Array.isArray(ceData) ? ceData : (ceData.cursosExames || ceData.data || []));
             setCaminhoesVinculados(acaoRes.data.caminhoes || []);
             setCursosExamesVinculados(acaoRes.data.cursos_exames || []);
         } catch (error: any) {

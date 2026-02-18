@@ -51,8 +51,9 @@ const Relatorios: React.FC = () => {
         try {
             // Carregar dados de ações
             const acoesRes = await api.get('/acoes');
+            const acoesArray = Array.isArray(acoesRes.data) ? acoesRes.data : (acoesRes.data.acoes || acoesRes.data.data || []);
             const acoesComDetalhes = await Promise.all(
-                acoesRes.data.map(async (acao: any) => {
+                acoesArray.map(async (acao: any) => {
                     const detail = await api.get(`/acoes/${acao.id}`);
                     return detail.data;
                 })
@@ -63,8 +64,10 @@ const Relatorios: React.FC = () => {
             let inscricoesData: any[] = [];
             try {
                 const inscricoesRes = await api.get('/inscricoes');
-                setInscricoes(inscricoesRes.data);
-                inscricoesData = inscricoesRes.data;
+                const inscData = inscricoesRes.data;
+                const inscArray = Array.isArray(inscData) ? inscData : (inscData.inscricoes || inscData.data || []);
+                setInscricoes(inscArray);
+                inscricoesData = inscArray;
             } catch (inscError) {
                 console.warn('⚠️ Erro ao buscar inscrições:', inscError);
                 setInscricoes([]);

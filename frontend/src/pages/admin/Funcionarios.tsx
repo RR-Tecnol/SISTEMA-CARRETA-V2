@@ -34,7 +34,8 @@ const Funcionarios: React.FC = () => {
     const fetchFuncionarios = async () => {
         try {
             const response = await api.get('/funcionarios');
-            setFuncionarios(response.data);
+            const data = response.data;
+            setFuncionarios(Array.isArray(data) ? data : (data.funcionarios || data.data || []));
         } catch (error: any) {
             enqueueSnackbar(error.response?.data?.error || 'Erro ao carregar funcionários', { variant: 'error' });
         } finally {

@@ -78,7 +78,8 @@ const NovaAcao = () => {
     const loadInstituicoes = useCallback(async () => {
         try {
             const response = await api.get('/instituicoes');
-            setInstituicoes(response.data);
+            const instData = response.data;
+            setInstituicoes(Array.isArray(instData) ? instData : (instData.instituicoes || instData.data || []));
         } catch (error: any) {
             enqueueSnackbar(
                 error.response?.data?.error || 'Erro ao carregar instituições',
@@ -93,7 +94,8 @@ const NovaAcao = () => {
         try {
             setLoadingCursosExames(true);
             const response = await api.get('/cursos-exames?tipo=exame');
-            setCursosExames(response.data);
+            const ceData = response.data;
+            setCursosExames(Array.isArray(ceData) ? ceData : (ceData.cursosExames || ceData.data || []));
         } catch (error: any) {
             enqueueSnackbar(
                 error.response?.data?.error || 'Erro ao carregar exames',

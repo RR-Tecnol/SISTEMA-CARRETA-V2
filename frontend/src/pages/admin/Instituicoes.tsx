@@ -33,7 +33,8 @@ const Instituicoes: React.FC = () => {
     const fetchInstituicoes = async () => {
         try {
             const response = await api.get('/instituicoes');
-            setInstituicoes(response.data);
+            const data = response.data;
+            setInstituicoes(Array.isArray(data) ? data : (data.instituicoes || data.data || []));
         } catch (error: any) {
             enqueueSnackbar(error.response?.data?.error || 'Erro ao carregar instituições', { variant: 'error' });
         } finally {
