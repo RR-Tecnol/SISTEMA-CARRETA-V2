@@ -88,7 +88,8 @@ const AcoesDisponiveis: React.FC = () => {
         try {
             setLoading(true);
             const response = await api.get('/acoes');
-            setAcoes(response.data);
+            const acoesData = Array.isArray(response.data) ? response.data : (response.data.acoes || response.data.data || []);
+            setAcoes(acoesData);
         } catch (error) {
             console.error('Erro ao carregar ações:', error);
             enqueueSnackbar('Erro ao carregar ações', { variant: 'error' });

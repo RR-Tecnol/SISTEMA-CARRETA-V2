@@ -43,7 +43,8 @@ const Home: React.FC = () => {
     const loadData = async () => {
         try {
             const acoesRes = await api.get('/acoes');
-            setAcoes(acoesRes.data.slice(0, 3));
+            const acoesArray = Array.isArray(acoesRes.data) ? acoesRes.data : (acoesRes.data.acoes || acoesRes.data.data || []);
+            setAcoes(acoesArray.slice(0, 3));
         } catch (error) {
             console.error('Erro ao carregar dados:', error);
         }
