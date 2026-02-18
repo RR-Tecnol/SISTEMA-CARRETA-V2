@@ -55,7 +55,7 @@ import {
     listarMovimentacoes,
     exportarRelatorio,
 } from '../../services/estoque';
-import axios from 'axios';
+import api from '../../services/api';
 
 const getCategoriaColor = (categoria: string) => {
     const cores: Record<string, string> = {
@@ -122,22 +122,16 @@ const Estoque: React.FC = () => {
 
     const carregarCaminhoesEAcoes = async () => {
         try {
-            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-            const API_URL = process.env.REACT_APP_API_URL || (isLocal ? 'http://localhost:3001/api' : '/api');
-            const token = localStorage.getItem('token');
-            const headers = token ? { Authorization: `Bearer ${token}` } : {};
-
-            console.log('🔍 Carregando caminhões e ações...');
             const [caminhoesData, acoesData] = await Promise.all([
-                axios.get(`${API_URL}/caminhoes`, { headers }),
-                axios.get(`${API_URL}/acoes`, { headers })
+                api.get('/caminhoes'),
+                api.get('/acoes')
             ]);
-            console.log('✅ Caminhões carregados:', caminhoesData.data);
-            console.log('✅ Ações carregadas:', acoesData.data);
-            setCaminhoes(caminhoesData.data);
-            setAcoes(acoesData.data);
+            const caminhoes = Array.isArray(caminhoesData.data) ? caminhoesData.data : (caminhoesData.data.caminhoes || caminhoesData.data.data || []);
+            const acoes = Array.isArray(acoesData.data) ? acoesData.data : (acoesData.data.acoes || acoesData.data.data || []);
+            setCaminhoes(caminhoes);
+            setAcoes(acoes);
         } catch (error) {
-            console.error('❌ Erro ao carregar caminhões e ações:', error);
+            console.error('Erro ao carregar caminhões e ações:', error);
         }
     };
 
