@@ -122,7 +122,8 @@ const Estoque: React.FC = () => {
 
     const carregarCaminhoesEAcoes = async () => {
         try {
-            const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            const API_URL = process.env.REACT_APP_API_URL || (isLocal ? 'http://localhost:3001/api' : '/api');
             const token = localStorage.getItem('token');
             const headers = token ? { Authorization: `Bearer ${token}` } : {};
 

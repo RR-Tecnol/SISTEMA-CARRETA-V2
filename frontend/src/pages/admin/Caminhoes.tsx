@@ -32,7 +32,8 @@ const Caminhoes: React.FC = () => {
     const fetchCaminhoes = async () => {
         try {
             const response = await api.get('/caminhoes');
-            setCaminhoes(response.data);
+            const data = response.data;
+            setCaminhoes(Array.isArray(data) ? data : (data.caminhoes || data.data || []));
         } catch (error: any) {
             enqueueSnackbar(error.response?.data?.error || 'Erro ao carregar caminhões', { variant: 'error' });
         } finally {
