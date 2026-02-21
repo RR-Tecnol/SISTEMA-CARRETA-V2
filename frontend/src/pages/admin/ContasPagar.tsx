@@ -109,6 +109,7 @@ const ContasPagar = () => {
         { value: 'troca_oleo', label: '🛢️ Troca de Óleo', color: '#F97316', icon: Droplet, categoria: 'estrada' },
         { value: 'abastecimento', label: '⛽ Abastecimento', color: '#10B981', icon: Fuel, categoria: 'estrada' },
         { value: 'manutencao_mecanica', label: '🔧 Manutenção Mecânica', color: '#6366F1', icon: Wrench, categoria: 'estrada' },
+        { value: 'manutencao', label: '🛠️ Manutenção Caminhão', color: '#7C3AED', icon: Wrench, categoria: 'estrada' },
         { value: 'reboque', label: '🚛 Reboque', color: '#EC4899', icon: Truck, categoria: 'estrada' },
         { value: 'lavagem', label: '🧼 Lavagem', color: '#06B6D4', icon: Droplet, categoria: 'estrada' },
         { value: 'pedagio', label: '🛣️ Pedágio', color: '#84CC16', icon: MapPin, categoria: 'estrada' },

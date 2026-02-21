@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import { Op } from 'sequelize';
 import { Inscricao } from '../models/Inscricao';
 import { AcaoCursoExame } from '../models/AcaoCursoExame';
 import { Cidadao } from '../models/Cidadao';
@@ -7,6 +8,65 @@ import { CursoExame } from '../models/CursoExame';
 import { authenticate, authorizeAdmin, AuthRequest } from '../middlewares/auth';
 
 const router = Router();
+
+/**
+ * Helper: verifica periodicidade antes de criar inscrição
+ * Retorna null se permitido, ou objeto de erro se bloqueado
+ */
+async function checkPeriodicidade(cidadao_id: string, curso_exame_id: string, acaoCurso: any): Promise<{ code: string; message: string; ultima_data?: string; proxima_data?: string } | null> {
+    const { permitir_repeticao, periodicidade_meses } = acaoCurso;
+
+    // ── Verificar se já existe inscrição ATIVA (pendente ou atendido) em QUALQUER ação ──
+    const inscricaoAtiva = await Inscricao.findOne({
+        where: {
+            cidadao_id,
+            curso_exame_id,
+            status: { [Op.in]: ['pendente', 'atendido'] },
+        },
+        order: [['data_inscricao', 'DESC']],
+    });
+
+    if (inscricaoAtiva) {
+        const ultimaData = new Date(inscricaoAtiva.data_inscricao as any);
+        const statusAtual = inscricaoAtiva.status;
+
+        // Se não permite repetição de forma alguma, bloqueia sempre
+        if (permitir_repeticao === false) {
+            return {
+                code: 'BLOQUEADO_SEM_REPETICAO',
+                message: 'Este exame só pode ser realizado uma única vez por cidadão.',
+                ultima_data: ultimaData.toLocaleDateString('pt-BR'),
+            };
+        }
+
+        // Se o exame está pendente em outra ação, bloqueia
+        if (statusAtual === 'pendente') {
+            return {
+                code: 'BLOQUEADO_JA_INSCRITO',
+                message: 'Cidadão já está inscrito neste exame em outra ação (pendente de atendimento).',
+                ultima_data: ultimaData.toLocaleDateString('pt-BR'),
+            };
+        }
+
+        // Se já foi atendido, verificar periodicidade
+        if (statusAtual === 'atendido' && periodicidade_meses && periodicidade_meses > 0) {
+            const proximaData = new Date(ultimaData);
+            proximaData.setMonth(proximaData.getMonth() + periodicidade_meses);
+
+            const hoje = new Date();
+            if (hoje < proximaData) {
+                return {
+                    code: 'BLOQUEADO_PERIODICIDADE',
+                    message: `Este exame só pode ser repetido após ${periodicidade_meses} ${periodicidade_meses === 1 ? 'mês' : 'meses'} do último realizado.`,
+                    ultima_data: ultimaData.toLocaleDateString('pt-BR'),
+                    proxima_data: proximaData.toLocaleDateString('pt-BR'),
+                };
+            }
+        }
+    }
+
+    return null;
+}
 
 /**
  * GET /api/inscricoes
@@ -33,21 +93,25 @@ router.get('/', authenticate, authorizeAdmin, async (req: Request, res: Response
  */
 router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
     try {
-        // Agora recebemos acao_curso_id do frontend (ID da tabela pivô), mas salvamos acao_id e curso_exame_id
         const { acao_curso_id } = req.body;
         const cidadao_id = req.user!.id;
 
-        // Buscar detalhes da relação Acao-Curso para decompor IDs
         const acaoCurso = await AcaoCursoExame.findByPk(acao_curso_id);
         if (!acaoCurso) {
             res.status(404).json({ error: 'Curso/Exame não encontrado nesta ação' });
             return;
         }
 
-        // Decompor IDs
         const { acao_id, curso_exame_id, vagas } = acaoCurso;
 
-        // Check for existing inscricao
+        // ── Validação de periodicidade ──
+        const bloqueio = await checkPeriodicidade(cidadao_id, curso_exame_id, acaoCurso);
+        if (bloqueio) {
+            res.status(409).json({ error: bloqueio.message, ...bloqueio });
+            return;
+        }
+
+        // Verificar inscrição duplicada na mesma ação
         const existingInscricao = await Inscricao.findOne({
             where: {
                 cidadao_id,
@@ -64,11 +128,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
 
         // Check vagas disponíveis
         const inscricoesCount = await Inscricao.count({
-            where: {
-                acao_id,
-                curso_exame_id,
-                status: ['pendente', 'atendido'],
-            },
+            where: { acao_id, curso_exame_id, status: ['pendente', 'atendido'] },
         });
 
         if (inscricoesCount >= vagas) {
@@ -76,7 +136,6 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
             return;
         }
 
-        // Create inscricao
         const inscricao = await Inscricao.create({
             cidadao_id,
             acao_id,
@@ -85,10 +144,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
             data_inscricao: new Date(),
         });
 
-        res.status(201).json({
-            message: 'Inscrição realizada com sucesso',
-            inscricao,
-        });
+        res.status(201).json({ message: 'Inscrição realizada com sucesso', inscricao });
     } catch (error) {
         console.error('Error creating inscricao:', error);
         res.status(500).json({ error: 'Erro ao realizar inscrição' });
@@ -210,12 +266,8 @@ router.post('/acoes/:acaoId/inscricoes', authenticate, authorizeAdmin, async (re
         const { acaoId } = req.params;
         const { cidadao_id, acao_curso_id, cadastro_espontaneo = false } = req.body;
 
-        // Buscar detalhes para obter curso_exame_id
         const acaoCurso = await AcaoCursoExame.findOne({
-            where: {
-                id: acao_curso_id,
-                acao_id: acaoId,
-            },
+            where: { id: acao_curso_id, acao_id: acaoId },
         });
 
         if (!acaoCurso) {
@@ -225,21 +277,30 @@ router.post('/acoes/:acaoId/inscricoes', authenticate, authorizeAdmin, async (re
 
         const { curso_exame_id } = acaoCurso;
 
-        // Check for existing inscricao
+        // ── Validação de periodicidade ──
+        const bloqueio = await checkPeriodicidade(cidadao_id, curso_exame_id, acaoCurso);
+        if (bloqueio) {
+            res.status(409).json({ error: bloqueio.message, ...bloqueio });
+            return;
+        }
+
+        // Verificar inscrição duplicada em QUALQUER ação (mesmo exame, qualquer status ativo)
         const existingInscricao = await Inscricao.findOne({
             where: {
                 cidadao_id,
-                acao_id: acaoId,
                 curso_exame_id,
+                status: { [Op.in]: ['pendente', 'atendido'] },
             },
         });
 
         if (existingInscricao) {
-            res.status(409).json({ error: 'Cidadão já está inscrito neste curso/exame' });
+            const statusMsg = existingInscricao.status === 'pendente'
+                ? 'Cidadão já está inscrito neste exame em outra ação (pendente de atendimento).'
+                : 'Cidadão já foi atendido neste exame. Verifique a periodicidade configurada.';
+            res.status(409).json({ error: statusMsg, code: 'BLOQUEADO_JA_INSCRITO' });
             return;
         }
 
-        // Create inscricao
         const inscricao = await Inscricao.create({
             cidadao_id,
             acao_id: acaoId,
@@ -249,10 +310,7 @@ router.post('/acoes/:acaoId/inscricoes', authenticate, authorizeAdmin, async (re
             observacoes: cadastro_espontaneo ? 'Cadastro Espontâneo' : null,
         });
 
-        res.status(201).json({
-            message: 'Cidadão adicionado com sucesso',
-            inscricao,
-        });
+        res.status(201).json({ message: 'Cidadão adicionado com sucesso', inscricao });
     } catch (error) {
         console.error('Error creating inscricao:', error);
         res.status(500).json({ error: 'Erro ao adicionar cidadão' });

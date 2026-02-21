@@ -1,0 +1,531 @@
+/* ============================================================
+   AlertasExames.css  — Central de Alertas Admin
+   Tema: azul #4682b4 (mesma identidade visual das Ações)
+   ============================================================ */
+
+.alertas-page {
+    min-height: 100vh;
+    background: #f5f7fa;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.alertas-bg {
+    display: none;
+}
+
+/* ── Inner ── */
+.alertas-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 32px 24px;
+}
+
+/* ── Header ── */
+.alertas-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+    gap: 16px;
+    background: linear-gradient(135deg, #4682b4 0%, #5b9bd5 100%);
+    border-radius: 12px;
+    padding: 20px 24px;
+    box-shadow: 0 4px 16px rgba(70, 130, 180, 0.25);
+    position: relative;
+    overflow: hidden;
+}
+
+.alertas-header::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.05);
+    pointer-events: none;
+}
+
+.alertas-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    position: relative;
+    z-index: 1;
+}
+
+.alertas-icon-main {
+    width: 48px;
+    height: 48px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.alertas-title {
+    margin: 0;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.alertas-subtitle {
+    margin: 3px 0 0;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.85rem;
+}
+
+.alertas-refresh-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 18px;
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 8px;
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    z-index: 1;
+}
+
+.alertas-refresh-btn:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.alertas-refresh-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* ── Cards de resumo ── */
+.alertas-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 24px;
+}
+
+@media (max-width: 900px) {
+    .alertas-summary-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 500px) {
+    .alertas-summary-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.summary-card {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 18px;
+    background: #fff;
+    border: 1px solid rgba(70, 130, 180, 0.12);
+    border-radius: 10px;
+    cursor: pointer;
+    overflow: hidden;
+    transition: all 0.2s;
+    box-shadow: 0 1px 4px rgba(70, 130, 180, 0.08);
+}
+
+.summary-card:hover {
+    border-color: var(--card-color, #4682b4);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(70, 130, 180, 0.15);
+}
+
+.summary-card--pulse {
+    animation: card-pulse 2.5s ease-in-out infinite;
+}
+
+@keyframes card-pulse {
+
+    0%,
+    100% {
+        box-shadow: 0 1px 4px rgba(239, 68, 68, 0.1);
+    }
+
+    50% {
+        box-shadow: 0 4px 16px rgba(239, 68, 68, 0.25);
+    }
+}
+
+.summary-card-icon {
+    width: 42px;
+    height: 42px;
+    background: var(--card-gradient);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.summary-card-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.summary-card-count {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--card-color);
+    line-height: 1;
+}
+
+.summary-card-label {
+    font-size: 0.72rem;
+    color: #7a8ea5;
+    margin-top: 2px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.summary-card-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: #ef4444;
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ── Controles ── */
+.alertas-controls {
+    background: #fff;
+    border: 1px solid rgba(70, 130, 180, 0.12);
+    border-radius: 10px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+    box-shadow: 0 1px 4px rgba(70, 130, 180, 0.06);
+}
+
+.alertas-tabs {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+.alertas-tab {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    background: #f5f7fa;
+    border: 1px solid rgba(70, 130, 180, 0.15);
+    border-radius: 8px;
+    color: #64748b;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.alertas-tab:hover {
+    background: rgba(70, 130, 180, 0.06);
+    color: #4682b4;
+    border-color: rgba(70, 130, 180, 0.3);
+}
+
+.alertas-tab--ativo {
+    background: rgba(70, 130, 180, 0.1);
+    border-color: var(--tab-color, #4682b4);
+    color: var(--tab-color, #4682b4);
+    box-shadow: 0 2px 8px rgba(70, 130, 180, 0.12);
+}
+
+.alertas-tab-badge {
+    padding: 1px 7px;
+    border-radius: 100px;
+    color: white;
+    font-size: 0.68rem;
+    font-weight: 700;
+}
+
+.alertas-search {
+    flex: 1;
+    min-width: 220px;
+    position: relative;
+}
+
+.alertas-search-icon {
+    position: absolute;
+    left: 11px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+}
+
+.alertas-search-input {
+    width: 100%;
+    padding: 8px 12px 8px 34px;
+    background: #f5f7fa;
+    border: 1px solid rgba(70, 130, 180, 0.2);
+    border-radius: 8px;
+    color: #1e293b;
+    font-size: 0.875rem;
+    outline: none;
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+}
+
+.alertas-search-input::placeholder {
+    color: #94a3b8;
+}
+
+.alertas-search-input:focus {
+    border-color: #4682b4;
+    box-shadow: 0 0 0 3px rgba(70, 130, 180, 0.1);
+}
+
+/* ── Loading ── */
+.alertas-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 80px 0;
+    color: #94a3b8;
+    gap: 14px;
+    background: #fff;
+    border-radius: 10px;
+    border: 1px solid rgba(70, 130, 180, 0.1);
+}
+
+.alertas-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(70, 130, 180, 0.15);
+    border-top-color: #4682b4;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ── Empty state ── */
+.alertas-empty {
+    text-align: center;
+    padding: 80px 0;
+    background: #fff;
+    border-radius: 10px;
+    border: 1px dashed rgba(70, 130, 180, 0.2);
+    color: #94a3b8;
+}
+
+.alertas-empty-icon {
+    color: #4682b4;
+    margin-bottom: 14px;
+    opacity: 0.5;
+}
+
+.alertas-empty h3 {
+    margin: 0 0 6px;
+    color: #4682b4;
+    font-size: 1rem;
+}
+
+.alertas-empty p {
+    margin: 0;
+    font-size: 0.875rem;
+}
+
+/* ── Lista de alertas ── */
+.alertas-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* ── Card de alerta individual ── */
+.alerta-card {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 16px 16px 16px 20px;
+    background: #fff;
+    border: 1px solid rgba(70, 130, 180, 0.1);
+    border-radius: 10px;
+    overflow: hidden;
+    cursor: default;
+    transition: all 0.2s;
+    box-shadow: 0 1px 4px rgba(70, 130, 180, 0.06);
+}
+
+.alerta-card:hover {
+    border-color: var(--alerta-color, #4682b4);
+    box-shadow: 0 4px 12px rgba(70, 130, 180, 0.1);
+    transform: translateY(-1px);
+}
+
+.alerta-card-stripe {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    border-radius: 4px 0 0 4px;
+}
+
+.alerta-card-icon-wrap {
+    flex-shrink: 0;
+    padding-top: 1px;
+}
+
+.alerta-card-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--alerta-bg);
+    border: 1px solid var(--alerta-border);
+}
+
+.alerta-card-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.alerta-card-top {
+    margin-bottom: 8px;
+}
+
+.alerta-card-exame {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 3px;
+}
+
+.alerta-card-exame-nome {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.alerta-card-tipo-badge {
+    font-size: 0.66rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 100px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.alerta-card-urgente {
+    font-size: 0.66rem;
+    font-weight: 800;
+    color: #ef4444;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.alerta-card-mensagem {
+    margin: 0;
+    font-size: 0.8rem;
+    color: #64748b;
+    line-height: 1.4;
+}
+
+.alerta-card-bottom {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.alerta-card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.alerta-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.75rem;
+    color: #94a3b8;
+}
+
+.alerta-meta-item strong {
+    color: #475569;
+}
+
+.alerta-meta-cpf {
+    font-family: 'Courier New', monospace;
+}
+
+/* Barra de progresso */
+.alerta-progress-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.alerta-progress-label {
+    font-size: 0.72rem;
+    color: #d97706;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.alerta-progress-bar {
+    flex: 1;
+    height: 5px;
+    background: rgba(70, 130, 180, 0.1);
+    border-radius: 100px;
+    overflow: hidden;
+}
+
+.alerta-progress-fill {
+    height: 100%;
+    border-radius: 100px;
+}
+
+/* Atraso */
+.alerta-atraso {
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+/* Seta */
+.alerta-card-arrow {
+    flex-shrink: 0;
+    opacity: 0.3;
+    transition: opacity 0.2s;
+    margin-top: 10px;
+}
+
+.alerta-card:hover .alerta-card-arrow {
+    opacity: 0.7;
+}

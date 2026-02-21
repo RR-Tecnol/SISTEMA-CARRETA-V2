@@ -16,6 +16,7 @@ import {
     LayoutDashboard,
     DollarSign,
     Package,
+    Bell,
 } from 'lucide-react';
 import { systemTruckTheme } from '../../theme/systemTruckTheme';
 
@@ -35,6 +36,7 @@ const menuItems: MenuItem[] = [
     { title: 'Caminhões', icon: Truck, path: '/admin/caminhoes' },
     { title: 'Funcionários', icon: Users, path: '/admin/funcionarios' },
     { title: 'Exames', icon: Stethoscope, path: '/admin/cursos-exames' },
+    { title: 'Central de Alertas', icon: Bell, path: '/admin/alertas' },
     { title: 'Cidadãos', icon: UserCheck, path: '/admin/cidadaos' },
 ];
 

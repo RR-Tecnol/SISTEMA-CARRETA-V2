@@ -20,6 +20,7 @@ import { AcaoInsumo } from './AcaoInsumo';
 import { ContaPagar } from './ContaPagar';
 import { ResultadoExame } from './ResultadoExame';
 import { CustoAcao } from './CustoAcao';
+import { ManutencaoCaminhao } from './ManutencaoCaminhao';
 
 // Define associations
 export function setupAssociations(): void {
@@ -230,6 +231,17 @@ export function setupAssociations(): void {
         foreignKey: 'exame_id',
         as: 'resultados',
     });
+
+    // Caminhao <-> ManutencaoCaminhao (1:N)
+    Caminhao.hasMany(ManutencaoCaminhao, {
+        foreignKey: 'caminhao_id',
+        as: 'manutencoes',
+        onDelete: 'CASCADE',
+    });
+    ManutencaoCaminhao.belongsTo(Caminhao, {
+        foreignKey: 'caminhao_id',
+        as: 'caminhao',
+    });
 }
 
 // Export all models
@@ -255,5 +267,6 @@ export {
     ContaPagar,
     ResultadoExame,
     CustoAcao,
+    ManutencaoCaminhao,
 };
 

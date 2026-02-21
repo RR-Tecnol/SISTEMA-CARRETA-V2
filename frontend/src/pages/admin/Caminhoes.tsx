@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Container, Typography, Grid, Box, TextField, Button, Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress, IconButton, Chip } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Search, X, Truck, Edit, CheckCircle, XCircle } from 'lucide-react';
+import { Plus, Search, X, Truck, Edit, CheckCircle, XCircle, Wrench } from 'lucide-react';
 import { useSnackbar } from 'notistack';
 import api from '../../services/api';
 import { expressoTheme } from '../../theme/expressoTheme';
@@ -17,6 +18,7 @@ interface Caminhao {
 }
 
 const Caminhoes: React.FC = () => {
+    const navigate = useNavigate();
     const { enqueueSnackbar } = useSnackbar();
     const [caminhoes, setCaminhoes] = useState<Caminhao[]>([]);
     const [loading, setLoading] = useState(true);
@@ -223,6 +225,23 @@ const Caminhoes: React.FC = () => {
                                             <Typography sx={{ color: expressoTheme.colors.textSecondary, fontSize: '0.8rem' }}>
                                                 Autonomia: {caminhao.autonomia_km_litro} km/l | Tanque: {caminhao.capacidade_litros}L
                                             </Typography>
+
+                                            {/* Botão Manutenção */}
+                                            <Box
+                                                onClick={(e) => { e.stopPropagation(); navigate(`/admin/caminhoes/${caminhao.id}/manutencao`); }}
+                                                sx={{
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.75,
+                                                    mt: 1.5, py: 0.9, borderRadius: expressoTheme.borderRadius.medium,
+                                                    background: 'linear-gradient(135deg, #4682b4, #63b3ed)',
+                                                    color: 'white', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer',
+                                                    boxShadow: '0 4px 15px rgba(70,130,180,0.35)',
+                                                    transition: 'all 0.25s ease',
+                                                    '&:hover': { boxShadow: '0 6px 20px rgba(70,130,180,0.55)', transform: 'translateY(-1px)' },
+                                                }}
+                                            >
+                                                <Wrench size={15} />
+                                                Controle de Manutenção
+                                            </Box>
                                         </Box>
                                     </motion.div>
                                 </Grid>

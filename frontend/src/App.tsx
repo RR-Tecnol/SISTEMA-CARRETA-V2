@@ -30,6 +30,8 @@ import Cidadaos from './pages/admin/Cidadaos';
 import MeuPerfilAdmin from './pages/admin/MeuPerfil';
 import ContasPagar from './pages/admin/ContasPagar';
 import Estoque from './pages/admin/Estoque';
+import AlertasExames from './pages/admin/AlertasExames';
+import ManutencaoCaminhao from './pages/admin/ManutencaoCaminhao';
 
 // Layout
 import PublicLayout from './components/layout/PublicLayout';
@@ -68,12 +70,14 @@ function App() {
                 <Route path="instituicoes/nova" element={<NovaInstituicao />} />
                 <Route path="instituicoes/:id" element={<NovaInstituicao />} />
                 <Route path="caminhoes" element={<Caminhoes />} />
+                <Route path="caminhoes/:id/manutencao" element={<ManutencaoCaminhao />} />
                 <Route path="funcionarios" element={<Funcionarios />} />
                 <Route path="relatorios" element={<Relatorios />} />
                 <Route path="cursos-exames" element={<CursosExames />} />
                 <Route path="cidadaos" element={<Cidadaos />} />
                 <Route path="contas-pagar" element={<ContasPagar />} />
                 <Route path="estoque" element={<Estoque />} />
+                <Route path="alertas" element={<AlertasExames />} />
             </Route>
         </Routes>
     );

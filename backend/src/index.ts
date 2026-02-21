@@ -31,6 +31,7 @@ import debugRoutes from './routes/debug';
 import cidadaoExamesRoutes from './routes/cidadaoExames';
 import estoqueRoutes from './routes/estoque';
 import utilsRoutes from './routes/utils';
+import alertasRoutes from './routes/alertas';
 
 const app: Application = express();
 
@@ -90,6 +91,7 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/debug', debugRoutes);
 app.use('/api/estoque', estoqueRoutes);
 app.use('/api/utils', utilsRoutes);
+app.use('/api/alertas', alertasRoutes);
 // IMPORTANTE: cidadaoExamesRoutes deve vir ANTES de cidadaosRoutes
 // porque define rotas mais específicas (/:cidadaoId/exames)
 app.use('/api/cidadaos', cidadaoExamesRoutes);

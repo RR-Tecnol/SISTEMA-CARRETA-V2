@@ -133,6 +133,9 @@ const GerenciarAcao = () => {
     const [openAddCursoExameDialog, setOpenAddCursoExameDialog] = useState(false);
     const [selectedCursoExameId, setSelectedCursoExameId] = useState('');
     const [vagasCursoExame, setVagasCursoExame] = useState(10);
+    const [periodicidadeMeses, setPeriodicidadeMeses] = useState<number | ''>(12);
+    const [diasAvisoVencimento, setDiasAvisoVencimento] = useState(30);
+    const [permitirRepeticao, setPermitirRepeticao] = useState(true);
 
     // Inscrição state
     const [openInscricaoDialog, setOpenInscricaoDialog] = useState(false);
@@ -140,6 +143,8 @@ const GerenciarAcao = () => {
     const [cidadaoEncontrado, setCidadaoEncontrado] = useState<any>(null);
     const [buscandoCidadao, setBuscandoCidadao] = useState(false);
     const [selectedAcaoCursoId, setSelectedAcaoCursoId] = useState('');
+    // Popup de bloqueio de periodicidade
+    const [blockedInfo, setBlockedInfo] = useState<{ message: string; ultima_data?: string; proxima_data?: string; code?: string } | null>(null);
 
     // Editar status inscrição state
     const [openEditStatusDialog, setOpenEditStatusDialog] = useState(false);
@@ -518,12 +523,18 @@ const GerenciarAcao = () => {
             await api.post(`/acoes/${id}/cursos-exames`, {
                 curso_exame_id: selectedCursoExameId,
                 vagas: vagasCursoExame,
+                periodicidade_meses: periodicidadeMeses === '' ? null : periodicidadeMeses,
+                dias_aviso_vencimento: diasAvisoVencimento,
+                permitir_repeticao: permitirRepeticao,
             });
 
             enqueueSnackbar('Curso/Exame vinculado com sucesso!', { variant: 'success' });
             setOpenAddCursoExameDialog(false);
             setSelectedCursoExameId('');
             setVagasCursoExame(10);
+            setPeriodicidadeMeses(12);
+            setDiasAvisoVencimento(30);
+            setPermitirRepeticao(true);
             loadRecursos();
         } catch (error: any) {
             enqueueSnackbar(
@@ -589,10 +600,23 @@ const GerenciarAcao = () => {
             setSelectedAcaoCursoId('');
             loadInscricoes();
         } catch (error: any) {
-            enqueueSnackbar(
-                error.response?.data?.error || 'Erro ao inscrever cidadão',
-                { variant: 'error' }
-            );
+            const data = error.response?.data;
+            const isBloqueio = data?.code === 'BLOQUEADO_PERIODICIDADE' || data?.code === 'BLOQUEADO_SEM_REPETICAO' || data?.code === 'BLOQUEADO_JA_INSCRITO';
+            if (isBloqueio) {
+                // Fecha o dialog de inscrição e abre o popup de bloqueio
+                setOpenInscricaoDialog(false);
+                setBlockedInfo({
+                    message: data.message,
+                    ultima_data: data.ultima_data,
+                    proxima_data: data.proxima_data,
+                    code: data.code,
+                });
+            } else {
+                enqueueSnackbar(
+                    data?.error || 'Erro ao inscrever cidadão',
+                    { variant: 'error' }
+                );
+            }
         }
     };
 
@@ -1364,7 +1388,7 @@ const GerenciarAcao = () => {
 
                             <Dialog
                                 open={openAddCursoExameDialog}
-                                onClose={() => setOpenAddCursoExameDialog(false)}
+                                onClose={() => { setOpenAddCursoExameDialog(false); setSelectedCursoExameId(''); setVagasCursoExame(10); setPeriodicidadeMeses(12); setDiasAvisoVencimento(30); setPermitirRepeticao(true); }}
                                 maxWidth="sm"
                                 fullWidth
                             >
@@ -1382,13 +1406,11 @@ const GerenciarAcao = () => {
                                             {cursosExames
                                                 .filter(ce => !cursosExamesVinculados.find(cev => cev.curso_exame_id === ce.id))
                                                 .filter(ce => {
-                                                    // Filtrar por tipo compatível com a ação
                                                     const tipoAcao = formData.tipo.toLowerCase();
                                                     const tipoCursoExame = ce.tipo.toLowerCase();
-
                                                     if (tipoAcao === 'saude') return tipoCursoExame === 'exame';
                                                     if (tipoAcao === 'curso') return tipoCursoExame === 'curso';
-                                                    return true; // Outros tipos de ação aceitam ambos
+                                                    return true;
                                                 })
                                                 .map((cursoExame: CursoExame) => (
                                                     <MenuItem key={cursoExame.id} value={cursoExame.id}>
@@ -1406,10 +1428,65 @@ const GerenciarAcao = () => {
                                             onFocus={e => e.target.select()}
                                             inputProps={{ min: 1 }}
                                         />
+
+                                        {/* Divider configurações de periodicidade */}
+                                        <Box sx={{
+                                            background: 'linear-gradient(135deg, rgba(99,102,241,0.05), rgba(139,92,246,0.05))',
+                                            border: '1px solid rgba(99,102,241,0.2)',
+                                            borderRadius: '10px',
+                                            p: 2,
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            gap: 2
+                                        }}>
+                                            <Typography variant="subtitle2" sx={{ color: '#6366f1', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                ⏰ Configurações de Periodicidade
+                                            </Typography>
+
+                                            <TextField
+                                                fullWidth
+                                                type="number"
+                                                label="Periodicidade (meses)"
+                                                helperText="Intervalo mínimo entre refazer o exame. Deixe vazio para sem limite."
+                                                value={periodicidadeMeses}
+                                                onChange={(e) => setPeriodicidadeMeses(e.target.value === '' ? '' : parseInt(e.target.value) || 0)}
+                                                onFocus={e => e.target.select()}
+                                                inputProps={{ min: 0 }}
+                                                size="small"
+                                            />
+
+                                            <TextField
+                                                fullWidth
+                                                type="number"
+                                                label="Dias de aviso antes do vencimento"
+                                                helperText="Alertar o cidadão X dias antes de vencer a validade do exame."
+                                                value={diasAvisoVencimento}
+                                                onChange={(e) => setDiasAvisoVencimento(parseInt(e.target.value) || 0)}
+                                                onFocus={e => e.target.select()}
+                                                inputProps={{ min: 1 }}
+                                                size="small"
+                                            />
+
+                                            <FormControlLabel
+                                                control={
+                                                    <Switch
+                                                        checked={permitirRepeticao}
+                                                        onChange={(e) => setPermitirRepeticao(e.target.checked)}
+                                                        color="primary"
+                                                    />
+                                                }
+                                                label={
+                                                    <Box>
+                                                        <Typography variant="body2" sx={{ fontWeight: 600 }}>Permitir repetição</Typography>
+                                                        <Typography variant="caption" sx={{ color: '#64748b' }}>Se desativado, o cidadão só poderá realizar este exame uma vez.</Typography>
+                                                    </Box>
+                                                }
+                                            />
+                                        </Box>
                                     </Box>
                                 </DialogContent>
                                 <DialogActions>
-                                    <Button onClick={() => setOpenAddCursoExameDialog(false)}>
+                                    <Button onClick={() => { setOpenAddCursoExameDialog(false); setSelectedCursoExameId(''); setVagasCursoExame(10); setPeriodicidadeMeses(12); setDiasAvisoVencimento(30); setPermitirRepeticao(true); }}>
                                         Cancelar
                                     </Button>
                                     <Button
@@ -1672,6 +1749,102 @@ const GerenciarAcao = () => {
                                     disabled={!cidadaoEncontrado || !selectedAcaoCursoId}
                                 >
                                     Inscrever
+                                </Button>
+                            </DialogActions>
+                        </Dialog>
+
+                        {/* ── Dialog bloqueio de periodicidade ── */}
+                        <Dialog
+                            open={!!blockedInfo}
+                            onClose={() => setBlockedInfo(null)}
+                            maxWidth="xs"
+                            fullWidth
+                            PaperProps={{
+                                sx: {
+                                    borderRadius: '16px',
+                                    overflow: 'hidden',
+                                    boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+                                }
+                            }}
+                        >
+                            {/* Header vermelho */}
+                            <Box sx={{
+                                background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                                p: 3,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 2,
+                            }}>
+                                <Box sx={{
+                                    width: 48, height: 48,
+                                    background: 'rgba(255,255,255,0.2)',
+                                    borderRadius: '12px',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    fontSize: '1.6rem',
+                                    flexShrink: 0,
+                                }}>
+                                    🚫
+                                </Box>
+                                <Box>
+                                    <Typography sx={{ color: '#fff', fontWeight: 800, fontSize: '1rem', lineHeight: 1.2 }}>
+                                        Inscrição Bloqueada
+                                    </Typography>
+                                    <Typography sx={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.8rem' }}>
+                                        Restrição de periodicidade de exame
+                                    </Typography>
+                                </Box>
+                            </Box>
+
+                            <DialogContent sx={{ p: 3 }}>
+                                <Typography sx={{ color: '#1e293b', fontWeight: 600, mb: 2, fontSize: '0.9rem' }}>
+                                    {blockedInfo?.message}
+                                </Typography>
+
+                                {blockedInfo?.ultima_data && (
+                                    <Box sx={{
+                                        background: 'rgba(239,68,68,0.06)',
+                                        border: '1px solid rgba(239,68,68,0.2)',
+                                        borderRadius: '10px',
+                                        p: 2,
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        gap: 1,
+                                    }}>
+                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                                Último exame realizado
+                                            </Typography>
+                                            <Typography sx={{ color: '#ef4444', fontWeight: 700, fontSize: '0.875rem' }}>
+                                                {blockedInfo.ultima_data}
+                                            </Typography>
+                                        </Box>
+                                        {blockedInfo?.proxima_data && (
+                                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                                    Poderá se inscrever em
+                                                </Typography>
+                                                <Typography sx={{ color: '#16a34a', fontWeight: 700, fontSize: '0.875rem' }}>
+                                                    {blockedInfo.proxima_data}
+                                                </Typography>
+                                            </Box>
+                                        )}
+                                    </Box>
+                                )}
+                            </DialogContent>
+                            <DialogActions sx={{ px: 3, pb: 3, pt: 0 }}>
+                                <Button
+                                    fullWidth
+                                    variant="contained"
+                                    onClick={() => setBlockedInfo(null)}
+                                    sx={{
+                                        background: 'linear-gradient(135deg, #4682b4, #5b9bd5)',
+                                        borderRadius: '8px',
+                                        fontWeight: 700,
+                                        textTransform: 'none',
+                                        py: 1.2,
+                                    }}
+                                >
+                                    Entendido
                                 </Button>
                             </DialogActions>
                         </Dialog>

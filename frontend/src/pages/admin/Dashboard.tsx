@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Container, Typography, Grid, Box } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -12,10 +12,13 @@ import {
     BarChart3,
     DollarSign,
     Package,
+    Bell,
 } from 'lucide-react';
 import { expressoTheme } from '../../theme/expressoTheme';
+import api from '../../services/api';
 
 const menuItems = [
+    { title: 'Alertas de Exames', icon: Bell, path: '/admin/alertas', description: 'Periodicidade e pendências', destaque: true },
     { title: 'Relatórios e BI', icon: BarChart3, path: '/admin/relatorios', description: 'Analytics e métricas' },
     { title: 'Ações', icon: Activity, path: '/admin/acoes', description: 'Gerenciar ações de saúde' },
     { title: 'Contas a Pagar', icon: DollarSign, path: '/admin/contas-pagar', description: 'Custos e despesas' },
@@ -51,6 +54,13 @@ const itemVariants = {
 
 const Dashboard: React.FC = () => {
     const navigate = useNavigate();
+    const [totalAlertas, setTotalAlertas] = useState<number | null>(null);
+
+    useEffect(() => {
+        api.get('/alertas/admin/dashboard')
+            .then(res => setTotalAlertas(res.data?.resumo?.total_geral || 0))
+            .catch(() => setTotalAlertas(null));
+    }, []);
 
     return (
         <Box
@@ -109,9 +119,14 @@ const Dashboard: React.FC = () => {
                                         <Box
                                             onClick={() => navigate(item.path)}
                                             sx={{
-                                                background: expressoTheme.colors.cardBackground,
+                                                position: 'relative',
+                                                background: (item as any).destaque
+                                                    ? 'linear-gradient(135deg, rgba(239,68,68,0.08), rgba(99,102,241,0.08))'
+                                                    : expressoTheme.colors.cardBackground,
                                                 borderRadius: expressoTheme.borderRadius.large,
-                                                border: `1px solid ${expressoTheme.colors.border}`,
+                                                border: (item as any).destaque
+                                                    ? '1px solid rgba(239,68,68,0.35)'
+                                                    : `1px solid ${expressoTheme.colors.border}`,
                                                 p: 3,
                                                 cursor: 'pointer',
                                                 transition: 'all 0.3s ease',
@@ -119,7 +134,9 @@ const Dashboard: React.FC = () => {
                                                 display: 'flex',
                                                 flexDirection: 'column',
                                                 gap: 2,
-                                                boxShadow: expressoTheme.shadows.card,
+                                                boxShadow: (item as any).destaque
+                                                    ? '0 0 20px rgba(239,68,68,0.15)'
+                                                    : expressoTheme.shadows.card,
                                                 '&:hover': {
                                                     background: expressoTheme.colors.cardHover,
                                                     borderColor: expressoTheme.colors.primary,
@@ -127,6 +144,27 @@ const Dashboard: React.FC = () => {
                                                 },
                                             }}
                                         >
+                                            {/* Badge de alertas */}
+                                            {(item as any).destaque && totalAlertas !== null && totalAlertas > 0 && (
+                                                <Box sx={{
+                                                    position: 'absolute',
+                                                    top: 12, right: 12,
+                                                    background: '#ef4444',
+                                                    color: 'white',
+                                                    borderRadius: '100px',
+                                                    px: 1.2, py: 0.3,
+                                                    fontSize: '0.72rem',
+                                                    fontWeight: 700,
+                                                    lineHeight: 1.4,
+                                                    animation: 'pulse 2s ease-in-out infinite',
+                                                    '@keyframes pulse': {
+                                                        '0%, 100%': { opacity: 1, transform: 'scale(1)' },
+                                                        '50%': { opacity: 0.8, transform: 'scale(1.05)' },
+                                                    },
+                                                }}>
+                                                    {totalAlertas} alerta{totalAlertas !== 1 ? 's' : ''}
+                                                </Box>
+                                            )}
                                             {/* Ícone */}
                                             <Box
                                                 sx={{
@@ -134,8 +172,12 @@ const Dashboard: React.FC = () => {
                                                     alignSelf: 'flex-start',
                                                     padding: 2,
                                                     borderRadius: expressoTheme.borderRadius.medium,
-                                                    background: expressoTheme.gradients.primary,
-                                                    boxShadow: expressoTheme.shadows.button,
+                                                    background: (item as any).destaque
+                                                        ? 'linear-gradient(135deg, #ef4444, #dc2626)'
+                                                        : expressoTheme.gradients.primary,
+                                                    boxShadow: (item as any).destaque
+                                                        ? '0 4px 12px rgba(239,68,68,0.4)'
+                                                        : expressoTheme.shadows.button,
                                                 }}
                                             >
                                                 <Icon size={28} color="white" />
@@ -147,7 +189,7 @@ const Dashboard: React.FC = () => {
                                                     variant="h6"
                                                     sx={{
                                                         fontWeight: 700,
-                                                        color: expressoTheme.colors.text,
+                                                        color: (item as any).destaque ? '#ef4444' : expressoTheme.colors.text,
                                                         mb: 0.5,
                                                     }}
                                                 >
