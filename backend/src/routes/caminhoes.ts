@@ -2,6 +2,8 @@ import { Router, Request, Response } from 'express';
 import { Caminhao } from '../models/Caminhao';
 import { ManutencaoCaminhao } from '../models/ManutencaoCaminhao';
 import { ContaPagar } from '../models/ContaPagar';
+import { AcaoCaminhao } from '../models/AcaoCaminhao';
+import { Acao } from '../models/Acao';
 import { authenticate, authorizeAdmin } from '../middlewares/auth';
 import Joi from 'joi';
 import { validate } from '../middlewares/validation';
@@ -214,8 +216,9 @@ router.post('/:id/manutencoes', authenticate, authorizeAdmin, validate(manutenca
 
         const manutencao = await ManutencaoCaminhao.create({ ...req.body, caminhao_id: id });
 
-        // Atualiza status do caminhão
-        if (req.body.status === 'em_andamento') {
+        // Setar em_manutencao para qualquer manutenção ativa (agendada ou em_andamento)
+        const statusManutencao: string = req.body.status || 'agendada';
+        if (['agendada', 'em_andamento'].includes(statusManutencao)) {
             await caminhao.update({ status: 'em_manutencao' });
         }
 
@@ -240,11 +243,22 @@ router.put('/:id/manutencoes/:mid', authenticate, authorizeAdmin, validate(manut
         // Atualiza status do caminhão
         const caminhao = await Caminhao.findByPk(id);
         if (caminhao) {
-            if (req.body.status === 'em_andamento') {
+            const novoStatusManutencao: string = req.body.status || manutencao.status;
+            if (['agendada', 'em_andamento'].includes(novoStatusManutencao)) {
                 await caminhao.update({ status: 'em_manutencao' });
-            } else if (req.body.status === 'concluida' || req.body.status === 'cancelada') {
-                const emAndamento = await ManutencaoCaminhao.count({ where: { caminhao_id: id, status: 'em_andamento' } });
-                if (emAndamento === 0) await caminhao.update({ status: 'disponivel' });
+            } else if (['concluida', 'cancelada'].includes(novoStatusManutencao)) {
+                // Verificar se ainda há manutenções ativas
+                const aindaEmManutencao = await ManutencaoCaminhao.count({
+                    where: { caminhao_id: id, status: { [Op.in]: ['agendada', 'em_andamento'] }, id: { [Op.ne]: mid } },
+                });
+                if (aindaEmManutencao === 0) {
+                    // Não tem mais manutenções ativas — verificar se está em ação ativa
+                    const emAcaoAtiva = await AcaoCaminhao.count({
+                        where: { caminhao_id: id },
+                        include: [{ model: Acao, as: 'acao', where: { status: 'ativa' }, required: true }] as any,
+                    });
+                    await caminhao.update({ status: emAcaoAtiva > 0 ? 'em_acao' : 'disponivel' });
+                }
             }
         }
 

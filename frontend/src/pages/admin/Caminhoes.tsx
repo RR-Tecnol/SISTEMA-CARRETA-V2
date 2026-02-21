@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Container, Typography, Grid, Box, TextField, Button, Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress, IconButton, Chip } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Search, X, Truck, Edit, CheckCircle, XCircle, Wrench } from 'lucide-react';
+import { Plus, Search, X, Truck, Edit, CheckCircle, XCircle, Wrench, AlertTriangle } from 'lucide-react';
 import { useSnackbar } from 'notistack';
 import api from '../../services/api';
 import { expressoTheme } from '../../theme/expressoTheme';
@@ -218,13 +218,26 @@ const Caminhoes: React.FC = () => {
                                                 {caminhao.placa}
                                             </Typography>
 
-                                            <Typography sx={{ color: expressoTheme.colors.textSecondary, fontSize: '0.85rem', mb: 0.5 }}>
+                                            <Typography sx={{ color: expressoTheme.colors.textSecondary, fontSize: '0.8rem', mb: 0.5 }}>
                                                 {caminhao.modelo} - {caminhao.ano}
                                             </Typography>
-
-                                            <Typography sx={{ color: expressoTheme.colors.textSecondary, fontSize: '0.8rem' }}>
-                                                Autonomia: {caminhao.autonomia_km_litro} km/l | Tanque: {caminhao.capacidade_litros}L
+                                            <Typography sx={{ color: expressoTheme.colors.textSecondary, fontSize: '0.75rem', mb: 1.5 }}>
+                                                Autonomia: {Number(caminhao.autonomia_km_litro).toFixed(2)} km/l | Tanque: {caminhao.capacidade_litros}L
                                             </Typography>
+
+                                            {/* Banner de alerta: em manutenção */}
+                                            {caminhao.status === 'em_manutencao' && (
+                                                <Box sx={{
+                                                    display: 'flex', alignItems: 'center', gap: 1,
+                                                    background: 'rgba(220,53,69,0.08)', border: '1px solid rgba(220,53,69,0.25)',
+                                                    borderRadius: 2, px: 1.5, py: 1, mb: 1.5,
+                                                }}>
+                                                    <AlertTriangle size={15} color={expressoTheme.colors.danger} />
+                                                    <Typography sx={{ fontSize: '0.73rem', color: expressoTheme.colors.danger, fontWeight: 600, lineHeight: 1.3 }}>
+                                                        Em manutenção — não pode ser vinculado a ações
+                                                    </Typography>
+                                                </Box>
+                                            )}
 
                                             {/* Botão Manutenção */}
                                             <Box

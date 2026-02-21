@@ -9,6 +9,7 @@ import { AcaoCaminhao } from '../models/AcaoCaminhao';
 import { AcaoFuncionario } from '../models/AcaoFuncionario';
 import { Inscricao } from '../models/Inscricao';
 import { ContaPagar } from '../models/ContaPagar';
+import { ManutencaoCaminhao } from '../models/ManutencaoCaminhao';
 import { authenticate, authorizeAdmin } from '../middlewares/auth';
 import { cacheMiddleware, clearCache } from '../middlewares/cache';
 import Joi from 'joi';
@@ -320,6 +321,43 @@ router.put('/:id', authenticate, authorizeAdmin, async (req: Request, res: Respo
 
         await acao.update(updateData);
 
+        // Sincronizar status dos caminhões vinculados quando a ação muda de status
+        if (updateData.status && updateData.status !== acao.previous('status')) {
+            const novoStatus: string = updateData.status;
+            // Buscar todos os caminhões vinculados a essa ação
+            const vinculos = await AcaoCaminhao.findAll({ where: { acao_id: id } });
+            const caminhaoIds = vinculos.map((v: any) => v.caminhao_id);
+
+            if (caminhaoIds.length > 0) {
+                if (novoStatus === 'ativa') {
+                    // Ação ficou ativa → todos os caminhões vão para em_acao
+                    await Caminhao.update(
+                        { status: 'em_acao' },
+                        { where: { id: caminhaoIds, status: 'disponivel' } }
+                    );
+                } else if (novoStatus === 'concluida') {
+                    // Ação concluída → liberar caminhões que não estão em outra ação ativa
+                    for (const cid of caminhaoIds) {
+                        const outrasAcoesAtivas = await AcaoCaminhao.count({
+                            where: { caminhao_id: cid },
+                            include: [{
+                                model: Acao,
+                                as: 'acao',
+                                where: { status: 'ativa', id: { [Op.ne]: id } },
+                                required: true,
+                            }] as any,
+                        });
+                        if (outrasAcoesAtivas === 0) {
+                            await Caminhao.update(
+                                { status: 'disponivel' },
+                                { where: { id: cid, status: 'em_acao' } }
+                            );
+                        }
+                    }
+                }
+            }
+        }
+
         // Limpar cache
         await clearCache('cache:/api/acoes*');
 
@@ -439,11 +477,35 @@ router.post('/:id/caminhoes', authenticate, authorizeAdmin, async (req: Request,
             return;
         }
 
+        // ⛔ Bloquear se caminhão estiver em manutenção
+        if (caminhao.status === 'em_manutencao') {
+            const manutencaoAtiva = await ManutencaoCaminhao.findOne({
+                where: {
+                    caminhao_id,
+                    status: { [Op.in]: ['agendada', 'em_andamento'] },
+                },
+                order: [['data_agendada', 'ASC']],
+            });
+            const detalhe = manutencaoAtiva
+                ? ` (${manutencaoAtiva.titulo}${manutencaoAtiva.data_conclusao ? ` — previsto até ${new Date(manutencaoAtiva.data_conclusao).toLocaleDateString('pt-BR')}` : ''})`
+                : '';
+            res.status(409).json({
+                error: `Caminhão ${caminhao.placa} está em manutenção${detalhe} e não pode ser vinculado a uma ação.`,
+                em_manutencao: true,
+            });
+            return;
+        }
+
         // Criar vínculo
         await AcaoCaminhao.create({
             acao_id: id,
             caminhao_id
         } as any);
+
+        // Se a ação já está ativa, colocar o caminhão em_acao imediatamente
+        if (acao.status === 'ativa') {
+            await caminhao.update({ status: 'em_acao' });
+        }
 
         res.status(201).json({ message: 'Caminhão vinculado com sucesso' });
     } catch (error) {
@@ -473,6 +535,24 @@ router.delete('/:id/caminhoes/:caminhaoId', authenticate, authorizeAdmin, async 
         }
 
         await link.destroy();
+
+        // Após desvincular, verificar se o caminhão ainda está em outra ação ativa
+        const outrasAcoesAtivas = await AcaoCaminhao.count({
+            where: { caminhao_id: caminhaoId },
+            include: [{
+                model: Acao,
+                as: 'acao',
+                where: { status: 'ativa' },
+                required: true,
+            }] as any,
+        });
+        if (outrasAcoesAtivas === 0) {
+            await Caminhao.update(
+                { status: 'disponivel' },
+                { where: { id: caminhaoId, status: 'em_acao' } }
+            );
+        }
+
         res.json({ message: 'Caminhão desvinculado com sucesso' });
 
     } catch (error) {

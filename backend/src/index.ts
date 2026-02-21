@@ -5,6 +5,7 @@ import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import { config } from './config';
 import { testConnection, sequelize } from './config/database';
+import { Op } from 'sequelize';
 import { connectRedis } from './config/redis';
 import { setupAssociations } from './models';
 import { errorHandler } from './middlewares/errorHandler';
@@ -32,6 +33,54 @@ import cidadaoExamesRoutes from './routes/cidadaoExames';
 import estoqueRoutes from './routes/estoque';
 import utilsRoutes from './routes/utils';
 import alertasRoutes from './routes/alertas';
+import { ManutencaoCaminhao } from './models/ManutencaoCaminhao';
+import { Caminhao } from './models/Caminhao';
+import { AcaoCaminhao } from './models/AcaoCaminhao';
+import { Acao } from './models/Acao';
+
+/**
+ * Job automático: a cada hora verifica manutenções vencidas e libera os caminhões.
+ * Se data_conclusao já passou e a manutenção ainda está agendada/em_andamento,
+ * ela é marcada como "concluida" e o caminhão volta para disponivel (ou em_acao se ainda em ação ativa).
+ */
+async function liberarManutencoesvencidas() {
+    try {
+        const hoje = new Date();
+        const vencidas = await ManutencaoCaminhao.findAll({
+            where: {
+                status: { [Op.in]: ['agendada', 'em_andamento'] },
+                data_conclusao: { [Op.lt]: hoje },
+            },
+        });
+
+        for (const m of vencidas) {
+            await m.update({ status: 'concluida' });
+            const caminhao = await Caminhao.findByPk(m.caminhao_id);
+            if (!caminhao || caminhao.status !== 'em_manutencao') continue;
+
+            // Ainda tem outras manutenções ativas?
+            const outrasAtivas = await ManutencaoCaminhao.count({
+                where: {
+                    caminhao_id: m.caminhao_id,
+                    status: { [Op.in]: ['agendada', 'em_andamento'] },
+                    id: { [Op.ne]: m.id },
+                },
+            });
+            if (outrasAtivas > 0) continue;
+
+            // Está em alguma ação ativa?
+            const emAcaoAtiva = await AcaoCaminhao.count({
+                where: { caminhao_id: m.caminhao_id },
+                include: [{ model: Acao, as: 'acao', where: { status: 'ativa' }, required: true }] as any,
+            });
+
+            await caminhao.update({ status: emAcaoAtiva > 0 ? 'em_acao' : 'disponivel' });
+            console.log(`🔧→✅ Manutenção ${m.titulo} vencida: caminhão ${caminhao.placa} → ${emAcaoAtiva > 0 ? 'em_acao' : 'disponivel'}`);
+        }
+    } catch (err) {
+        console.error('❌ Erro no job de manutenção:', err);
+    }
+}
 
 const app: Application = express();
 
@@ -129,6 +178,11 @@ async function startServer(): Promise<void> {
             console.log(`📝 Environment: ${config.env}`);
             console.log(`🔗 API: http://localhost:${config.port}/api`);
         });
+
+        // Job: liberar caminhões com manutenção vencida (roda na inicialização e a cada hora)
+        liberarManutencoesvencidas();
+        setInterval(liberarManutencoesvencidas, 60 * 60 * 1000); // a cada 1 hora
+        console.log('⏰ Job de manutenção agendado (1h)');
     } catch (error) {
         console.error('❌ Failed to start server:', error);
         process.exit(1);
