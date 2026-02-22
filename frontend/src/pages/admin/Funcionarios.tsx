@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Typography, Grid, Box, TextField, Button, Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress, IconButton } from '@mui/material';
+import { Container, Typography, Grid, Box, TextField, Button, Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress, IconButton, Switch, FormControlLabel, Collapse, Divider } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Search, X, Users, Briefcase, DollarSign, Edit } from 'lucide-react';
+import { Plus, Search, X, Users, Briefcase, DollarSign, Edit, Stethoscope } from 'lucide-react';
 import { useSnackbar } from 'notistack';
 import api from '../../services/api';
 import { expressoTheme } from '../../theme/expressoTheme';
@@ -16,6 +16,7 @@ interface Funcionario {
     especialidade?: string;
     custo_diaria: number;
     ativo: boolean;
+    is_medico?: boolean;
 }
 
 const Funcionarios: React.FC = () => {
@@ -25,7 +26,7 @@ const Funcionarios: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [openDialog, setOpenDialog] = useState(false);
     const [editingFuncionario, setEditingFuncionario] = useState<Funcionario | null>(null);
-    const [formData, setFormData] = useState({ nome: '', cargo: '', cpf: '', telefone: '', email: '', especialidade: '', custo_diaria: 0, ativo: true });
+    const [formData, setFormData] = useState({ nome: '', cargo: '', cpf: '', telefone: '', email: '', especialidade: '', custo_diaria: 0, ativo: true, is_medico: false, login_cpf: '', senha: '' });
 
     useEffect(() => {
         fetchFuncionarios();
@@ -46,10 +47,10 @@ const Funcionarios: React.FC = () => {
     const handleOpenDialog = (funcionario?: Funcionario) => {
         if (funcionario) {
             setEditingFuncionario(funcionario);
-            setFormData({ nome: funcionario.nome, cargo: funcionario.cargo, cpf: funcionario.cpf, telefone: funcionario.telefone, email: funcionario.email, especialidade: funcionario.especialidade || '', custo_diaria: funcionario.custo_diaria, ativo: funcionario.ativo });
+            setFormData({ nome: funcionario.nome, cargo: funcionario.cargo, cpf: funcionario.cpf, telefone: funcionario.telefone, email: funcionario.email, especialidade: funcionario.especialidade || '', custo_diaria: funcionario.custo_diaria, ativo: funcionario.ativo, is_medico: funcionario.is_medico || false, login_cpf: '', senha: '' });
         } else {
             setEditingFuncionario(null);
-            setFormData({ nome: '', cargo: '', cpf: '', telefone: '', email: '', especialidade: '', custo_diaria: 0, ativo: true });
+            setFormData({ nome: '', cargo: '', cpf: '', telefone: '', email: '', especialidade: '', custo_diaria: 0, ativo: true, is_medico: false, login_cpf: '', senha: '' });
         }
         setOpenDialog(true);
     };
@@ -260,6 +261,59 @@ const Funcionarios: React.FC = () => {
                                     }}
                                 />
                             </Grid>
+
+                            {/* Toggle Médico */}
+                            <Grid item xs={12}>
+                                <Divider sx={{ my: 1 }} />
+                                <FormControlLabel
+                                    control={
+                                        <Switch
+                                            checked={formData.is_medico}
+                                            onChange={(e) => setFormData({ ...formData, is_medico: e.target.checked })}
+                                            color="primary"
+                                        />
+                                    }
+                                    label={
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                            <Stethoscope size={18} color={formData.is_medico ? expressoTheme.colors.primary : expressoTheme.colors.textSecondary} />
+                                            <Typography sx={{ fontWeight: formData.is_medico ? 700 : 400, color: formData.is_medico ? expressoTheme.colors.primary : expressoTheme.colors.text }}>
+                                                É Médico (habilitar login no painel de consultas)
+                                            </Typography>
+                                        </Box>
+                                    }
+                                />
+                            </Grid>
+
+                            {/* Campos de Login do Médico */}
+                            <Collapse in={formData.is_medico} style={{ width: '100%' }}>
+                                <Grid container spacing={2} sx={{ px: 2, pt: 1, pb: 2, background: 'rgba(59,130,246,0.05)', borderRadius: 2, border: '1px solid rgba(59,130,246,0.2)', mx: 0 }}>
+                                    <Grid item xs={12}>
+                                        <Typography sx={{ fontSize: '0.8rem', color: expressoTheme.colors.textSecondary, mb: 1 }}>
+                                            🔐 Credenciais de acesso ao Painel Médico
+                                        </Typography>
+                                    </Grid>
+                                    <Grid item xs={6}>
+                                        <TextField
+                                            fullWidth
+                                            label="CPF de Login"
+                                            placeholder="000.000.000-00"
+                                            value={formData.login_cpf}
+                                            onChange={(e) => setFormData({ ...formData, login_cpf: e.target.value })}
+                                            helperText="CPF que o médico usará para login"
+                                        />
+                                    </Grid>
+                                    <Grid item xs={6}>
+                                        <TextField
+                                            fullWidth
+                                            type="password"
+                                            label={editingFuncionario ? 'Nova Senha (deixe em branco para manter)' : 'Senha de Acesso'}
+                                            value={formData.senha}
+                                            onChange={(e) => setFormData({ ...formData, senha: e.target.value })}
+                                            helperText="Mínimo 6 caracteres"
+                                        />
+                                    </Grid>
+                                </Grid>
+                            </Collapse>
                         </Grid>
                     </DialogContent>
                     <DialogActions sx={{ p: 3 }}>

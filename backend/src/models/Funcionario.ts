@@ -11,6 +11,10 @@ export interface FuncionarioAttributes {
     especialidade?: string;
     custo_diaria: number;
     ativo: boolean;
+    // Campos de login médico
+    is_medico?: boolean;
+    login_cpf?: string;
+    senha?: string;
 }
 
 export class Funcionario extends Model<FuncionarioAttributes> implements FuncionarioAttributes {
@@ -23,6 +27,9 @@ export class Funcionario extends Model<FuncionarioAttributes> implements Funcion
     public especialidade?: string;
     public custo_diaria!: number;
     public ativo!: boolean;
+    public is_medico?: boolean;
+    public login_cpf?: string;
+    public senha?: string;
 
     public readonly created_at!: Date;
     public readonly updated_at!: Date;
@@ -68,6 +75,20 @@ Funcionario.init(
             type: DataTypes.BOOLEAN,
             allowNull: false,
             defaultValue: true,
+        },
+        is_medico: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: false,
+        },
+        login_cpf: {
+            type: DataTypes.STRING,
+            allowNull: true,
+        },
+        senha: {
+            type: DataTypes.STRING,
+            allowNull: true,
+            comment: 'Hash bcrypt da senha do medico para login',
         },
     },
     {

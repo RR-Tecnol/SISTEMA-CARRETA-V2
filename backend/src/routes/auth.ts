@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { generateToken } from '../utils/auth';
 import { Cidadao } from '../models/Cidadao';
+import { Funcionario } from '../models/Funcionario';
 import { validarCPF } from '../utils/validators';
 import Joi from 'joi';
 import { validate } from '../middlewares/validation';
@@ -47,29 +48,64 @@ const cadastroSchema = Joi.object({
 
 /**
  * POST /api/auth/login
- * Login de cidadão (autenticação por CPF)
+ * Login unificado: cidadão, admin ou médico (Funcionario com is_medico=true)
  */
 router.post('/login', validate(loginSchema), async (req: Request, res: Response) => {
     try {
         const { cpf } = req.body;
         const senhaRaw = req.body.senha;
-        const senha = String(senhaRaw || '').trim(); // Forçar string e remover espaços
+        const senha = String(senhaRaw || '').trim();
 
-        // Validate CPF
         if (!validarCPF(cpf)) {
             res.status(400).json({ error: 'CPF inválido' });
             return;
         }
 
-        const cleanCPF = cpf.replace(/\D/g, ''); // Remove formatação: 12345678909
-        const formattedCPF = cleanCPF.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4'); // 123.456.789-09
+        const cleanCPF = cpf.replace(/\D/g, '');
+        const formattedCPF = cleanCPF.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4');
 
-        // Buscar cidadão por CPF (aceita com ou sem formatação)
+        // ── 1. Verificar se é MÉDICO (Funcionario com is_medico=true) ──
+        const medico = await Funcionario.findOne({
+            where: {
+                is_medico: true,
+                [Op.or]: [
+                    { login_cpf: cleanCPF },
+                    { login_cpf: formattedCPF },
+                    { cpf: cleanCPF },
+                    { cpf: formattedCPF },
+                ],
+            },
+        });
+
+        if (medico && medico.senha) {
+            const senhaValida = await bcrypt.compare(senha, medico.senha);
+            if (senhaValida) {
+                const token = generateToken({
+                    id: medico.id,
+                    tipo: 'medico' as any,
+                    email: medico.email || '',
+                });
+                res.json({
+                    message: 'Login realizado com sucesso',
+                    token,
+                    user: {
+                        id: medico.id,
+                        nome: medico.nome,
+                        email: medico.email || '',
+                        tipo: 'medico',
+                        redirect: '/medico',
+                    },
+                });
+                return;
+            }
+        }
+
+        // ── 2. Login como CIDADÃO ou ADMIN ──
         const cidadao = await Cidadao.findOne({
             where: {
                 [Op.or]: [
-                    { cpf: cleanCPF },      // 12345678909
-                    { cpf: formattedCPF },  // 123.456.789-09
+                    { cpf: cleanCPF },
+                    { cpf: formattedCPF },
                 ],
             },
         });
@@ -79,30 +115,18 @@ router.post('/login', validate(loginSchema), async (req: Request, res: Response)
             return;
         }
 
-        // Validate password
         if (!cidadao.senha) {
-            console.log('LOGIN_DEBUG: Senha não cadastrada para CPF:', cpf);
             res.status(401).json({ error: 'Senha não cadastrada' });
             return;
         }
 
-        console.log('LOGIN_DEBUG: Comparando senha...');
-        console.log('LOGIN_DEBUG: Senha Recebida:', senha);
-        console.log('LOGIN_DEBUG: Hash no Banco:', cidadao.senha);
-
         const senhaValida = await bcrypt.compare(senha, cidadao.senha);
-        console.log('LOGIN_DEBUG: Resultado da comparação:', senhaValida);
-
         if (!senhaValida) {
-            console.log('LOGIN_DEBUG: Senha inválida');
             res.status(401).json({ error: 'CPF ou senha inválidos' });
             return;
         }
 
-        // Generate JWT token
-        // Check if user is admin (based on tipo field in database)
         const isAdmin = cidadao.tipo === 'admin';
-
         const token = generateToken({
             id: cidadao.id,
             tipo: isAdmin ? 'admin' : 'cidadao',
@@ -117,6 +141,7 @@ router.post('/login', validate(loginSchema), async (req: Request, res: Response)
                 nome: cidadao.nome_completo,
                 email: cidadao.email,
                 tipo: isAdmin ? 'admin' : 'cidadao',
+                redirect: isAdmin ? '/admin' : '/portal',
             },
         });
     } catch (error) {
@@ -146,7 +171,6 @@ router.post('/cadastro', validate(cadastroSchema), async (req: Request, res: Res
             campos_customizados,
         } = req.body;
 
-        // Validate CPF
         if (!validarCPF(cpf)) {
             res.status(400).json({ error: 'CPF inválido' });
             return;
@@ -155,14 +179,12 @@ router.post('/cadastro', validate(cadastroSchema), async (req: Request, res: Res
         const cleanCPF = cpf.replace(/\\D/g, '');
         const formattedCPF = cleanCPF.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4');
 
-        // 1. Check if Email already exists
         const existingEmail = await Cidadao.findOne({ where: { email } });
         if (existingEmail) {
             res.status(409).json({ error: 'E-mail já cadastrado.' });
             return;
         }
 
-        // 2. Check if CPF already exists
         const existingCPF = await Cidadao.findOne({
             where: {
                 [Op.or]: [
@@ -177,18 +199,15 @@ router.post('/cadastro', validate(cadastroSchema), async (req: Request, res: Res
             return;
         }
 
-        // Get client IP
         const ipAddress = req.ip || req.socket.remoteAddress || '';
 
-        // Hash password if provided
         let senhaHash = undefined;
         if (senha) {
             senhaHash = await bcrypt.hash(senha, 10);
         }
 
-        // Create new cidadao
         const cidadao = await Cidadao.create({
-            cpf: formattedCPF,  // Salvando com formatação padrão
+            cpf: formattedCPF,
             nome_completo,
             data_nascimento,
             telefone,
@@ -204,7 +223,6 @@ router.post('/cadastro', validate(cadastroSchema), async (req: Request, res: Res
             campos_customizados: campos_customizados || {},
         } as any);
 
-        // Generate token
         const token = generateToken({
             id: cidadao.id,
             tipo: 'cidadao',
@@ -229,7 +247,6 @@ router.post('/cadastro', validate(cadastroSchema), async (req: Request, res: Res
 
 /**
  * POST /api/auth/forgot-password
- * Solicitação de redefinição de senha
  */
 router.post('/forgot-password', async (req: Request, res: Response) => {
     try {
@@ -245,10 +262,8 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
         if (email) {
             cidadao = await Cidadao.findOne({ where: { email } });
         } else if (cpf) {
-            // Buscar por CPF
             const cleanCPF = cpf.replace(/\D/g, '');
             const formattedCPF = cleanCPF.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4');
-
             cidadao = await Cidadao.findOne({
                 where: {
                     [Op.or]: [
@@ -260,26 +275,21 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
         }
 
         if (!cidadao) {
-            // Security: don't reveal user doesn't exist
-            // But for UX we often do "Se o e-mail existir..."
             res.json({ message: 'Se o e-mail/CPF estiver cadastrado, você receberá um link para redefinir a senha.' });
             return;
         }
 
-        // Generate token
         const token = crypto.randomBytes(20).toString('hex');
         const now = new Date();
-        now.setHours(now.getHours() + 1); // 1 hour expiration
+        now.setHours(now.getHours() + 1);
 
         cidadao.reset_password_token = token;
         cidadao.reset_password_expires = now;
         await cidadao.save();
 
-        // Send email
         await sendPasswordResetEmail(cidadao.email, token);
 
         res.json({ message: 'Se o e-mail/CPF estiver cadastrado, você receberá um link para redefinir a senha.' });
-
     } catch (error) {
         console.error('Forgot password error:', error);
         res.status(500).json({ error: 'Erro ao processar solicitação' });
@@ -288,7 +298,6 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
 
 /**
  * POST /api/auth/reset-password
- * Redefinição de senha com token
  */
 router.post('/reset-password', async (req: Request, res: Response) => {
     try {
@@ -303,9 +312,9 @@ router.post('/reset-password', async (req: Request, res: Response) => {
             where: {
                 reset_password_token: token,
                 reset_password_expires: {
-                    [Op.gt]: new Date() // Expires > Now
-                }
-            }
+                    [Op.gt]: new Date(),
+                },
+            },
         });
 
         if (!cidadao) {
@@ -313,27 +322,18 @@ router.post('/reset-password', async (req: Request, res: Response) => {
             return;
         }
 
-        // Hash new password
         const senhaHash = await bcrypt.hash(senha, 10);
-
-        // Update current user
         cidadao.senha = senhaHash;
         cidadao.reset_password_token = null;
         cidadao.reset_password_expires = null;
         await cidadao.save();
 
-        // Also update ANY other user with the same email (handling duplicates)
         await Cidadao.update(
-            {
-                senha: senhaHash,
-                reset_password_token: null,
-                reset_password_expires: null
-            },
+            { senha: senhaHash, reset_password_token: null, reset_password_expires: null },
             { where: { email: cidadao.email } }
         );
 
         res.json({ message: 'Senha redefinida com sucesso para todas as contas vinculadas a este e-mail.' });
-
     } catch (error) {
         console.error('Reset password error:', error);
         res.status(500).json({ error: 'Erro ao redefinir senha' });
@@ -341,4 +341,3 @@ router.post('/reset-password', async (req: Request, res: Response) => {
 });
 
 export default router;
-

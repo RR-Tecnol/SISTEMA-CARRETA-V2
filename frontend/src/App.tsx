@@ -33,11 +33,14 @@ import Estoque from './pages/admin/Estoque';
 import AlertasExames from './pages/admin/AlertasExames';
 import ManutencaoCaminhao from './pages/admin/ManutencaoCaminhao';
 import MedicoMonitoring from './pages/admin/MedicoMonitoring';
+import MedicoPanel from './pages/medico/MedicoPanel';
+import MedicoAcoes from './pages/medico/MedicoAcoes';
 
 // Layout
 import PublicLayout from './components/layout/PublicLayout';
 import CitizenLayout from './components/layout/CitizenLayout';
 import AdminLayout from './components/layout/AdminLayout';
+import MedicoLayout from './components/layout/MedicoLayout';
 
 function App() {
     return (
@@ -80,6 +83,12 @@ function App() {
                 <Route path="estoque" element={<Estoque />} />
                 <Route path="alertas" element={<AlertasExames />} />
                 <Route path="medicos" element={<MedicoMonitoring />} />
+            </Route>
+
+            {/* Medico panel */}
+            <Route path="/medico" element={<MedicoLayout />}>
+                <Route index element={<MedicoAcoes />} />
+                <Route path="acao/:acaoId" element={<MedicoPanel />} />
             </Route>
         </Routes>
     );

@@ -171,6 +171,16 @@ async function startServer(): Promise<void> {
             console.log('✅ Database synchronized');
         }
 
+        // Migration: adicionar colunas de medico na tabela funcionarios (se não existirem)
+        try {
+            await sequelize.query(`ALTER TABLE funcionarios ADD COLUMN IF NOT EXISTS is_medico BOOLEAN NOT NULL DEFAULT FALSE`);
+            await sequelize.query(`ALTER TABLE funcionarios ADD COLUMN IF NOT EXISTS login_cpf VARCHAR(20)`);
+            await sequelize.query(`ALTER TABLE funcionarios ADD COLUMN IF NOT EXISTS senha VARCHAR(255)`);
+            console.log('✅ Migration medico: colunas verificadas/adicionadas');
+        } catch (migErr) {
+            console.warn('⚠️ Migration medico (ignorar se ja existir):', migErr);
+        }
+
         // Connect to Redis
         await connectRedis();
 

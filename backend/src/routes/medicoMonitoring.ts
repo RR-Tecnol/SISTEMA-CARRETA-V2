@@ -16,8 +16,237 @@ import { PontoMedico } from '../models/PontoMedico';
 import { AtendimentoMedico } from '../models/AtendimentoMedico';
 import { Acao } from '../models/Acao';
 import { Cidadao } from '../models/Cidadao';
+import { AcaoFuncionario } from '../models/AcaoFuncionario';
+import { Inscricao } from '../models/Inscricao';
 
 const router = Router();
+
+
+// Middleware que permite admin OU médico autenticado
+const authorizeMedicoOrAdmin = (req: any, res: any, next: any) => {
+    if (!req.user) { res.status(401).json({ error: 'Não autenticado' }); return; }
+    if (req.user.tipo === 'admin' || req.user.tipo === 'medico') { next(); return; }
+    res.status(403).json({ error: 'Acesso negado' });
+};
+
+// ═══ GET /minhas-acoes ═══ Ações em que o médico está cadastrado
+router.get('/minhas-acoes', authenticate, authorizeMedicoOrAdmin, async (req: any, res: Response) => {
+    try {
+        const funcionarioId = req.user.id;
+        const hoje = new Date();
+
+        // Buscar vínculos ação-funcionário
+        const vinculos = await AcaoFuncionario.findAll({
+            where: { funcionario_id: funcionarioId },
+        });
+        const acaoIds = vinculos.map((v) => v.acao_id);
+
+        if (acaoIds.length === 0) {
+            res.json([]);
+            return;
+        }
+
+        // Buscar ações vinculadas (ativas ou planejadas — sem filtro de data)
+        const acoes = await Acao.findAll({
+            where: {
+                id: { [Op.in]: acaoIds },
+                status: { [Op.in]: ['ativa', 'planejada'] },
+            },
+            order: [['data_inicio', 'ASC']],
+        });
+
+        // Para cada ação, contar inscritos pendentes
+        const acoesCom = await Promise.all(acoes.map(async (acao) => {
+            const totalInscritos = await Inscricao.count({
+                where: { acao_id: acao.id },
+            });
+            const pendentes = await Inscricao.count({
+                where: { acao_id: acao.id, status: 'pendente' },
+            });
+            const atendidos = await Inscricao.count({
+                where: { acao_id: acao.id, status: 'atendido' },
+            });
+            return {
+                ...acao.toJSON(),
+                totalInscritos,
+                pendentes,
+                atendidos,
+            };
+        }));
+
+        res.json(acoesCom);
+    } catch (error) {
+        console.error('Erro ao buscar ações do médico:', error);
+        res.status(500).json({ error: 'Erro ao buscar ações' });
+    }
+});
+
+// ═══ GET /acao/:id/inscricoes ═══ Lista inscritos de uma ação para o médico atender
+router.get('/acao/:id/inscricoes', authenticate, authorizeMedicoOrAdmin, async (req: any, res: Response) => {
+    try {
+        const { id: acaoId } = req.params;
+        const { status = 'pendente', page = '1', limit = '50' } = req.query as any;
+        const offset = (Number(page) - 1) * Number(limit);
+
+        console.log(`[inscricoes] acao_id=${acaoId} status=${status} limit=${limit}`);
+
+        // Verificar total sem filtro de status
+        const totalSemFiltro = await Inscricao.count({ where: { acao_id: acaoId } });
+        console.log(`[inscricoes] Total de inscrições na ação (sem filtro de status): ${totalSemFiltro}`);
+
+        const whereClause: any = {
+            acao_id: acaoId,
+            ...(status !== 'todos' ? { status } : {}),
+        };
+
+        const { rows: inscricoes, count } = await Inscricao.findAndCountAll({
+            where: whereClause,
+            include: [{ model: Cidadao, as: 'cidadao', attributes: [['nome_completo', 'nome'], 'id', 'cpf', 'data_nascimento', 'telefone', 'genero'] }],
+            order: [['data_inscricao', 'ASC']],
+            limit: Number(limit),
+            offset,
+        });
+
+        console.log(`[inscricoes] Encontrados: ${count} inscrições com filtro status=${status}`);
+
+        res.json({ inscricoes, total: count, page: Number(page), pages: Math.ceil(count / Number(limit)) });
+    } catch (error) {
+        console.error('Erro ao buscar inscritos:', error);
+        res.status(500).json({ error: 'Erro ao buscar inscritos' });
+    }
+});
+
+
+// ═══ GET /me ═══ Dados do médico logado (para o painel médico) — aceita ?acao_id
+router.get('/me', authenticate, authorizeMedicoOrAdmin, async (req: any, res: Response) => {
+    try {
+        const funcionarioId = req.user.id;
+        const { acao_id } = req.query as any;
+        const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+        const amanha = new Date(hoje); amanha.setDate(amanha.getDate() + 1);
+
+        // Ponto ativo
+        const pontoAtivo = await PontoMedico.findOne({
+            where: { funcionario_id: funcionarioId, status: 'trabalhando' },
+        });
+
+        // Atendimentos do dia (filtrar por acao_id se informado)
+        const whereAtend: any = {
+            funcionario_id: funcionarioId,
+            hora_inicio: { [Op.between]: [hoje, amanha] },
+        };
+        if (acao_id) whereAtend.acao_id = acao_id;
+
+        const atendimentos = await AtendimentoMedico.findAll({
+            where: whereAtend,
+            order: [['hora_inicio', 'DESC']],
+        });
+
+        const emAndamento = atendimentos.find((a) => a.status === 'em_andamento') || null;
+
+        res.json({
+            pontoId: pontoAtivo?.id || null,
+            pontoStatus: pontoAtivo?.status || null,
+            emAndamento,
+            atendimentos: atendimentos.map((a) => a.toJSON()),
+        });
+    } catch (error) {
+        console.error('Erro ao buscar dados do médico:', error);
+        res.status(500).json({ error: 'Erro ao buscar dados' });
+    }
+});
+
+
+
+// ═══ POST /atendimento/iniciar ═══ Inicia consulta (médico ou admin)
+router.post('/atendimento/iniciar', authenticate, authorizeMedicoOrAdmin, async (req: any, res: Response) => {
+    try {
+        const { funcionario_id, nome_paciente, cidadao_id, acao_id, ponto_id, observacoes } = req.body;
+        const funcId = funcionario_id || req.user.id;
+
+        if (!funcId) {
+            res.status(400).json({ error: 'funcionario_id é obrigatório' });
+            return;
+        }
+
+        // Verificar ponto ativo — abrir automaticamente se não tiver
+        let pontoAtivo = ponto_id;
+        if (!pontoAtivo) {
+            const ponto = await PontoMedico.findOne({ where: { funcionario_id: funcId, status: 'trabalhando' } });
+            if (ponto) {
+                pontoAtivo = ponto.id;
+            } else {
+                // Abrir ponto automaticamente
+                const novoPonto = await PontoMedico.create({
+                    funcionario_id: funcId,
+                    data_hora_entrada: new Date(),
+                    status: 'trabalhando',
+                });
+                pontoAtivo = novoPonto.id;
+            }
+        }
+
+        const atendimento = await AtendimentoMedico.create({
+            funcionario_id: funcId,
+            acao_id: acao_id || undefined,
+            cidadao_id: cidadao_id || undefined,
+            ponto_id: pontoAtivo || undefined,
+            hora_inicio: new Date(),
+            status: 'em_andamento',
+            observacoes,
+            nome_paciente,
+        });
+
+        res.status(201).json(atendimento);
+    } catch (error) {
+        console.error('Erro ao iniciar atendimento:', error);
+        res.status(500).json({ error: 'Erro ao iniciar atendimento' });
+    }
+});
+
+// ═══ PUT /atendimento/:id/finalizar ═══ (médico ou admin)
+router.put('/atendimento/:id/finalizar', authenticate, authorizeMedicoOrAdmin, async (req: any, res: Response) => {
+    try {
+        const atendimento = await AtendimentoMedico.findByPk(req.params.id);
+        if (!atendimento) { res.status(404).json({ error: 'Atendimento não encontrado' }); return; }
+        const fim = new Date();
+        const duracaoMs = fim.getTime() - atendimento.hora_inicio.getTime();
+        const duracaoMinutos = Math.max(1, Math.round(duracaoMs / (1000 * 60)));
+        await atendimento.update({ hora_fim: fim, duracao_minutos: duracaoMinutos, status: 'concluido', observacoes: req.body.observacoes || atendimento.observacoes });
+
+        // Atualizar status da inscrição para 'atendido' se existir
+        if (atendimento.cidadao_id && atendimento.acao_id) {
+            await Inscricao.update(
+                { status: 'atendido' },
+                { where: { cidadao_id: atendimento.cidadao_id, acao_id: atendimento.acao_id, status: 'pendente' } }
+            );
+        }
+
+        res.json(atendimento);
+    } catch (error) {
+        console.error('Erro ao finalizar atendimento:', error);
+        res.status(500).json({ error: 'Erro ao finalizar atendimento' });
+    }
+});
+
+// ═══ PUT /atendimento/:id/cancelar ═══ (médico ou admin)
+router.put('/atendimento/:id/cancelar', authenticate, authorizeMedicoOrAdmin, async (req: any, res: Response) => {
+    try {
+        const atendimento = await AtendimentoMedico.findByPk(req.params.id);
+        if (!atendimento) { res.status(404).json({ error: 'Atendimento não encontrado' }); return; }
+        await atendimento.update({ status: 'cancelado', hora_fim: new Date() });
+
+        // Manter inscrição como pendente (não foi atendido, mas pode ser reagendado)
+        // Não altera o status da inscrição ao cancelar
+
+        res.json(atendimento);
+    } catch (error) {
+        console.error('Erro ao cancelar atendimento:', error);
+        res.status(500).json({ error: 'Erro ao cancelar atendimento' });
+    }
+});
+
+
 
 // �"?�"?�"? M�?DICOS �"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?
 // GET /medicos �?" lista apenas funcionários com cargo médico
@@ -150,7 +379,7 @@ router.get('/dashboard', authenticate, authorizeAdmin, async (_req: Request, res
 
 // �"?�"?�"? PONTO �"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?
 // POST /ponto/entrada
-router.post('/ponto/entrada', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+router.post('/ponto/entrada', authenticate, authorizeMedicoOrAdmin, async (req: Request, res: Response) => {
     try {
         const { funcionario_id, acao_id, observacoes } = req.body;
         if (!funcionario_id) {
@@ -183,7 +412,7 @@ router.post('/ponto/entrada', authenticate, authorizeAdmin, async (req: Request,
 });
 
 // PUT /ponto/:id/saida
-router.put('/ponto/:id/saida', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+router.put('/ponto/:id/saida', authenticate, authorizeMedicoOrAdmin, async (req: Request, res: Response) => {
     try {
         const ponto = await PontoMedico.findByPk(req.params.id);
         if (!ponto) {

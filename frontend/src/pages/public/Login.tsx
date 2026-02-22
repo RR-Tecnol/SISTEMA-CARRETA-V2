@@ -63,6 +63,8 @@ const Login: React.FC = () => {
             setTimeout(() => {
                 if (response.data.user.tipo === 'admin') {
                     window.location.href = '/admin';
+                } else if (response.data.user.tipo === 'medico') {
+                    window.location.href = '/medico';
                 } else {
                     window.location.href = '/portal';
                 }

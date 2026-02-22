@@ -3,6 +3,7 @@ import { Funcionario } from '../models/Funcionario';
 import { authenticate, authorizeAdmin } from '../middlewares/auth';
 import Joi from 'joi';
 import { validate } from '../middlewares/validation';
+import bcrypt from 'bcrypt';
 
 const router = Router();
 
@@ -15,6 +16,9 @@ const funcionarioSchema = Joi.object({
     especialidade: Joi.string().allow(null, '').optional(),
     custo_diaria: Joi.number().precision(2).min(0).required(),
     ativo: Joi.boolean().optional(),
+    is_medico: Joi.boolean().optional(),
+    login_cpf: Joi.string().allow(null, '').optional(),
+    senha: Joi.string().min(6).allow(null, '').optional(),
 });
 
 // Schema para atualização - campos opcionais
@@ -27,6 +31,9 @@ const updateFuncionarioSchema = Joi.object({
     especialidade: Joi.string().allow(null, '').optional(),
     custo_diaria: Joi.number().precision(2).min(0).optional(),
     ativo: Joi.boolean().optional(),
+    is_medico: Joi.boolean().optional(),
+    login_cpf: Joi.string().allow(null, '').optional(),
+    senha: Joi.string().min(6).allow(null, '').optional(),
 });
 
 router.get('/', authenticate, authorizeAdmin, async (_req: Request, res: Response) => {
@@ -40,7 +47,15 @@ router.get('/', authenticate, authorizeAdmin, async (_req: Request, res: Respons
 
 router.post('/', authenticate, authorizeAdmin, validate(funcionarioSchema), async (req: Request, res: Response) => {
     try {
-        const funcionario = await Funcionario.create(req.body);
+        const data = { ...req.body };
+        // Hash da senha do médico
+        if (data.is_medico && data.senha) {
+            data.senha = await bcrypt.hash(data.senha, 10);
+        } else if (!data.is_medico) {
+            data.senha = null;
+            data.login_cpf = null;
+        }
+        const funcionario = await Funcionario.create(data);
         res.status(201).json(funcionario);
     } catch (error) {
         console.error('Erro detalhado ao criar funcionário:', error);
@@ -55,7 +70,19 @@ router.put('/:id', authenticate, authorizeAdmin, validate(updateFuncionarioSchem
             res.status(404).json({ error: 'Funcionário não encontrado' });
             return;
         }
-        await funcionario.update(req.body);
+        const data = { ...req.body };
+        // Hash da nova senha se fornecida
+        if (data.is_medico && data.senha && data.senha.length > 0) {
+            data.senha = await bcrypt.hash(data.senha, 10);
+        } else if (data.senha === '' || data.senha === null) {
+            // Manter senha existente se não informada na atualização
+            delete data.senha;
+        }
+        if (!data.is_medico) {
+            data.senha = null;
+            data.login_cpf = null;
+        }
+        await funcionario.update(data);
         res.json(funcionario);
     } catch (error) {
         console.error('Erro detalhado ao atualizar funcionário:', error);
