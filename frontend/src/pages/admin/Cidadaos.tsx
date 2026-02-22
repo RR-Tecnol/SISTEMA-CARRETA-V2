@@ -95,6 +95,7 @@ const Cidadaos: React.FC = () => {
         municipio: '',
         estado: '',
         senha: '',
+        cartao_sus: '',
     });
 
     useEffect(() => {
@@ -155,6 +156,7 @@ const Cidadaos: React.FC = () => {
             municipio: '',
             estado: '',
             senha: '',
+            cartao_sus: '',
         });
     };
 
@@ -772,6 +774,24 @@ const Cidadaos: React.FC = () => {
                                 <Grid item xs={12} sm={6}>
                                     <TextField
                                         fullWidth
+                                        label="Cartão SUS (CNS)"
+                                        placeholder="000 0000 0000 0000"
+                                        helperText="Opcional"
+                                        value={(editData as any).cartao_sus || ''}
+                                        onChange={(e) => setEditData({ ...editData, cartao_sus: e.target.value } as any)}
+                                        sx={{
+                                            '& .MuiOutlinedInput-root': {
+                                                borderRadius: systemTruckTheme.borderRadius.medium,
+                                            },
+                                            '& .MuiInputBase-input': {
+                                                fontWeight: '600 !important',
+                                            },
+                                        }}
+                                    />
+                                </Grid>
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        fullWidth
                                         label="CEP"
                                         value={editData.cep || ''}
                                         onChange={(e) => setEditData({ ...editData, cep: e.target.value })}
@@ -1018,6 +1038,18 @@ const Cidadaos: React.FC = () => {
                                 <MenuItem value="amarela">Amarela</MenuItem>
                                 <MenuItem value="indigena">Indígena</MenuItem>
                             </TextField>
+                        </Grid>
+
+                        <Grid item xs={12} sm={6}>
+                            <TextField
+                                fullWidth
+                                label="Cartão SUS (CNS)"
+                                placeholder="000 0000 0000 0000"
+                                helperText="Opcional"
+                                value={formData.cartao_sus}
+                                onChange={(e) => handleChange('cartao_sus', e.target.value)}
+                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: systemTruckTheme.borderRadius.medium } }}
+                            />
                         </Grid>
 
                         {/* Contato */}

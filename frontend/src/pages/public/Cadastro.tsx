@@ -23,6 +23,7 @@ import {
     EyeOff,
     UserPlus,
     ArrowLeft,
+    CreditCard,
 } from 'lucide-react';
 import { useSnackbar } from 'notistack';
 import InputMask from 'react-input-mask';
@@ -52,6 +53,7 @@ const Cadastro: React.FC = () => {
         estado: '',
         genero: '',
         raca: '',
+        cartao_sus: '',
     });
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -148,7 +150,7 @@ const Cadastro: React.FC = () => {
                 },
             }}
         >
-            <Box sx={{ maxWidth: 900, width: '100%', px: 2, position: 'relative', zIndex: 1 }}>
+            <Box sx={{ maxWidth: 720, width: '100%', px: 2, position: 'relative', zIndex: 1 }}>
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -161,11 +163,11 @@ const Cadastro: React.FC = () => {
                             borderRadius: '24px',
                             border: '1px solid rgba(255, 255, 255, 0.3)',
                             boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
-                            p: { xs: 3, sm: 5 },
+                            p: { xs: 2.5, sm: 3.5 },
                         }}
                     >
                         {/* Ícone e Título */}
-                        <Box sx={{ textAlign: 'center', mb: 4 }}>
+                        <Box sx={{ textAlign: 'center', mb: 2.5 }}>
                             <motion.div
                                 initial={{ scale: 0 }}
                                 animate={{ scale: 1 }}
@@ -176,27 +178,27 @@ const Cadastro: React.FC = () => {
                                         display: 'inline-flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
-                                        width: 80,
-                                        height: 80,
-                                        borderRadius: '20px',
+                                        width: 60,
+                                        height: 60,
+                                        borderRadius: '16px',
                                         background: `linear-gradient(135deg, ${systemTruckTheme.colors.primary}, ${systemTruckTheme.colors.primaryDark})`,
-                                        mb: 2,
-                                        boxShadow: `0 8px 24px ${systemTruckTheme.colors.primary}40`,
+                                        mb: 1.5,
+                                        boxShadow: `0 6px 18px ${systemTruckTheme.colors.primary}40`,
                                     }}
                                 >
-                                    <UserPlus size={40} color="#fff" />
+                                    <UserPlus size={28} color="#fff" />
                                 </Box>
                             </motion.div>
 
                             <Typography
-                                variant="h5"
+                                variant="h6"
                                 sx={{
                                     fontWeight: 700,
                                     background: `linear-gradient(135deg, ${systemTruckTheme.colors.primary}, ${systemTruckTheme.colors.primaryDark})`,
                                     backgroundClip: 'text',
                                     WebkitBackgroundClip: 'text',
                                     WebkitTextFillColor: 'transparent',
-                                    mb: 1,
+                                    mb: 0.5,
                                 }}
                             >
                                 Cadastro de Cidadão
@@ -214,7 +216,7 @@ const Cadastro: React.FC = () => {
 
                         {/* Formulário */}
                         <Box component="form" onSubmit={handleSubmit} noValidate>
-                            <Grid container spacing={3}>
+                            <Grid container spacing={2}>
                                 {/* CPF */}
                                 <Grid item xs={12} sm={6}>
                                     <InputMask
@@ -628,6 +630,44 @@ const Cadastro: React.FC = () => {
                                             </MenuItem>
                                         ))}
                                     </TextField>
+                                </Grid>
+
+                                {/* Cartão SUS (CNS) */}
+                                <Grid item xs={12}>
+                                    <InputMask
+                                        mask="999 9999 9999 9999"
+                                        value={formData.cartao_sus}
+                                        onChange={handleChange}
+                                    >
+                                        {(inputProps: any) => (
+                                            <TextField
+                                                {...inputProps}
+                                                fullWidth
+                                                label="Cartão SUS (CNS)"
+                                                name="cartao_sus"
+                                                placeholder="000 0000 0000 0000"
+                                                helperText="Opcional — número do Cartão Nacional de Saúde"
+                                                InputProps={{
+                                                    startAdornment: (
+                                                        <InputAdornment position="start">
+                                                            <CreditCard size={20} color={systemTruckTheme.colors.primary} />
+                                                        </InputAdornment>
+                                                    ),
+                                                }}
+                                                sx={{
+                                                    '& .MuiOutlinedInput-root': {
+                                                        borderRadius: '12px',
+                                                        '&:hover fieldset': {
+                                                            borderColor: systemTruckTheme.colors.primary,
+                                                        },
+                                                        '&.Mui-focused fieldset': {
+                                                            borderColor: systemTruckTheme.colors.primary,
+                                                        },
+                                                    },
+                                                }}
+                                            />
+                                        )}
+                                    </InputMask>
                                 </Grid>
                             </Grid>
 

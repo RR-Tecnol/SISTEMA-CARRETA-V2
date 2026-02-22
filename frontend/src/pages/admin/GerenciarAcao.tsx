@@ -1712,7 +1712,7 @@ const GerenciarAcao = () => {
                                     </TextField>
                                     <TextField
                                         fullWidth
-                                        label="CPF do Aluno"
+                                        label="CPF do Cidadão"
                                         value={cpfBusca}
                                         onChange={(e) => setCpfBusca(e.target.value)}
                                         placeholder="000.000.000-00"
