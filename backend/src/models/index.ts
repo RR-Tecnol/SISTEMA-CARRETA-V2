@@ -21,6 +21,8 @@ import { ContaPagar } from './ContaPagar';
 import { ResultadoExame } from './ResultadoExame';
 import { CustoAcao } from './CustoAcao';
 import { ManutencaoCaminhao } from './ManutencaoCaminhao';
+import { PontoMedico } from './PontoMedico';
+import { AtendimentoMedico } from './AtendimentoMedico';
 
 // Define associations
 export function setupAssociations(): void {
@@ -242,6 +244,66 @@ export function setupAssociations(): void {
         foreignKey: 'caminhao_id',
         as: 'caminhao',
     });
+
+    // Funcionario <-> PontoMedico (1:N)
+    Funcionario.hasMany(PontoMedico, {
+        foreignKey: 'funcionario_id',
+        as: 'pontos',
+    });
+    PontoMedico.belongsTo(Funcionario, {
+        foreignKey: 'funcionario_id',
+        as: 'funcionario',
+    });
+
+    // Acao <-> PontoMedico (1:N)
+    Acao.hasMany(PontoMedico, {
+        foreignKey: 'acao_id',
+        as: 'pontos_medicos',
+    });
+    PontoMedico.belongsTo(Acao, {
+        foreignKey: 'acao_id',
+        as: 'acao',
+    });
+
+    // PontoMedico <-> AtendimentoMedico (1:N)
+    PontoMedico.hasMany(AtendimentoMedico, {
+        foreignKey: 'ponto_id',
+        as: 'atendimentos',
+    });
+    AtendimentoMedico.belongsTo(PontoMedico, {
+        foreignKey: 'ponto_id',
+        as: 'ponto',
+    });
+
+    // Funcionario <-> AtendimentoMedico (1:N)
+    Funcionario.hasMany(AtendimentoMedico, {
+        foreignKey: 'funcionario_id',
+        as: 'atendimentos',
+    });
+    AtendimentoMedico.belongsTo(Funcionario, {
+        foreignKey: 'funcionario_id',
+        as: 'funcionario',
+    });
+
+    // Cidadao <-> AtendimentoMedico (1:N)
+    Cidadao.hasMany(AtendimentoMedico, {
+        foreignKey: 'cidadao_id',
+        as: 'atendimentos_medicos',
+    });
+    AtendimentoMedico.belongsTo(Cidadao, {
+        foreignKey: 'cidadao_id',
+        as: 'cidadao',
+    });
+
+    // Acao <-> AtendimentoMedico (1:N)
+    Acao.hasMany(AtendimentoMedico, {
+        foreignKey: 'acao_id',
+        as: 'atendimentos_medicos',
+    });
+    AtendimentoMedico.belongsTo(Acao, {
+        foreignKey: 'acao_id',
+        as: 'acao',
+    });
 }
 
 // Export all models
@@ -268,5 +330,7 @@ export {
     ResultadoExame,
     CustoAcao,
     ManutencaoCaminhao,
+    PontoMedico,
+    AtendimentoMedico,
 };
 

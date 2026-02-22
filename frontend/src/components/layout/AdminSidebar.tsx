@@ -17,6 +17,7 @@ import {
     DollarSign,
     Package,
     Bell,
+    HeartPulse,
 } from 'lucide-react';
 import { systemTruckTheme } from '../../theme/systemTruckTheme';
 
@@ -37,6 +38,7 @@ const menuItems: MenuItem[] = [
     { title: 'Funcionários', icon: Users, path: '/admin/funcionarios' },
     { title: 'Exames', icon: Stethoscope, path: '/admin/cursos-exames' },
     { title: 'Central de Alertas', icon: Bell, path: '/admin/alertas' },
+    { title: 'Monit. Médicos', icon: HeartPulse, path: '/admin/medicos' },
     { title: 'Cidadãos', icon: UserCheck, path: '/admin/cidadaos' },
 ];
 

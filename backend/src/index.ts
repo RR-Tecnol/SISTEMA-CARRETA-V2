@@ -33,6 +33,7 @@ import cidadaoExamesRoutes from './routes/cidadaoExames';
 import estoqueRoutes from './routes/estoque';
 import utilsRoutes from './routes/utils';
 import alertasRoutes from './routes/alertas';
+import medicoMonitoringRoutes from './routes/medicoMonitoring';
 import { ManutencaoCaminhao } from './models/ManutencaoCaminhao';
 import { Caminhao } from './models/Caminhao';
 import { AcaoCaminhao } from './models/AcaoCaminhao';
@@ -141,6 +142,7 @@ app.use('/api/debug', debugRoutes);
 app.use('/api/estoque', estoqueRoutes);
 app.use('/api/utils', utilsRoutes);
 app.use('/api/alertas', alertasRoutes);
+app.use('/api/medico-monitoring', medicoMonitoringRoutes);
 // IMPORTANTE: cidadaoExamesRoutes deve vir ANTES de cidadaosRoutes
 // porque define rotas mais específicas (/:cidadaoId/exames)
 app.use('/api/cidadaos', cidadaoExamesRoutes);
