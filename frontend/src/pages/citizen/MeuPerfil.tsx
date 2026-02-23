@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { formatPhone } from '../../utils/formatters';
 import {
     Container,
     Typography,
@@ -350,8 +351,10 @@ const MeuPerfil: React.FC = () => {
                                                 fullWidth
                                                 label="Telefone"
                                                 value={formData.telefone}
-                                                onChange={handleChange('telefone')}
+                                                onChange={(e) => setFormData({ ...formData, telefone: formatPhone(e.target.value) })}
                                                 disabled={!editing}
+                                                inputProps={{ maxLength: 15 }}
+                                                placeholder="(00) 00000-0000"
                                                 InputProps={{
                                                     startAdornment: <Phone size={20} style={{ marginRight: 8, color: systemTruckTheme.colors.textSecondary }} />,
                                                 }}

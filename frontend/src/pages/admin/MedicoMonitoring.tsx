@@ -834,7 +834,7 @@ const MedicoMonitoring: React.FC = () => {
                     <Button onClick={() => setPontoModal({ open: false, tipo: 'entrada' })} sx={{ color: expressoTheme.colors.textSecondary }}>Cancelar</Button>
                     <Button variant="contained" onClick={pontoModal.tipo === 'entrada' ? handleEntrada : handleSaida}
                         disabled={pontoModal.tipo === 'entrada' && !pontoForm.funcionario_id}
-                        sx={{ background: pontoModal.tipo === 'entrada' ? expressoTheme.gradients.primary : 'linear-gradient(135deg,#dc3545,#c82333)', color: 'white', fontWeight: 700, px: 3, textTransform: 'none', borderRadius: expressoTheme.borderRadius.medium }}>
+                        sx={{ background: pontoModal.tipo === 'entrada' ? expressoTheme.gradients.primary : 'linear-gradient(135deg,#dc3545,#c82333)', color: '#fff !important', fontWeight: 700, px: 3, textTransform: 'none', borderRadius: expressoTheme.borderRadius.medium, '& .MuiButton-root': { color: '#fff' } }}>
                         {pontoModal.tipo === 'entrada' ? 'Confirmar Entrada' : 'Confirmar Saída'}
                     </Button>
                 </DialogActions>

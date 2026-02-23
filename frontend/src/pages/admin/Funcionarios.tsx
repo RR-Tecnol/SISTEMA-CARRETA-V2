@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { formatCPF, formatPhone } from '../../utils/formatters';
 import { Container, Typography, Grid, Box, TextField, Button, Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress, IconButton, Switch, FormControlLabel, Collapse, Divider } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Search, X, Users, Briefcase, DollarSign, Edit, Stethoscope } from 'lucide-react';
@@ -230,10 +231,10 @@ const Funcionarios: React.FC = () => {
                                 <TextField fullWidth label="Cargo" value={formData.cargo} onChange={(e) => setFormData({ ...formData, cargo: e.target.value })} />
                             </Grid>
                             <Grid item xs={12}>
-                                <TextField fullWidth label="CPF" value={formData.cpf} onChange={(e) => setFormData({ ...formData, cpf: e.target.value })} />
+                                <TextField fullWidth label="CPF" value={formData.cpf} inputProps={{ maxLength: 14 }} onChange={(e) => setFormData({ ...formData, cpf: formatCPF(e.target.value) })} />
                             </Grid>
                             <Grid item xs={6}>
-                                <TextField fullWidth label="Telefone" value={formData.telefone} onChange={(e) => setFormData({ ...formData, telefone: e.target.value })} />
+                                <TextField fullWidth label="Telefone" value={formData.telefone} inputProps={{ maxLength: 15 }} onChange={(e) => setFormData({ ...formData, telefone: formatPhone(e.target.value) })} />
                             </Grid>
                             <Grid item xs={6}>
                                 <TextField fullWidth label="Email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
@@ -285,35 +286,37 @@ const Funcionarios: React.FC = () => {
                             </Grid>
 
                             {/* Campos de Login do Médico */}
-                            <Collapse in={formData.is_medico} style={{ width: '100%' }}>
-                                <Grid container spacing={2} sx={{ px: 2, pt: 1, pb: 2, background: 'rgba(59,130,246,0.05)', borderRadius: 2, border: '1px solid rgba(59,130,246,0.2)', mx: 0 }}>
-                                    <Grid item xs={12}>
-                                        <Typography sx={{ fontSize: '0.8rem', color: expressoTheme.colors.textSecondary, mb: 1 }}>
+                            <Grid item xs={12}>
+                                <Collapse in={formData.is_medico}>
+                                    <Box sx={{ mt: 1, px: 2, pt: 1.5, pb: 2, background: 'rgba(59,130,246,0.05)', borderRadius: 2, border: '1px solid rgba(59,130,246,0.2)' }}>
+                                        <Typography sx={{ fontSize: '0.8rem', color: expressoTheme.colors.textSecondary, mb: 2 }}>
                                             🔐 Credenciais de acesso ao Painel Médico
                                         </Typography>
-                                    </Grid>
-                                    <Grid item xs={6}>
-                                        <TextField
-                                            fullWidth
-                                            label="CPF de Login"
-                                            placeholder="000.000.000-00"
-                                            value={formData.login_cpf}
-                                            onChange={(e) => setFormData({ ...formData, login_cpf: e.target.value })}
-                                            helperText="CPF que o médico usará para login"
-                                        />
-                                    </Grid>
-                                    <Grid item xs={6}>
-                                        <TextField
-                                            fullWidth
-                                            type="password"
-                                            label={editingFuncionario ? 'Nova Senha (deixe em branco para manter)' : 'Senha de Acesso'}
-                                            value={formData.senha}
-                                            onChange={(e) => setFormData({ ...formData, senha: e.target.value })}
-                                            helperText="Mínimo 6 caracteres"
-                                        />
-                                    </Grid>
-                                </Grid>
-                            </Collapse>
+                                        <Grid container spacing={2}>
+                                            <Grid item xs={6}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="CPF de Login"
+                                                    placeholder="000.000.000-00"
+                                                    value={formData.login_cpf}
+                                                    onChange={(e) => setFormData({ ...formData, login_cpf: e.target.value })}
+                                                    helperText="CPF que o médico usará para login"
+                                                />
+                                            </Grid>
+                                            <Grid item xs={6}>
+                                                <TextField
+                                                    fullWidth
+                                                    type="password"
+                                                    label={editingFuncionario ? 'Nova Senha (deixe em branco para manter)' : 'Senha de Acesso'}
+                                                    value={formData.senha}
+                                                    onChange={(e) => setFormData({ ...formData, senha: e.target.value })}
+                                                    helperText="Mínimo 6 caracteres"
+                                                />
+                                            </Grid>
+                                        </Grid>
+                                    </Box>
+                                </Collapse>
+                            </Grid>
                         </Grid>
                     </DialogContent>
                     <DialogActions sx={{ p: 3 }}>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { formatCPF, formatPhone } from '../../utils/formatters';
 import {
     Container,
     Typography,
@@ -301,9 +302,11 @@ const MeuPerfil: React.FC = () => {
                                             <TextField
                                                 fullWidth
                                                 label="CPF"
-                                                value={formData.cpf}
-                                                onChange={handleChange('cpf')}
+                                                value={formatCPF(formData.cpf)}
+                                                onChange={(e) => setFormData({ ...formData, cpf: formatCPF(e.target.value) })}
                                                 disabled={!editing}
+                                                inputProps={{ maxLength: 14 }}
+                                                placeholder="000.000.000-00"
                                                 InputProps={{
                                                     startAdornment: <User size={20} style={{ marginRight: 8, color: systemTruckTheme.colors.textSecondary }} />,
                                                 }}
@@ -326,8 +329,10 @@ const MeuPerfil: React.FC = () => {
                                                 fullWidth
                                                 label="Telefone"
                                                 value={formData.telefone}
-                                                onChange={handleChange('telefone')}
+                                                onChange={(e) => setFormData({ ...formData, telefone: formatPhone(e.target.value) })}
                                                 disabled={!editing}
+                                                inputProps={{ maxLength: 15 }}
+                                                placeholder="(00) 00000-0000"
                                                 InputProps={{
                                                     startAdornment: <Phone size={20} style={{ marginRight: 8, color: systemTruckTheme.colors.textSecondary }} />,
                                                 }}

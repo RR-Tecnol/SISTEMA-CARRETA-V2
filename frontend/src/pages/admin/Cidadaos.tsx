@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { formatCPF, formatPhone } from '../../utils/formatters';
 import {
     Container,
     Typography,
@@ -648,7 +649,9 @@ const Cidadaos: React.FC = () => {
                                         fullWidth
                                         label="Telefone"
                                         value={editData.telefone || ''}
-                                        onChange={(e) => setEditData({ ...editData, telefone: e.target.value })}
+                                        onChange={(e) => setEditData({ ...editData, telefone: formatPhone(e.target.value) })}
+                                        inputProps={{ maxLength: 15 }}
+                                        placeholder="(00) 00000-0000"
                                         sx={{
                                             '& .MuiOutlinedInput-root': {
                                                 borderRadius: systemTruckTheme.borderRadius.medium,
@@ -990,8 +993,9 @@ const Cidadaos: React.FC = () => {
                                 fullWidth
                                 label="CPF *"
                                 value={formData.cpf}
-                                onChange={(e) => handleChange('cpf', e.target.value)}
+                                onChange={(e) => handleChange('cpf', formatCPF(e.target.value))}
                                 placeholder="000.000.000-00"
+                                inputProps={{ maxLength: 14 }}
                                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: systemTruckTheme.borderRadius.medium } }}
                             />
                         </Grid>
@@ -1064,8 +1068,9 @@ const Cidadaos: React.FC = () => {
                                 fullWidth
                                 label="Telefone *"
                                 value={formData.telefone}
-                                onChange={(e) => handleChange('telefone', e.target.value)}
+                                onChange={(e) => handleChange('telefone', formatPhone(e.target.value))}
                                 placeholder="(00) 00000-0000"
+                                inputProps={{ maxLength: 15 }}
                                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: systemTruckTheme.borderRadius.medium } }}
                             />
                         </Grid>
