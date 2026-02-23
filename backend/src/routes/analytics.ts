@@ -65,17 +65,21 @@ router.get('/exames-por-tipo', authenticate, async (req: Request, res: Response)
             };
         }
 
-        const resultados = await sequelize.query(`
+        const baseSql = `
             SELECT 
                 e.tipo as tipo_exame,
                 e.nome as nome_exame,
                 COUNT(re.id) as quantidade
             FROM resultados_exames re
             INNER JOIN exames e ON re.exame_id = e.id
-            ${data_inicio && data_fim ? `WHERE re.data_realizacao BETWEEN '${data_inicio}' AND '${data_fim}'` : ''}
+            ${data_inicio && data_fim ? 'WHERE re.data_realizacao BETWEEN :dataInicio AND :dataFim' : ''}
             GROUP BY e.tipo, e.nome
             ORDER BY quantidade DESC
-        `, { type: 'SELECT' });
+        `;
+        const resultados = await sequelize.query(baseSql, {
+            type: 'SELECT',
+            replacements: data_inicio && data_fim ? { dataInicio: data_inicio, dataFim: data_fim } : {},
+        });
 
         res.json(resultados);
     } catch (error: any) {
@@ -92,17 +96,21 @@ router.get('/exames-por-cidade', authenticate, async (req: Request, res: Respons
     try {
         const { data_inicio, data_fim } = req.query;
 
-        const resultados = await sequelize.query(`
+        const baseSql = `
             SELECT 
                 a.municipio,
                 a.estado,
                 COUNT(re.id) as quantidade
             FROM resultados_exames re
             INNER JOIN acoes a ON re.acao_id = a.id
-            ${data_inicio && data_fim ? `WHERE re.data_realizacao BETWEEN '${data_inicio}' AND '${data_fim}'` : ''}
+            ${data_inicio && data_fim ? 'WHERE re.data_realizacao BETWEEN :dataInicio AND :dataFim' : ''}
             GROUP BY a.municipio, a.estado
             ORDER BY quantidade DESC
-        `, { type: 'SELECT' });
+        `;
+        const resultados = await sequelize.query(baseSql, {
+            type: 'SELECT',
+            replacements: data_inicio && data_fim ? { dataInicio: data_inicio, dataFim: data_fim } : {},
+        });
 
         res.json(resultados);
     } catch (error: any) {
@@ -119,16 +127,20 @@ router.get('/exames-por-genero', authenticate, async (req: Request, res: Respons
     try {
         const { data_inicio, data_fim } = req.query;
 
-        const resultados = await sequelize.query(`
+        const baseSql = `
             SELECT 
                 c.genero,
                 COUNT(re.id) as quantidade
             FROM resultados_exames re
             INNER JOIN cidadaos c ON re.cidadao_id = c.id
-            ${data_inicio && data_fim ? `WHERE re.data_realizacao BETWEEN '${data_inicio}' AND '${data_fim}'` : ''}
+            ${data_inicio && data_fim ? 'WHERE re.data_realizacao BETWEEN :dataInicio AND :dataFim' : ''}
             GROUP BY c.genero
             ORDER BY quantidade DESC
-        `, { type: 'SELECT' });
+        `;
+        const resultados = await sequelize.query(baseSql, {
+            type: 'SELECT',
+            replacements: data_inicio && data_fim ? { dataInicio: data_inicio, dataFim: data_fim } : {},
+        });
 
         res.json(resultados);
     } catch (error: any) {
@@ -145,16 +157,20 @@ router.get('/exames-por-raca', authenticate, async (req: Request, res: Response)
     try {
         const { data_inicio, data_fim } = req.query;
 
-        const resultados = await sequelize.query(`
+        const baseSql = `
             SELECT 
                 c.raca,
                 COUNT(re.id) as quantidade
             FROM resultados_exames re
             INNER JOIN cidadaos c ON re.cidadao_id = c.id
-            ${data_inicio && data_fim ? `WHERE re.data_realizacao BETWEEN '${data_inicio}' AND '${data_fim}'` : ''}
+            ${data_inicio && data_fim ? 'WHERE re.data_realizacao BETWEEN :dataInicio AND :dataFim' : ''}
             GROUP BY c.raca
             ORDER BY quantidade DESC
-        `, { type: 'SELECT' });
+        `;
+        const resultados = await sequelize.query(baseSql, {
+            type: 'SELECT',
+            replacements: data_inicio && data_fim ? { dataInicio: data_inicio, dataFim: data_fim } : {},
+        });
 
         res.json(resultados);
     } catch (error: any) {
@@ -171,7 +187,7 @@ router.get('/exames-por-idade', authenticate, async (req: Request, res: Response
     try {
         const { data_inicio, data_fim } = req.query;
 
-        const resultados = await sequelize.query(`
+        const baseSql = `
             SELECT 
                 CASE 
                     WHEN EXTRACT(YEAR FROM AGE(c.data_nascimento)) < 18 THEN '0-17'
@@ -184,10 +200,14 @@ router.get('/exames-por-idade', authenticate, async (req: Request, res: Response
                 COUNT(re.id) as quantidade
             FROM resultados_exames re
             INNER JOIN cidadaos c ON re.cidadao_id = c.id
-            ${data_inicio && data_fim ? `WHERE re.data_realizacao BETWEEN '${data_inicio}' AND '${data_fim}'` : ''}
+            ${data_inicio && data_fim ? 'WHERE re.data_realizacao BETWEEN :dataInicio AND :dataFim' : ''}
             GROUP BY faixa_etaria
             ORDER BY faixa_etaria
-        `, { type: 'SELECT' });
+        `;
+        const resultados = await sequelize.query(baseSql, {
+            type: 'SELECT',
+            replacements: data_inicio && data_fim ? { dataInicio: data_inicio, dataFim: data_fim } : {},
+        });
 
         res.json(resultados);
     } catch (error: any) {
@@ -235,8 +255,8 @@ router.get('/dashboard', authenticate, async (req: Request, res: Response) => {
             SELECT COUNT(DISTINCT a.municipio) as total
             FROM resultados_exames re
             INNER JOIN acoes a ON re.acao_id = a.id
-            WHERE re.data_realizacao BETWEEN '${dataInicio.toISOString()}' AND '${dataFim.toISOString()}'
-        `, { type: 'SELECT' });
+            WHERE re.data_realizacao BETWEEN :dataInicio AND :dataFim
+        `, { type: 'SELECT', replacements: { dataInicio: dataInicio.toISOString(), dataFim: dataFim.toISOString() } });
 
         res.json({
             totalExames,

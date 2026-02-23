@@ -6,6 +6,7 @@ export const BASE_URL = isLocal ? 'http://localhost:3001' : ''; // URL base sem 
 
 const api = axios.create({
     baseURL: API_URL,
+    timeout: 15000, // 15 segundos — evita requests travados indefinidamente
     headers: {
         'Content-Type': 'application/json',
     },
@@ -30,13 +31,17 @@ api.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response?.status === 401) {
-            // Token expired or invalid
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            window.location.href = '/login';
+            // Token expirado ou inválido — só redireciona se não estiver já na tela de login
+            const isLoginPage = window.location.pathname === '/login' || window.location.pathname === '/';
+            if (!isLoginPage) {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                window.location.href = '/login';
+            }
         }
         return Promise.reject(error);
     }
 );
 
 export default api;
+

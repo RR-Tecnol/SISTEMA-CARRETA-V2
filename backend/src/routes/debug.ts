@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import { authenticate, authorizeAdmin } from '../middlewares/auth';
 import { sequelize } from '../config/database';
 import { ResultadoExame } from '../models/ResultadoExame';
 import { Exame } from '../models/Exame';
@@ -11,7 +12,7 @@ const router = Router();
  * GET /api/debug/check-data
  * Endpoint temporário para verificar dados no banco
  */
-router.get('/check-data', async (req: Request, res: Response) => {
+router.get('/check-data', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
     try {
         const queries = [
             { name: 'Exames', query: 'SELECT COUNT(*) as total FROM exames' },

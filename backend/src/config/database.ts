@@ -10,8 +10,8 @@ export const sequelize = new Sequelize({
     dialect: config.database.dialect,
     logging: config.database.logging,
     pool: {
-        max: 10,
-        min: 0,
+        max: 20,
+        min: 2,
         acquire: 30000,
         idle: 10000,
     },

@@ -85,7 +85,7 @@ async function liberarManutencoesvencidas() {
 
 const app: Application = express();
 
-console.log('✅ VERSÃO ATUALIZADA: 2026-02-03 20:50');
+console.log('✅ SISTEMA CARRETAS v2.0 — 23/02/2026 — Produção');
 
 
 // Security middlewares
