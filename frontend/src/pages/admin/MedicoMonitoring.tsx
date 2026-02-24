@@ -369,7 +369,8 @@ const MedicoMonitoring: React.FC = () => {
     const fetchLive = useCallback(async () => {
         try {
             const res = await api.get('/medico-monitoring/stats/tempo-real');
-            const atds: AtendimentoLive[] = res.data.atendimentos || [];
+            // A API envia o array na chave "em_andamento"
+            const atds: AtendimentoLive[] = res.data.em_andamento || [];
             setLiveAtendimentos(atds);
             // Seed do ticker com os segundos atuais
             const map: Record<string, number> = {};
