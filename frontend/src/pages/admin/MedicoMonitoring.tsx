@@ -4,7 +4,7 @@ import {
     DialogTitle, DialogContent, DialogActions, TextField, CircularProgress,
     Chip, Tooltip, MenuItem, Select, FormControl, InputLabel, Divider,
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper,
-    Alert, Collapse,
+    Alert, Collapse, Autocomplete,
 } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -18,7 +18,9 @@ import { expressoTheme } from '../../theme/expressoTheme';
 import { medicoMonitoringService } from '../../services/medicoMonitoring';
 import api from '../../services/api';
 
-// --"?--"?--"? Types --"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?
+// -----------------------------------------------------------------------------
+// Types
+// -----------------------------------------------------------------------------
 interface Medico { id: string; nome: string; cargo: string; especialidade?: string; custo_diaria: number; ativo: boolean; }
 interface Ponto { id: string; funcionario_id: string; acao_id?: string; data_hora_entrada: string; data_hora_saida?: string; horas_trabalhadas?: number; status: 'trabalhando' | 'saiu'; observacoes?: string; funcionario?: Medico; acao?: { id: string; numero_acao: string; nome: string }; atendimentos?: Atendimento[]; }
 interface Atendimento { id: string; funcionario_id: string; acao_id?: string; cidadao_id?: string; ponto_id?: string | null; hora_inicio: string; hora_fim?: string; duracao_minutos?: number; status: 'em_andamento' | 'concluido' | 'cancelado'; observacoes?: string; nome_paciente?: string; cidadao?: { id: string; nome: string }; funcionario?: Medico; acao?: { id: string; numero_acao: string; nome: string }; }
@@ -28,13 +30,17 @@ interface Relatorio { funcionario: Medico & { custo_diaria: number }; metricas: 
 interface AtendimentoLive extends Atendimento { tempo_decorrido_segundos: number; nome_paciente_display: string; }
 interface RelatorioGeral { periodo: { data_inicio: string | null; data_fim: string | null }; totais: { totalAtendidos: number; totalMedicos: number; tempoMedioMinutos: number; custoTotalGeral: number; }; medicos: Array<{ medico: Medico & { custo_diaria: number }; metricas: { totalAtendidos: number; totalAtendimentos: number; atendimentosCancelados: number; tempoMedioMinutos: number; totalHorasTrabalhadas: number; totalDiasTrabalhados: number; custoTotal: number; }; atendimentos: Atendimento[]; }>; gerado_em: string; }
 
-// --"?--"?--"? Utilities --"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?
+// -----------------------------------------------------------------------------
+// Utilities
+// -----------------------------------------------------------------------------
 const formatHora = (d: string) => new Date(d).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 const formatData = (d: string) => new Date(d).toLocaleDateString('pt-BR');
 const formatDuracao = (min?: number) => { if (!min) return '--'; const h = Math.floor(min / 60); const m = min % 60; return h > 0 ? `${h}h ${m}min` : `${m}min`; };
 const calcMinutosDesde = (d: string) => Math.floor((Date.now() - new Date(d).getTime()) / 60000);
 
-// --"?--"?--"? Sub-components --"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?
+// -----------------------------------------------------------------------------
+// Sub-components
+// -----------------------------------------------------------------------------
 const PulsingDot: React.FC<{ color: string }> = ({ color }) => (
     <Box sx={{ position: 'relative', display: 'inline-flex', width: 12, height: 12 }}>
         <Box sx={{ position: 'absolute', width: '100%', height: '100%', borderRadius: '50%', bgcolor: color, animation: 'ping 1.5s cubic-bezier(0,0,0.2,1) infinite', opacity: 0.75 }} />
@@ -59,7 +65,9 @@ const KpiCard: React.FC<{ icon: React.ReactNode; title: string; value: string | 
     </motion.div>
 );
 
-// --"?--"?--"? Main Component --"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?--"?
+// -----------------------------------------------------------------------------
+// Main Component
+// -----------------------------------------------------------------------------
 // ── CSV Export ──
 const exportarCSV = (dados: any[], nomeArquivo: string) => {
     if (!dados.length) return;
@@ -138,11 +146,12 @@ const exportarRelatorioPDF = (relatorio: Relatorio) => {
 
     autoTable(doc, {
         startY: y,
-        head: [['Data', 'Paciente', 'Ação', 'Início', 'Fim', 'Duração', 'Status']],
+        head: [['Data', 'Paciente', 'Ação', 'Exame', 'Início', 'Fim', 'Duração', 'Status']],
         body: relatorio.atendimentos.map(a => [
             new Date(a.hora_inicio).toLocaleDateString('pt-BR'),
             a.nome_paciente || (a as any).cidadao?.nome || '--',
             (a as any).acao?.nome || '--',
+            (a as any).acao?.cursos?.map((c: any) => c.nome).join(', ') || '--',
             new Date(a.hora_inicio).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
             a.hora_fim ? new Date(a.hora_fim).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '--',
             a.duracao_minutos ? `${a.duracao_minutos}min` : '--',
@@ -286,6 +295,9 @@ const MedicoMonitoring: React.FC = () => {
     const [liveAtendimentos, setLiveAtendimentos] = useState<AtendimentoLive[]>([]);
     const [liveTickets, setLiveTickets] = useState<Record<string, number>>({});
     const liveTimerRef = useRef<NodeJS.Timeout | null>(null);
+    // Resumo do dia por médico (alimentado pelo /stats/tempo-real enriquecido)
+    const [resumoPorMedico, setResumoPorMedico] = useState<Record<string, { concluidos: number; emAndamento: number; cancelados: number; total: number }>>({});
+    const [pontosLive, setPontosLive] = useState<Ponto[]>([]);
 
     // Ranking / Relatório Geral
     const [relatorioGeralModal, setRelatorioGeralModal] = useState(false);
@@ -301,7 +313,10 @@ const MedicoMonitoring: React.FC = () => {
 
     // Form states
     const [pontoForm, setPontoForm] = useState({ funcionario_id: '', acao_id: '', observacoes: '' });
-    const [atendForm, setAtendForm] = useState({ nome_paciente: '', observacoes: '' });
+    const [atendForm, setAtendForm] = useState<{ nome_paciente: string; observacoes: string; cidadao_id: string; acao_id: string }>({ nome_paciente: '', observacoes: '', cidadao_id: '', acao_id: '' });
+    const [cidadaoBuscaOpts, setCidadaoBuscaOpts] = useState<Array<{ id: string; nome: string; cpf: string; inscricao_status?: string }>>([]);
+    const [cidadaoBuscaLoading, setCidadaoBuscaLoading] = useState(false);
+    const cidadaoBuscaRef = useRef<NodeJS.Timeout | null>(null);
     const [relFiltros, setRelFiltros] = useState({ data_inicio: '', data_fim: '', acao_id: '' });
     const [relatorio, setRelatorio] = useState<Relatorio | null>(null);
     const [loadingRel, setLoadingRel] = useState(false);
@@ -311,7 +326,7 @@ const MedicoMonitoring: React.FC = () => {
     const [medicoDetalheAtendimentos, setMedicoDetalheAtendimentos] = useState<Atendimento[]>([]);
     const [loadingDetalhe, setLoadingDetalhe] = useState(false);
 
-    const hoje = new Date().toISOString().split('T')[0];
+    const hoje = new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0];
 
     const fetchAll = useCallback(async (silent = false) => {
         if (!silent) setLoading(true); else setRefreshing(true);
@@ -360,6 +375,9 @@ const MedicoMonitoring: React.FC = () => {
             const map: Record<string, number> = {};
             atds.forEach(a => { map[a.id] = a.tempo_decorrido_segundos; });
             setLiveTickets(map);
+            // Resumo do dia por médico e pontos ativos
+            if (res.data.resumoPorMedico) setResumoPorMedico(res.data.resumoPorMedico);
+            if (res.data.pontosAtivos) setPontosLive(res.data.pontosAtivos);
         } catch { /* silencioso */ }
     }, []);
 
@@ -381,7 +399,11 @@ const MedicoMonitoring: React.FC = () => {
         return () => { if (liveTimerRef.current) clearInterval(liveTimerRef.current); };
     }, [liveAtendimentos]);
 
-    const getPontoAtivo = (medicoId: string) => pontos.find(p => p.funcionario_id === medicoId && p.status === 'trabalhando');
+    const getPontoAtivo = (medicoId: string) => {
+        let p = pontosLive.find(p => String(p.funcionario_id) === String(medicoId) && p.status === 'trabalhando');
+        if (!p) p = pontos.find(p => String(p.funcionario_id) === String(medicoId) && p.status === 'trabalhando');
+        return p;
+    };
 
     const handleEntrada = async () => {
         try {
@@ -390,6 +412,7 @@ const MedicoMonitoring: React.FC = () => {
             setPontoModal({ open: false, tipo: 'entrada' });
             setPontoForm({ funcionario_id: '', acao_id: '', observacoes: '' });
             fetchAll(true);
+            fetchLive();
         } catch (err: any) { enqueueSnackbar(err.response?.data?.error || 'Erro ao registrar entrada', { variant: 'error' }); }
     };
 
@@ -401,18 +424,42 @@ const MedicoMonitoring: React.FC = () => {
             setPontoModal({ open: false, tipo: 'saida' });
             setPontoForm({ funcionario_id: '', acao_id: '', observacoes: '' });
             fetchAll(true);
+            fetchLive();
         } catch (err: any) { enqueueSnackbar(err.response?.data?.error || 'Erro ao registrar saída', { variant: 'error' }); }
     };
 
     const handleAtendimento = async () => {
         if (!atendimentoModal.medico) return;
+        if (!atendForm.cidadao_id) { enqueueSnackbar('Selecione um cidadão cadastrado', { variant: 'warning' }); return; }
         try {
-            await medicoMonitoringService.iniciarAtendimento({ funcionario_id: atendimentoModal.medico.id, ponto_id: atendimentoModal.ponto?.id, nome_paciente: atendForm.nome_paciente || undefined, observacoes: atendForm.observacoes || undefined });
+            await api.post('/medico-monitoring/atendimentos', {
+                funcionario_id: atendimentoModal.medico.id,
+                ponto_id: atendimentoModal.ponto?.id,
+                cidadao_id: atendForm.cidadao_id,
+                acao_id: atendForm.acao_id || undefined,
+                nome_paciente: atendForm.nome_paciente || undefined,
+                observacoes: atendForm.observacoes || undefined,
+            });
             enqueueSnackbar('Atendimento iniciado!', { variant: 'success' });
             setAtendimentoModal({ open: false });
-            setAtendForm({ nome_paciente: '', observacoes: '' });
+            setAtendForm({ nome_paciente: '', observacoes: '', cidadao_id: '', acao_id: '' });
+            setCidadaoBuscaOpts([]);
             fetchAll(true);
+            fetchLive();
         } catch (err: any) { enqueueSnackbar(err.response?.data?.error || 'Erro ao iniciar atendimento', { variant: 'error' }); }
+    };
+
+    const buscarCidadaos = (q: string, acaoId?: string) => {
+        if (cidadaoBuscaRef.current) clearTimeout(cidadaoBuscaRef.current);
+        cidadaoBuscaRef.current = setTimeout(async () => {
+            setCidadaoBuscaLoading(true);
+            try {
+                const params: any = { q };
+                if (acaoId) params.acao_id = acaoId;
+                const r = await api.get('/medico-monitoring/cidadaos/buscar', { params });
+                setCidadaoBuscaOpts(Array.isArray(r.data) ? r.data : []);
+            } catch { /* silencioso */ } finally { setCidadaoBuscaLoading(false); }
+        }, 350);
     };
 
     const handleFinalizarAtendimento = async (atdId: string) => {
@@ -667,14 +714,19 @@ const MedicoMonitoring: React.FC = () => {
                                 // atendimentos ao vivo deste médico (mais confiável para em_andamento)
                                 const liveDoMedico = liveAtendimentos.filter(a => getFid(a) === String(medico.id));
 
-                                const totalAtd = atdsMedico.filter((a: any) => a.status === 'concluido').length;
+                                const resumoMed = resumoPorMedico[String(medico.id)] || { concluidos: 0, emAndamento: 0, cancelados: 0, total: 0 };
+
+                                // atendimentos de hoje (fallback: atendimentosHoje se resumão ainda não chegou)
+                                const totalAtd = resumoMed.concluidos || atdsMedico.filter((a: any) => a.status === 'concluido').length;
 
                                 // Em andamento: prefere live (tempo real)
                                 const emAndamento = Math.max(
+                                    resumoMed.emAndamento,
                                     atdsMedico.filter((a: any) => a.status === 'em_andamento').length,
                                     liveDoMedico.length,
                                 );
 
+                                const isAtivo = !!pontoAtivo || emAndamento > 0 || liveDoMedico.length > 0;
                                 // Horas hoje = pontos finalizados + ponto ativo
                                 // Se não há ponto mas há live, usa hora_inicio do atendimento ao vivo
                                 const pontosDoMedico = pontos.filter(p => String(p.funcionario_id) === String(medico.id));
@@ -688,7 +740,7 @@ const MedicoMonitoring: React.FC = () => {
                                         : 0;
                                 const totalMinutosHoje = Math.round(horasFinalizadas * 60) + minutosAtivo;
 
-                                const isAtivo = !!pontoAtivo || emAndamento > 0 || liveDoMedico.length > 0;
+
                                 const horasDisplay = totalMinutosHoje > 0
                                     ? `${Math.floor(totalMinutosHoje / 60)}h${(totalMinutosHoje % 60).toString().padStart(2, '0')}min`
                                     : '--';
@@ -755,7 +807,7 @@ const MedicoMonitoring: React.FC = () => {
 
                                                 {/* Action buttons */}
                                                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                                                    {!isAtivo ? (
+                                                    {!pontoAtivo ? (
                                                         <Button size="small" variant="contained" startIcon={<LogIn size={14} />}
                                                             onClick={() => { setPontoForm({ funcionario_id: medico.id, acao_id: '', observacoes: '' }); setPontoModal({ open: true, tipo: 'entrada' }); }}
                                                             sx={{ flex: 1, background: expressoTheme.gradients.primary, color: 'white', textTransform: 'none', fontWeight: 600, borderRadius: expressoTheme.borderRadius.small, fontSize: '0.8rem' }}>
@@ -769,7 +821,7 @@ const MedicoMonitoring: React.FC = () => {
                                                                 Saída
                                                             </Button>
                                                             <Button size="small" variant="contained" startIcon={<Plus size={14} />}
-                                                                onClick={() => { setAtendForm({ nome_paciente: '', observacoes: '' }); setAtendimentoModal({ open: true, medico, ponto: pontoAtivo }); }}
+                                                                onClick={() => { setAtendForm({ nome_paciente: '', observacoes: '', cidadao_id: '', acao_id: '' }); setCidadaoBuscaOpts([]); setAtendimentoModal({ open: true, medico, ponto: pontoAtivo }); }}
                                                                 sx={{ flex: 1, background: '#22c55e', color: 'white', textTransform: 'none', fontWeight: 600, fontSize: '0.8rem', borderRadius: expressoTheme.borderRadius.small, '&:hover': { background: '#16a34a' } }}>
                                                                 Atendimento
                                                             </Button>
@@ -811,7 +863,7 @@ const MedicoMonitoring: React.FC = () => {
                     {pontoModal.tipo === 'entrada' ? <LogIn size={22} /> : <LogOut size={22} />}
                     {pontoModal.tipo === 'entrada' ? 'Registrar Entrada' : 'Registrar Saída'}
                 </DialogTitle>
-                <DialogContent sx={{ pt: 3, pb: 2, px: 3, overflow: 'visible' }}>
+                <DialogContent sx={{ pt: '24px !important', pb: 2, px: 3, overflow: 'visible' }}>
                     <Grid container spacing={2}>
                         {pontoModal.tipo === 'entrada' && (
                             <>
@@ -857,7 +909,7 @@ const MedicoMonitoring: React.FC = () => {
             </Dialog>
 
             {/* MODAL ATENDIMENTO */}
-            <Dialog open={atendimentoModal.open} onClose={() => setAtendimentoModal({ open: false })} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: '20px', overflow: 'hidden', boxShadow: '0 24px 64px rgba(34,197,94,0.2)' } }}>
+            <Dialog open={atendimentoModal.open} onClose={() => { setAtendimentoModal({ open: false }); setAtendForm({ nome_paciente: '', observacoes: '', cidadao_id: '', acao_id: '' }); setCidadaoBuscaOpts([]); }} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: '20px', overflow: 'hidden', boxShadow: '0 24px 64px rgba(34,197,94,0.2)' } }}>
                 <DialogTitle sx={{
                     background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
                     color: 'white', fontWeight: 800, fontSize: '1.1rem',
@@ -871,36 +923,87 @@ const MedicoMonitoring: React.FC = () => {
                 </DialogTitle>
                 <DialogContent sx={{ pt: '32px !important', pb: 2, px: 4 }}>
                     <Grid container spacing={3}>
+
+                        {/* Seletor de Ação */}
                         <Grid item xs={12}>
-                            <TextField
-                                fullWidth
-                                label="Nome do Paciente (opcional)"
-                                value={atendForm.nome_paciente}
-                                onChange={e => setAtendForm(f => ({ ...f, nome_paciente: e.target.value }))}
-                                helperText="Deixe em branco se não souber o nome"
-                                sx={{
-                                    '& .MuiOutlinedInput-root': {
-                                        borderRadius: '12px',
-                                        fontSize: '0.95rem',
-                                        '&:hover fieldset': { borderColor: '#22c55e' },
-                                        '&.Mui-focused fieldset': { borderColor: '#22c55e' },
-                                    },
-                                    '& .MuiInputLabel-root.Mui-focused': { color: '#16a34a' },
+                            <FormControl fullWidth sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px', '&:hover fieldset': { borderColor: '#22c55e' }, '&.Mui-focused fieldset': { borderColor: '#22c55e' } } }}>
+                                <InputLabel sx={{ '&.Mui-focused': { color: '#16a34a' } }}>Ação (opcional)</InputLabel>
+                                <Select
+                                    value={atendForm.acao_id}
+                                    label="Ação (opcional)"
+                                    onChange={e => {
+                                        setAtendForm(f => ({ ...f, acao_id: e.target.value, cidadao_id: '', nome_paciente: '' }));
+                                        setCidadaoBuscaOpts([]);
+                                        if (e.target.value) buscarCidadaos('', e.target.value);
+                                    }}
+                                >
+                                    <MenuItem value=""><em>Sem ação específica</em></MenuItem>
+                                    {acoes.filter(a => a.status === 'ativa').map(a => (
+                                        <MenuItem key={a.id} value={a.id}>{a.nome || `Ação #${a.numero_acao}`}</MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        </Grid>
+
+                        {/* Autocomplete de cidadão */}
+                        <Grid item xs={12}>
+                            <Autocomplete
+                                options={cidadaoBuscaOpts}
+                                getOptionLabel={(o) => o.nome || ''}
+                                loading={cidadaoBuscaLoading}
+                                noOptionsText="Nenhum cidadão encontrado"
+                                isOptionEqualToValue={(o, v) => o.id === v.id}
+                                onInputChange={(_, val) => buscarCidadaos(val, atendForm.acao_id || undefined)}
+                                onChange={(_, val) => {
+                                    if (val) {
+                                        setAtendForm(f => ({ ...f, cidadao_id: val.id, nome_paciente: val.nome }));
+                                    } else {
+                                        setAtendForm(f => ({ ...f, cidadao_id: '', nome_paciente: '' }));
+                                    }
                                 }}
+                                renderOption={(props, option) => (
+                                    <Box component="li" {...props} key={option.id}>
+                                        <Box>
+                                            <Typography sx={{ fontWeight: 600, fontSize: '0.9rem' }}>{option.nome}</Typography>
+                                            <Typography sx={{ fontSize: '0.75rem', color: expressoTheme.colors.textSecondary }}>
+                                                CPF: {option.cpf}{option.inscricao_status ? ` · ${option.inscricao_status === 'atendido' ? '✓ Atendido' : 'Pendente'}` : ''}
+                                            </Typography>
+                                        </Box>
+                                    </Box>
+                                )}
+                                renderInput={(params) => (
+                                    <TextField
+                                        {...params}
+                                        label="Buscar cidadão cadastrado *"
+                                        placeholder="Digite nome ou CPF..."
+                                        helperText={atendForm.acao_id ? 'Exibindo inscritos da ação selecionada' : 'Busca em todos os cidadãos cadastrados'}
+                                        InputProps={{
+                                            ...params.InputProps,
+                                            endAdornment: (
+                                                <>{cidadaoBuscaLoading ? <CircularProgress size={18} /> : null}{params.InputProps.endAdornment}</>
+                                            ),
+                                        }}
+                                        sx={{
+                                            '& .MuiOutlinedInput-root': { borderRadius: '12px', fontSize: '0.95rem', '&:hover fieldset': { borderColor: '#22c55e' }, '&.Mui-focused fieldset': { borderColor: '#22c55e' } },
+                                            '& .MuiInputLabel-root.Mui-focused': { color: '#16a34a' },
+                                        }}
+                                    />
+                                )}
                             />
                         </Grid>
+
+                        {/* Observações */}
                         <Grid item xs={12}>
                             <TextField
                                 fullWidth
                                 multiline
-                                rows={4}
+                                rows={3}
                                 label="Observações (opcional)"
                                 value={atendForm.observacoes}
                                 onChange={e => setAtendForm(f => ({ ...f, observacoes: e.target.value }))}
                                 sx={{
                                     '& .MuiOutlinedInput-root': {
-                                        borderRadius: '12px',
-                                        fontSize: '0.95rem',
+                                        borderRadius: '12px', fontSize: '0.95rem',
                                         '&:hover fieldset': { borderColor: '#22c55e' },
                                         '&.Mui-focused fieldset': { borderColor: '#22c55e' },
                                     },
@@ -911,14 +1014,14 @@ const MedicoMonitoring: React.FC = () => {
                     </Grid>
                 </DialogContent>
                 <DialogActions sx={{ px: 4, pb: 3, pt: 1, gap: 1.5 }}>
-                    <Button onClick={() => setAtendimentoModal({ open: false })} sx={{ color: expressoTheme.colors.textSecondary, fontWeight: 600, textTransform: 'none', borderRadius: '10px', px: 2 }}>Cancelar</Button>
-                    <Button variant="contained" onClick={handleAtendimento}
+                    <Button onClick={() => { setAtendimentoModal({ open: false }); setAtendForm({ nome_paciente: '', observacoes: '', cidadao_id: '', acao_id: '' }); setCidadaoBuscaOpts([]); }} sx={{ color: expressoTheme.colors.textSecondary, fontWeight: 600, textTransform: 'none', borderRadius: '10px', px: 2 }}>Cancelar</Button>
+                    <Button variant="contained" onClick={handleAtendimento} disabled={!atendForm.cidadao_id}
                         sx={{
-                            background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
+                            background: atendForm.cidadao_id ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)' : undefined,
                             color: 'white', fontWeight: 700, px: 4, py: 1.2,
                             textTransform: 'none', borderRadius: '12px', flex: 1,
                             fontSize: '0.95rem',
-                            boxShadow: '0 4px 16px rgba(34,197,94,0.4)',
+                            boxShadow: atendForm.cidadao_id ? '0 4px 16px rgba(34,197,94,0.4)' : undefined,
                             '&:hover': { boxShadow: '0 6px 20px rgba(34,197,94,0.55)' },
                         }}>
                         Iniciar Atendimento
@@ -1057,7 +1160,7 @@ const MedicoMonitoring: React.FC = () => {
                             }
                         }, 100);
                     }}
-                        sx={{ color: '#8b5cf6', borderColor: '#8b5cf6', textTransform: 'none', fontWeight: 600 }}>
+                        sx={{ color: expressoTheme.colors.primary, borderColor: expressoTheme.colors.primary, textTransform: 'none', fontWeight: 600 }}>
                         Gerar Relatório
                     </Button>
                 </DialogActions>

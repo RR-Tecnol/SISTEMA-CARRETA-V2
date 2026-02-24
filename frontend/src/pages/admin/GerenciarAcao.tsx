@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { formatCPF } from '../../utils/formatters';
 import {
     Container,
     Paper,
@@ -28,6 +29,7 @@ import {
     FormControl,
     FormLabel,
     Switch,
+    Autocomplete,
 } from '@mui/material';
 import {
     Plus,
@@ -141,10 +143,12 @@ const GerenciarAcao = () => {
     const [openInscricaoDialog, setOpenInscricaoDialog] = useState(false);
     const [cpfBusca, setCpfBusca] = useState('');
     const [cidadaoEncontrado, setCidadaoEncontrado] = useState<any>(null);
-    const [buscandoCidadao, setBuscandoCidadao] = useState(false);
+    const [cidadaoBuscaOpts, setCidadaoBuscaOpts] = useState<any[]>([]);
+    const [cidadaoBuscaLoading, setCidadaoBuscaLoading] = useState(false);
+    const cidadaoBuscaRef = useRef<NodeJS.Timeout | null>(null);
     const [selectedAcaoCursoId, setSelectedAcaoCursoId] = useState('');
     // Popup de bloqueio de periodicidade
-    const [blockedInfo, setBlockedInfo] = useState<{ message: string; ultima_data?: string; proxima_data?: string; code?: string } | null>(null);
+    const [blockedInfo, setBlockedInfo] = useState<{ message: string; ultima_data?: string; proxima_data?: string; code?: string; ultimo_exame_nome?: string } | null>(null);
 
     // Editar status inscrição state
     const [openEditStatusDialog, setOpenEditStatusDialog] = useState(false);
@@ -556,23 +560,29 @@ const GerenciarAcao = () => {
         }
     };
 
-    const handleBuscarCidadao = async () => {
-        if (!cpfBusca) {
-            enqueueSnackbar('Digite um CPF para buscar', { variant: 'warning' });
+    const handleBuscaAutocomplete = (q: string) => {
+        const cpfFormatado = formatCPF(q);
+        setCpfBusca(cpfFormatado);
+
+        const somenteNumeros = cpfFormatado.replace(/\D/g, '');
+        if (somenteNumeros.length < 3) {
+            setCidadaoBuscaOpts([]);
             return;
         }
 
-        setBuscandoCidadao(true);
-        try {
-            const response = await api.get(`/cidadaos/buscar-cpf/${cpfBusca.replace(/\D/g, '')}`);
-            setCidadaoEncontrado(response.data);
-            enqueueSnackbar('Cidadão encontrado!', { variant: 'success' });
-        } catch (error: any) {
-            enqueueSnackbar('Cidadão não encontrado', { variant: 'warning' });
-            setCidadaoEncontrado(null);
-        } finally {
-            setBuscandoCidadao(false);
-        }
+        if (cidadaoBuscaRef.current) clearTimeout(cidadaoBuscaRef.current);
+        cidadaoBuscaRef.current = setTimeout(async () => {
+            setCidadaoBuscaLoading(true);
+            try {
+                // Busca parcial otimizada por CPF já formatado
+                const r = await api.get('/cidadaos/autocomplete-cpf', { params: { q: cpfFormatado } });
+                setCidadaoBuscaOpts(Array.isArray(r.data) ? r.data : []);
+            } catch {
+                setCidadaoBuscaOpts([]);
+            } finally {
+                setCidadaoBuscaLoading(false);
+            }
+        }, 350);
     };
 
     const handleInscreverCidadao = async () => {
@@ -605,10 +615,11 @@ const GerenciarAcao = () => {
                 // Fecha o dialog de inscrição e abre o popup de bloqueio
                 setOpenInscricaoDialog(false);
                 setBlockedInfo({
-                    message: data.message,
+                    message: data.message || data.error,
                     ultima_data: data.ultima_data,
                     proxima_data: data.proxima_data,
                     code: data.code,
+                    ultimo_exame_nome: data.ultimo_exame_nome,
                 });
             } else {
                 enqueueSnackbar(
@@ -1709,20 +1720,57 @@ const GerenciarAcao = () => {
                                             </MenuItem>
                                         ))}
                                     </TextField>
-                                    <TextField
+
+                                    <Autocomplete
                                         fullWidth
-                                        label="CPF do Cidadão"
-                                        value={cpfBusca}
-                                        onChange={(e) => setCpfBusca(e.target.value)}
-                                        placeholder="000.000.000-00"
+                                        freeSolo
+                                        options={cidadaoBuscaOpts}
+                                        getOptionLabel={(opt: any) => typeof opt === 'string' ? opt : `${opt.nome || opt.nome_completo} (${formatCPF(opt.cpf || '')})`}
+                                        loading={cidadaoBuscaLoading}
+                                        inputValue={cpfBusca}
+                                        onInputChange={(_, nv) => handleBuscaAutocomplete(nv)}
+                                        onChange={(_, nVal: any) => {
+                                            if (nVal && typeof nVal !== 'string') {
+                                                setCidadaoEncontrado({
+                                                    id: nVal.id,
+                                                    nome_completo: nVal.nome || nVal.nome_completo,
+                                                    cpf: formatCPF(nVal.cpf || ''),
+                                                    email: nVal.email
+                                                });
+                                                setCpfBusca(formatCPF(nVal.cpf || ''));
+                                            } else {
+                                                setCidadaoEncontrado(null);
+                                            }
+                                        }}
+                                        renderInput={(params) => (
+                                            <TextField
+                                                {...params}
+                                                label="Buscar CPF do Cidadão"
+                                                placeholder="000.000.000-00"
+                                                inputProps={{
+                                                    ...params.inputProps,
+                                                    maxLength: 14,
+                                                }}
+                                                InputProps={{
+                                                    ...params.InputProps,
+                                                    endAdornment: (
+                                                        <>
+                                                            {cidadaoBuscaLoading ? <CircularProgress color="inherit" size={20} /> : null}
+                                                            {params.InputProps.endAdornment}
+                                                        </>
+                                                    )
+                                                }}
+                                            />
+                                        )}
+                                        renderOption={(props, opt: any) => (
+                                            <li {...props} key={opt.id}>
+                                                <Box>
+                                                    <Typography sx={{ fontWeight: 600 }}>{opt.nome || opt.nome_completo}</Typography>
+                                                    <Typography sx={{ fontSize: '0.8rem', color: 'gray' }}>CPF: {formatCPF(opt.cpf || '')}</Typography>
+                                                </Box>
+                                            </li>
+                                        )}
                                     />
-                                    <Button
-                                        variant="outlined"
-                                        onClick={handleBuscarCidadao}
-                                        disabled={!cpfBusca || buscandoCidadao}
-                                    >
-                                        {buscandoCidadao ? 'Buscando...' : 'Buscar'}
-                                    </Button>
 
                                     {cidadaoEncontrado && (
                                         <Alert severity="success">
@@ -1817,6 +1865,16 @@ const GerenciarAcao = () => {
                                                 {blockedInfo.ultima_data}
                                             </Typography>
                                         </Box>
+                                        {blockedInfo?.ultimo_exame_nome && (
+                                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                                    Procedimento
+                                                </Typography>
+                                                <Typography sx={{ color: '#1e293b', fontWeight: 700, fontSize: '0.875rem', textAlign: 'right' }}>
+                                                    {blockedInfo.ultimo_exame_nome}
+                                                </Typography>
+                                            </Box>
+                                        )}
                                         {blockedInfo?.proxima_data && (
                                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                 <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>

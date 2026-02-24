@@ -1,7 +1,7 @@
 import { Model, DataTypes, UUIDV4, Optional } from 'sequelize';
 import { sequelize } from '../config/database';
 
-export type AtendimentoStatus = 'em_andamento' | 'concluido' | 'cancelado';
+export type AtendimentoStatus = 'aguardando' | 'em_andamento' | 'concluido' | 'cancelado';
 
 export interface AtendimentoMedicoAttributes {
     id: string;
@@ -78,7 +78,7 @@ AtendimentoMedico.init(
             comment: 'Duração total do atendimento em minutos (calculado ao finalizar)',
         },
         status: {
-            type: DataTypes.ENUM('em_andamento', 'concluido', 'cancelado'),
+            type: DataTypes.ENUM('aguardando', 'em_andamento', 'concluido', 'cancelado'),
             allowNull: false,
             defaultValue: 'em_andamento',
         },

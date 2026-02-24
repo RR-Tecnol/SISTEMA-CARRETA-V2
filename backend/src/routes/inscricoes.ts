@@ -13,7 +13,7 @@ const router = Router();
  * Helper: verifica periodicidade antes de criar inscrição
  * Retorna null se permitido, ou objeto de erro se bloqueado
  */
-async function checkPeriodicidade(cidadao_id: string, curso_exame_id: string, acaoCurso: any): Promise<{ code: string; message: string; ultima_data?: string; proxima_data?: string } | null> {
+async function checkPeriodicidade(cidadao_id: string, curso_exame_id: string, acaoCurso: any): Promise<{ code: string; message: string; ultima_data?: string; proxima_data?: string; ultimo_exame_nome?: string } | null> {
     const { permitir_repeticao, periodicidade_meses } = acaoCurso;
 
     // ── Verificar se já existe inscrição ATIVA (pendente ou atendido) em QUALQUER ação ──
@@ -23,12 +23,14 @@ async function checkPeriodicidade(cidadao_id: string, curso_exame_id: string, ac
             curso_exame_id,
             status: { [Op.in]: ['pendente', 'atendido'] },
         },
+        include: [{ model: CursoExame, as: 'curso_exame', attributes: ['nome'] }],
         order: [['data_inscricao', 'DESC']],
     });
 
     if (inscricaoAtiva) {
         const ultimaData = new Date(inscricaoAtiva.data_inscricao as any);
         const statusAtual = inscricaoAtiva.status;
+        const ultimoExameNome = (inscricaoAtiva as any).curso_exame?.nome;
 
         // Se não permite repetição de forma alguma, bloqueia sempre
         if (permitir_repeticao === false) {
@@ -36,6 +38,7 @@ async function checkPeriodicidade(cidadao_id: string, curso_exame_id: string, ac
                 code: 'BLOQUEADO_SEM_REPETICAO',
                 message: 'Este exame só pode ser realizado uma única vez por cidadão.',
                 ultima_data: ultimaData.toLocaleDateString('pt-BR'),
+                ultimo_exame_nome: ultimoExameNome,
             };
         }
 
@@ -45,6 +48,7 @@ async function checkPeriodicidade(cidadao_id: string, curso_exame_id: string, ac
                 code: 'BLOQUEADO_JA_INSCRITO',
                 message: 'Cidadão já está inscrito neste exame em outra ação (pendente de atendimento).',
                 ultima_data: ultimaData.toLocaleDateString('pt-BR'),
+                ultimo_exame_nome: ultimoExameNome,
             };
         }
 
@@ -60,6 +64,7 @@ async function checkPeriodicidade(cidadao_id: string, curso_exame_id: string, ac
                     message: `Este exame só pode ser repetido após ${periodicidade_meses} ${periodicidade_meses === 1 ? 'mês' : 'meses'} do último realizado.`,
                     ultima_data: ultimaData.toLocaleDateString('pt-BR'),
                     proxima_data: proximaData.toLocaleDateString('pt-BR'),
+                    ultimo_exame_nome: ultimoExameNome,
                 };
             }
         }
@@ -117,12 +122,20 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
                 cidadao_id,
                 acao_id,
                 curso_exame_id,
-                status: ['pendente', 'atendido'],
+                status: 'pendente',
             },
+            include: [{ model: CursoExame, as: 'curso_exame', attributes: ['nome'] }]
         });
 
         if (existingInscricao) {
-            res.status(409).json({ error: 'Você já está inscrito neste curso/exame' });
+            const ultimaData = existingInscricao.data_inscricao ? new Date(existingInscricao.data_inscricao as any).toLocaleDateString('pt-BR') : undefined;
+            res.status(409).json({
+                error: 'Você já está inscrito neste curso/exame (pendente de atendimento).',
+                message: 'Você já está inscrito neste curso/exame.',
+                code: 'BLOQUEADO_JA_INSCRITO',
+                ultima_data: ultimaData,
+                ultimo_exame_nome: (existingInscricao as any).curso_exame?.nome
+            });
             return;
         }
 
@@ -284,20 +297,26 @@ router.post('/acoes/:acaoId/inscricoes', authenticate, authorizeAdmin, async (re
             return;
         }
 
-        // Verificar inscrição duplicada em QUALQUER ação (mesmo exame, qualquer status ativo)
+        // Verificar inscrição duplicada em QUALQUER ação APENAS se estiver pendente
+        // (se estiver atendido, o checkPeriodicidade acima já cuidou se pode ou não repetir)
         const existingInscricao = await Inscricao.findOne({
             where: {
                 cidadao_id,
                 curso_exame_id,
-                status: { [Op.in]: ['pendente', 'atendido'] },
+                status: 'pendente',
             },
+            include: [{ model: CursoExame, as: 'curso_exame', attributes: ['nome'] }]
         });
 
         if (existingInscricao) {
-            const statusMsg = existingInscricao.status === 'pendente'
-                ? 'Cidadão já está inscrito neste exame em outra ação (pendente de atendimento).'
-                : 'Cidadão já foi atendido neste exame. Verifique a periodicidade configurada.';
-            res.status(409).json({ error: statusMsg, code: 'BLOQUEADO_JA_INSCRITO' });
+            const ultimaData = existingInscricao.data_inscricao ? new Date(existingInscricao.data_inscricao as any).toLocaleDateString('pt-BR') : undefined;
+            res.status(409).json({
+                error: 'Cidadão já está inscrito neste exame em outra ação (pendente de atendimento).',
+                message: 'Cidadão já está inscrito neste exame em outra ação (pendente de atendimento).',
+                code: 'BLOQUEADO_JA_INSCRITO',
+                ultima_data: ultimaData,
+                ultimo_exame_nome: (existingInscricao as any).curso_exame?.nome
+            });
             return;
         }
 

@@ -7,7 +7,40 @@ import { Op } from 'sequelize';
 const router = Router();
 
 /**
+ * GET /api/cidadaos/autocomplete-cpf
+ * Buscar cidadãos por CPF parcial (admin only)
+ */
+router.get('/autocomplete-cpf', authenticate, async (req: AuthRequest, res: Response) => {
+    try {
+        if (req.user!.tipo !== 'admin') {
+            res.status(403).json({ error: 'Acesso negado' });
+            return;
+        }
+
+        const { q } = req.query;
+        if (!q || typeof q !== 'string') {
+            res.json([]);
+            return;
+        }
+
+        const cidadaos = await Cidadao.findAll({
+            where: {
+                cpf: { [Op.like]: `${q}%` }
+            },
+            limit: 10,
+            attributes: ['id', 'nome_completo', 'cpf', 'email']
+        });
+
+        res.json(cidadaos);
+    } catch (error) {
+        console.error('Error autocomplete cpf:', error);
+        res.status(500).json({ error: 'Erro ao buscar cidadão' });
+    }
+});
+
+/**
  * GET /api/cidadaos
+
  * Listar todos os cidadãos (admin only)
  */
 router.get('/', authenticate, async (req: AuthRequest, res: Response) => {

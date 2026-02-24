@@ -10,7 +10,7 @@ import {
     CheckCircle2, XCircle,
     AlertTriangle, Stethoscope, RefreshCw, LogIn, LogOut,
     Timer, Users, ClipboardList, Wifi, WifiOff, Frown,
-    ArrowLeft, Search,
+    ArrowLeft, Search, Bell, Clock,
 } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { useSnackbar } from 'notistack';
@@ -72,6 +72,15 @@ const MedicoPanel: React.FC = () => {
     const [buscaInscrito, setBuscaInscrito] = useState('');
     const timerRef = useRef<NodeJS.Timeout | null>(null);
     const pollRef = useRef<NodeJS.Timeout | null>(null);
+    const [filaEspera, setFilaEspera] = useState<Array<{ id: string; nome_display: string; tempo_espera_segundos: number; cidadao?: any; acao?: any }>>([]);
+    const filaCountRef = useRef<number>(-1);
+    const filaRef = useRef<NodeJS.Timeout | null>(null);
+
+    const formatEspera = (s: number) => {
+        const m = Math.floor(s / 60);
+        const sec = s % 60;
+        return `${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+    };
 
     // ── Clock ──
     useEffect(() => {
@@ -132,12 +141,41 @@ const MedicoPanel: React.FC = () => {
         }
     }, [acaoId]);
 
+    // ── Fila de espera ──
+    const fetchFila = useCallback(async () => {
+        if (!user?.id) return;
+        try {
+            const params: any = {};
+            if (acaoId) params.acao_id = acaoId;
+            const r = await api.get(`/medico-monitoring/fila/${user.id}`, { params });
+            const novaFila = r.data?.fila || [];
+            const novoTotal = r.data?.total ?? 0;
+            if (filaCountRef.current >= 0 && novoTotal > filaCountRef.current) {
+                const novosPacientes = novaFila.slice(filaCountRef.current);
+                novosPacientes.forEach((p: any) => {
+                    enqueueSnackbar(`👥 Novo paciente na fila: ${p.nome_display}`, {
+                        variant: 'info',
+                        anchorOrigin: { vertical: 'top', horizontal: 'right' },
+                        autoHideDuration: 6000,
+                    });
+                });
+            }
+            filaCountRef.current = novoTotal;
+            setFilaEspera(novaFila);
+        } catch { /* silencioso */ }
+    }, [user?.id, acaoId, enqueueSnackbar]);
+
     useEffect(() => {
         fetchData();
         fetchInscritos();
+        fetchFila();
         pollRef.current = setInterval(() => { fetchData(); fetchInscritos(); }, 30000);
-        return () => { if (pollRef.current) clearInterval(pollRef.current); };
-    }, [fetchData, fetchInscritos]);
+        filaRef.current = setInterval(fetchFila, 10000);
+        return () => {
+            if (pollRef.current) clearInterval(pollRef.current);
+            if (filaRef.current) clearInterval(filaRef.current);
+        };
+    }, [fetchData, fetchInscritos, fetchFila]);
 
     // ── Derivados ──
     const feitos = atendimentos.filter((a) => a.status === 'concluido');
@@ -419,6 +457,64 @@ const MedicoPanel: React.FC = () => {
                                 </motion.div>
                             )}
                         </AnimatePresence>
+
+                        {/* ── FILA DE ESPERA ── */}
+                        {filaEspera.length > 0 && (
+                            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+                                <Box sx={{
+                                    background: 'linear-gradient(135deg, #fef9c3 0%, #fef3c7 100%)',
+                                    borderRadius: expressoTheme.borderRadius.large,
+                                    border: '2px solid #fbbf24',
+                                    p: 3, mb: 3,
+                                    boxShadow: '0 4px 20px rgba(251,191,36,0.2)',
+                                }}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 0.8, background: '#fbbf24', borderRadius: '10px' }}>
+                                            <Bell size={18} color="white" />
+                                        </Box>
+                                        <Typography variant="h6" sx={{ fontWeight: 800, color: '#92400e', flex: 1 }}>
+                                            Fila de Espera
+                                        </Typography>
+                                        <Chip
+                                            label={`${filaEspera.length} paciente${filaEspera.length > 1 ? 's' : ''}`}
+                                            size="small"
+                                            sx={{ background: '#fbbf24', color: '#78350f', fontWeight: 800, fontSize: '0.78rem' }}
+                                        />
+                                    </Box>
+                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                        {filaEspera.map((paciente, idx) => (
+                                            <motion.div key={paciente.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.05 }}>
+                                                <Box sx={{
+                                                    display: 'flex', alignItems: 'center', gap: 2,
+                                                    p: 1.5, borderRadius: expressoTheme.borderRadius.medium,
+                                                    background: 'rgba(255,255,255,0.8)', border: '1px solid #fde68a',
+                                                }}>
+                                                    <Box sx={{ width: 36, height: 36, borderRadius: '10px', background: '#fbbf24', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                                        <Typography sx={{ color: '#78350f', fontWeight: 800, fontSize: '0.9rem' }}>{idx + 1}</Typography>
+                                                    </Box>
+                                                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                                                        <Typography sx={{ fontWeight: 700, fontSize: '0.9rem', color: '#78350f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                            {paciente.nome_display}
+                                                        </Typography>
+                                                        {paciente.acao && (
+                                                            <Typography sx={{ fontSize: '0.72rem', color: '#92400e', opacity: 0.8 }}>
+                                                                {paciente.acao.nome || `Ação #${paciente.acao.numero_acao}`}
+                                                            </Typography>
+                                                        )}
+                                                    </Box>
+                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
+                                                        <Clock size={13} color="#92400e" />
+                                                        <Typography sx={{ fontFamily: 'monospace', fontSize: '0.88rem', fontWeight: 700, color: '#92400e' }}>
+                                                            {formatEspera(paciente.tempo_espera_segundos)}
+                                                        </Typography>
+                                                    </Box>
+                                                </Box>
+                                            </motion.div>
+                                        ))}
+                                    </Box>
+                                </Box>
+                            </motion.div>
+                        )}
 
                         {/* ── LISTA DE INSCRITOS DA AÇÃO ── */}
                         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>

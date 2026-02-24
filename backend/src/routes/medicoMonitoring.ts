@@ -18,6 +18,7 @@ import { Acao } from '../models/Acao';
 import { Cidadao } from '../models/Cidadao';
 import { AcaoFuncionario } from '../models/AcaoFuncionario';
 import { Inscricao } from '../models/Inscricao';
+import { CursoExame } from '../models/CursoExame';
 
 const router = Router();
 
@@ -130,10 +131,11 @@ router.get('/me', authenticate, authorizeMedicoOrAdmin, async (req: any, res: Re
             where: { funcionario_id: funcionarioId, status: 'trabalhando' },
         });
 
-        // Atendimentos do dia (filtrar por acao_id se informado)
+        // Atendimentos do dia (filtrar por acao_id se informado; excluir 'aguardando' = fila de espera)
         const whereAtend: any = {
             funcionario_id: funcionarioId,
             hora_inicio: { [Op.between]: [hoje, amanha] },
+            status: { [Op.ne]: 'aguardando' }, // Exclui pacientes na fila (gerenciados pelo admin)
         };
         if (acao_id) whereAtend.acao_id = acao_id;
 
@@ -536,7 +538,7 @@ router.post('/atendimentos', authenticate, authorizeAdmin, async (req: Request, 
             cidadao_id: cidadao_id || undefined,
             ponto_id: pontoAtivo || undefined,
             hora_inicio: new Date(),
-            status: 'em_andamento',
+            status: 'aguardando', // Admin adiciona à fila de espera; médico muda para em_andamento ao chamar
             observacoes,
             nome_paciente,
         });
@@ -823,7 +825,10 @@ router.get('/relatorio/:funcionario_id', authenticate, authorizeAdmin, async (re
         const atendimentos = await AtendimentoMedico.findAll({
             where: whereAtendimento,
             include: [
-                { model: Acao, as: 'acao', attributes: ['id', 'numero_acao', 'nome'] },
+                {
+                    model: Acao, as: 'acao', attributes: ['id', 'numero_acao', 'nome'],
+                    include: [{ model: CursoExame, as: 'cursos', attributes: ['nome'] }]
+                },
                 { model: Cidadao, as: 'cidadao', attributes: ['id', [literal('nome_completo'), 'nome']] },
             ],
             order: [['hora_inicio', 'DESC']],
@@ -871,9 +876,13 @@ router.get('/relatorio/:funcionario_id', authenticate, authorizeAdmin, async (re
 });
 
 
-// ═══ GET /stats/tempo-real ═══ (admin) — atendimentos em andamento AGORA
+// ═══ GET /stats/tempo-real ═══ (admin) — atendimentos em andamento AGORA + resumo do dia por médico
 router.get('/stats/tempo-real', authenticate, authorizeAdmin, async (_req: Request, res: Response) => {
     try {
+        const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+        const amanha = new Date(hoje); amanha.setDate(amanha.getDate() + 1);
+
+        // Atendimentos em andamento AGORA
         const ativos = await AtendimentoMedico.findAll({
             where: { status: 'em_andamento' },
             include: [
@@ -896,13 +905,151 @@ router.get('/stats/tempo-real', authenticate, authorizeAdmin, async (_req: Reque
             };
         });
 
-        res.json({ total: resultado.length, atendimentos: resultado, gerado_em: new Date().toISOString() });
+        // Resumo do dia por médico (concluídos, em andamento, aguardando, cancelados)
+        const todosHoje = await AtendimentoMedico.findAll({
+            where: {
+                hora_inicio: { [Op.between]: [hoje, amanha] },
+                status: { [Op.ne]: 'aguardando' }, // Fila de espera não conta como atendimento
+            },
+            attributes: ['funcionario_id', 'status'],
+        });
+
+        const resumoPorMedico: Record<string, { concluidos: number; emAndamento: number; cancelados: number; total: number }> = {};
+        todosHoje.forEach((a: any) => {
+            const fid = String(a.funcionario_id);
+            if (!resumoPorMedico[fid]) resumoPorMedico[fid] = { concluidos: 0, emAndamento: 0, cancelados: 0, total: 0 };
+            resumoPorMedico[fid].total++;
+            if (a.status === 'concluido') resumoPorMedico[fid].concluidos++;
+            else if (a.status === 'em_andamento') resumoPorMedico[fid].emAndamento++;
+            else if (a.status === 'cancelado') resumoPorMedico[fid].cancelados++;
+        });
+
+        const pontosAtivos = await PontoMedico.findAll({
+            where: { status: 'trabalhando' },
+            include: [{ model: Acao, as: 'acao', attributes: ['id', 'numero_acao', 'nome'] }]
+        });
+
+        res.json({
+            total: resultado.length,
+            em_andamento: resultado,
+            resumoPorMedico,
+            pontosAtivos,
+            gerado_em: new Date().toISOString(),
+        });
     } catch (error) {
         console.error('Erro ao buscar tempo real:', error);
         res.status(500).json({ error: 'Erro ao buscar dados de tempo real' });
     }
 });
 
+
+// ═══ GET /cidadaos/buscar ═══ Busca cidadãos cadastrados (com filtro por ação)
+// Usado pelo autocomplete do modal "Novo Atendimento" no admin
+router.get('/cidadaos/buscar', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+    try {
+        const { q = '', acao_id } = req.query as { q?: string; acao_id?: string };
+        const termo = String(q).trim();
+
+        if (acao_id) {
+            // Busca inscritos da ação que ainda não foram atendidos
+            const inscricoes = await Inscricao.findAll({
+                where: { acao_id, status: { [Op.in]: ['pendente', 'atendido'] } },
+                include: [{
+                    model: Cidadao,
+                    as: 'cidadao',
+                    attributes: ['id', [literal('nome_completo'), 'nome'], 'cpf', 'telefone', 'data_nascimento'],
+                    ...(termo ? {
+                        where: {
+                            [Op.or]: [
+                                { nome_completo: { [Op.iLike]: `%${termo}%` } },
+                                { cpf: { [Op.iLike]: `%${termo}%` } },
+                            ],
+                        },
+                    } : {}),
+                    required: Boolean(termo),
+                }],
+                limit: 20,
+            });
+            const resultado = inscricoes
+                .filter((i: any) => i.cidadao)
+                .map((i: any) => ({
+                    id: i.cidadao.id,
+                    nome: i.cidadao.nome || i.cidadao.nome_completo,
+                    cpf: i.cidadao.cpf,
+                    telefone: i.cidadao.telefone,
+                    inscricao_id: i.id,
+                    inscricao_status: i.status,
+                }));
+            res.json(resultado);
+        } else {
+            // Busca geral de cidadãos cadastrados
+            const where: any = termo
+                ? { [Op.or]: [{ nome_completo: { [Op.iLike]: `%${termo}%` } }, { cpf: { [Op.iLike]: `%${termo}%` } }] }
+                : {};
+            const cidadaos = await Cidadao.findAll({
+                where,
+                attributes: ['id', [literal('nome_completo'), 'nome'], 'cpf', 'telefone'],
+                limit: 20,
+                order: [['nome_completo', 'ASC']],
+            });
+            res.json(cidadaos.map((c: any) => c.toJSON()));
+        }
+    } catch (error) {
+        console.error('Erro ao buscar cidadãos:', error);
+        res.status(500).json({ error: 'Erro ao buscar cidadãos' });
+    }
+});
+
+// ═══ GET /fila/:funcionario_id ═══ Fila de espera do médico (atendimentos aguardando hoje)
+// Usado pelo painel do médico via polling para notificações e lista de espera
+router.get('/fila/:funcionario_id', authenticate, authorizeMedicoOrAdmin, async (req: any, res: Response) => {
+    try {
+        const { funcionario_id } = req.params;
+
+        // Apenas o próprio médico ou admin pode ver a fila
+        if (req.user.tipo !== 'admin' && String(req.user.id) !== String(funcionario_id)) {
+            res.status(403).json({ error: 'Acesso negado' });
+            return;
+        }
+
+        const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+        const amanha = new Date(hoje); amanha.setDate(amanha.getDate() + 1);
+
+        const { acao_id } = req.query as { acao_id?: string };
+
+        const whereFila: any = {
+            funcionario_id,
+            status: 'aguardando',
+            hora_inicio: { [Op.between]: [hoje, amanha] },
+        };
+        // Filtra por ação se informada (paciente visto só na ação correta)
+        if (acao_id) whereFila.acao_id = acao_id;
+
+        const aguardando = await AtendimentoMedico.findAll({
+            where: whereFila,
+            include: [
+                { model: Cidadao, as: 'cidadao', attributes: ['id', [literal('nome_completo'), 'nome'], 'cpf', 'telefone'] },
+                { model: Acao, as: 'acao', attributes: ['id', 'numero_acao', 'nome'] },
+            ],
+            order: [['hora_inicio', 'ASC']],
+        });
+
+        const agora = Date.now();
+        const fila = aguardando.map((a: any) => {
+            const json = a.toJSON();
+            const segundos = Math.floor((agora - new Date(a.hora_inicio).getTime()) / 1000);
+            return {
+                ...json,
+                nome_display: json.cidadao?.nome || json.nome_paciente || 'Paciente',
+                tempo_espera_segundos: segundos,
+            };
+        });
+
+        res.json({ total: fila.length, fila, gerado_em: new Date().toISOString() });
+    } catch (error) {
+        console.error('Erro ao buscar fila:', error);
+        res.status(500).json({ error: 'Erro ao buscar fila' });
+    }
+});
+
 export default router;
-
-
