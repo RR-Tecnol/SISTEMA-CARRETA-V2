@@ -8,6 +8,7 @@ import { Acao } from '../models/Acao';
 import { Op } from 'sequelize';
 import { sequelize } from '../config/database';
 import ExcelJS from 'exceljs';
+import { RelatorioEstoqueGeralPDF, RelatorioEstoqueCaminhaoPDF } from '../services/pdf/relatorioEstoquePDF';
 
 const router = Router();
 
@@ -1145,5 +1146,58 @@ router.get('/relatorios/exportar', async (req: Request, res: Response) => {
     }
 });
 
+// ==================== RELATÓRIOS PDF ====================
+
+/**
+ * GET /api/estoque/relatorios/pdf/geral
+ * Relatório PDF do estoque central (com filtros: categoria, status, vencimento)
+ */
+router.get('/relatorios/pdf/geral', async (req: Request, res: Response) => {
+    try {
+        const { categoria, status, vencimento } = req.query;
+        const filtros = {
+            categoria: categoria as string | undefined,
+            status: status as string | undefined,
+            vencimento: vencimento as string | undefined,
+        };
+        const service = new RelatorioEstoqueGeralPDF();
+        const pdfBuffer = await service.gerarPDF(filtros);
+        const dataAtual = new Date().toISOString().slice(0, 10);
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename=estoque-geral-${dataAtual}.pdf`);
+        res.send(pdfBuffer);
+    } catch (error: any) {
+        console.error('Erro ao gerar relatório PDF de estoque geral:', error);
+        res.status(500).json({ error: 'Erro ao gerar relatório PDF', details: error.message });
+    }
+});
+
+/**
+ * GET /api/estoque/relatorios/pdf/por-caminhao
+ * Relatório PDF do estoque por caminhão (com filtros: categoria, status, vencimento)
+ */
+router.get('/relatorios/pdf/por-caminhao', async (req: Request, res: Response) => {
+    try {
+        const { categoria, status, vencimento, caminhao_id } = req.query;
+        const filtros = {
+            categoria: categoria as string | undefined,
+            status: status as string | undefined,
+            vencimento: vencimento as string | undefined,
+            caminhao_id: caminhao_id as string | undefined,
+        };
+        const service = new RelatorioEstoqueCaminhaoPDF();
+        const pdfBuffer = await service.gerarPDF(filtros);
+        const dataAtual = new Date().toISOString().slice(0, 10);
+        const sufixo = caminhao_id ? `-caminhao-${String(caminhao_id).slice(0, 8)}` : '';
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename=estoque-por-caminhao${sufixo}-${dataAtual}.pdf`);
+        res.send(pdfBuffer);
+    } catch (error: any) {
+        console.error('Erro ao gerar relatório PDF por caminhão:', error);
+        res.status(500).json({ error: 'Erro ao gerar relatório PDF por caminhão', details: error.message });
+    }
+});
+
 export default router;
+
 

@@ -88,6 +88,8 @@ const Estoque: React.FC = () => {
     const [modalEstoqueCaminhao, setModalEstoqueCaminhao] = useState(false);
     const [caminhaoSelecionado, setCaminhaoSelecionado] = useState<any>(null);
     const [estoqueCaminhaoAtual, setEstoqueCaminhaoAtual] = useState<any[]>([]);
+    const [openModalPdfCaminhao, setOpenModalPdfCaminhao] = useState(false);
+    const [caminhaoSelecionadoPDF, setCaminhaoSelecionadoPDF] = useState(''); // '' = todos
 
     // Estados do formulário de insumo
     const [formInsumo, setFormInsumo] = useState<Partial<Insumo>>({
@@ -558,21 +560,135 @@ const Estoque: React.FC = () => {
                                                 </Select>
                                             </FormControl>
                                         </Grid>
-                                        <Grid item xs={12} md={2}>
-                                            <Button
-                                                fullWidth
-                                                variant="outlined"
-                                                startIcon={<Download size={20} />}
-                                                onClick={() => handleExportar('xlsx', 'estoque')}
-                                                sx={{
-                                                    borderColor: '#5DADE2',
-                                                    color: '#5DADE2',
-                                                    textTransform: 'none',
-                                                    height: '56px',
-                                                }}
-                                            >
-                                                Exportar
-                                            </Button>
+                                        <Grid item xs={12} md={3}>
+                                            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', height: '56px' }}>
+                                                <Button
+                                                    size="small"
+                                                    variant="outlined"
+                                                    startIcon={<Download size={14} />}
+                                                    onClick={() => handleExportar('xlsx', 'estoque')}
+                                                    sx={{
+                                                        borderColor: '#5DADE2',
+                                                        color: '#5DADE2',
+                                                        textTransform: 'none',
+                                                        fontSize: '0.72rem',
+                                                        fontWeight: 600,
+                                                        px: 1.5,
+                                                        py: 0.6,
+                                                        whiteSpace: 'nowrap',
+                                                    }}
+                                                >
+                                                    XLSX
+                                                </Button>
+                                                <Button
+                                                    size="small"
+                                                    variant="outlined"
+                                                    startIcon={<Download size={14} />}
+                                                    onClick={async () => {
+                                                        try {
+                                                            const params = new URLSearchParams();
+                                                            if (filtroCategoria) params.append('categoria', filtroCategoria);
+                                                            if (filtroStatus) params.append('status', filtroStatus);
+                                                            if (filtroVencimento) params.append('vencimento', filtroVencimento);
+                                                            const response = await api.get(`/estoque/relatorios/pdf/geral?${params.toString()}`, { responseType: 'blob' });
+                                                            const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+                                                            const link = document.createElement('a');
+                                                            link.href = url;
+                                                            link.download = `estoque-geral-${new Date().toISOString().slice(0, 10)}.pdf`;
+                                                            link.click();
+                                                            window.URL.revokeObjectURL(url);
+                                                        } catch (err) { console.error('Erro ao gerar PDF geral:', err); }
+                                                    }}
+                                                    sx={{
+                                                        borderColor: '#C8102E',
+                                                        color: '#C8102E',
+                                                        textTransform: 'none',
+                                                        fontSize: '0.72rem',
+                                                        fontWeight: 600,
+                                                        px: 1.5,
+                                                        py: 0.6,
+                                                        whiteSpace: 'nowrap',
+                                                        '&:hover': { background: '#C8102E10' },
+                                                    }}
+                                                >
+                                                    PDF Geral
+                                                </Button>
+                                                <Button
+                                                    size="small"
+                                                    variant="outlined"
+                                                    startIcon={<Download size={14} />}
+                                                    onClick={() => setOpenModalPdfCaminhao(true)}
+                                                    sx={{
+                                                        borderColor: '#4682b4',
+                                                        color: '#4682b4',
+                                                        textTransform: 'none',
+                                                        fontSize: '0.72rem',
+                                                        fontWeight: 600,
+                                                        px: 1.5,
+                                                        py: 0.6,
+                                                        whiteSpace: 'nowrap',
+                                                        '&:hover': { background: '#4682b410' },
+                                                    }}
+                                                >
+                                                    PDF Caminhão
+                                                </Button>
+
+                                                {/* Modal seletor de caminhão para PDF */}
+                                                <Dialog
+                                                    open={openModalPdfCaminhao}
+                                                    onClose={() => setOpenModalPdfCaminhao(false)}
+                                                    maxWidth="xs"
+                                                    fullWidth
+                                                    PaperProps={{ sx: { borderRadius: '12px' } }}
+                                                >
+                                                    <DialogTitle sx={{ fontWeight: 700, color: '#4682b4' }}>Gerar PDF por Caminhão</DialogTitle>
+                                                    <DialogContent>
+                                                        <FormControl fullWidth sx={{ mt: 1 }}>
+                                                            <InputLabel>Caminhão</InputLabel>
+                                                            <Select
+                                                                value={caminhaoSelecionadoPDF}
+                                                                label="Caminhão"
+                                                                onChange={(e) => setCaminhaoSelecionadoPDF(e.target.value as string)}
+                                                            >
+                                                                <MenuItem value="">Todos os caminhões</MenuItem>
+                                                                {caminhoes.map((cam: any) => (
+                                                                    <MenuItem key={cam.id} value={cam.id}>
+                                                                        {cam.placa} {cam.modelo ? `— ${cam.modelo}` : ''}
+                                                                    </MenuItem>
+                                                                ))}
+                                                            </Select>
+                                                        </FormControl>
+                                                    </DialogContent>
+                                                    <DialogActions sx={{ px: 3, pb: 2 }}>
+                                                        <Button onClick={() => setOpenModalPdfCaminhao(false)}>Cancelar</Button>
+                                                        <Button
+                                                            variant="contained"
+                                                            sx={{ background: 'linear-gradient(135deg, #4682b4 0%, #5b9bd5 100%)', '&:hover': { background: 'linear-gradient(135deg, #5b9bd5 0%, #4682b4 100%)' } }}
+                                                            onClick={async () => {
+                                                                try {
+                                                                    const params = new URLSearchParams();
+                                                                    if (filtroCategoria) params.append('categoria', filtroCategoria);
+                                                                    if (filtroStatus) params.append('status', filtroStatus);
+                                                                    if (filtroVencimento) params.append('vencimento', filtroVencimento);
+                                                                    if (caminhaoSelecionadoPDF) params.append('caminhao_id', caminhaoSelecionadoPDF);
+                                                                    const response = await api.get(`/estoque/relatorios/pdf/por-caminhao?${params.toString()}`, { responseType: 'blob' });
+                                                                    const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+                                                                    const link = document.createElement('a');
+                                                                    link.href = url;
+                                                                    const camSelecionado = caminhoes.find((c: any) => c.id === caminhaoSelecionadoPDF);
+                                                                    const nomeCam = camSelecionado ? camSelecionado.placa : 'todos';
+                                                                    link.download = `estoque-caminhao-${nomeCam}-${new Date().toISOString().slice(0, 10)}.pdf`;
+                                                                    link.click();
+                                                                    window.URL.revokeObjectURL(url);
+                                                                    setOpenModalPdfCaminhao(false);
+                                                                } catch (err) { console.error('Erro ao gerar PDF por caminhão:', err); }
+                                                            }}
+                                                        >
+                                                            Gerar PDF
+                                                        </Button>
+                                                    </DialogActions>
+                                                </Dialog>
+                                            </Box>
                                         </Grid>
                                     </Grid>
                                 </CardContent>

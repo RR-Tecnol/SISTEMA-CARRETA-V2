@@ -738,7 +738,39 @@ router.put('/:id/funcionarios/:funcionarioId', authenticate, authorizeAdmin, asy
             return;
         }
 
-        await link.update({ dias_trabalhados: Number(dias_trabalhados) });
+        const novosDias = Number(dias_trabalhados);
+        await link.update({ dias_trabalhados: novosDias });
+
+        // Atualizar a ContaPagar correspondente ao funcionário nessa ação
+        const func = await Funcionario.findByPk(funcionarioId);
+        if (func) {
+            const novoValor = (Number(func.custo_diaria) || 0) * novosDias;
+            const conta = await ContaPagar.findOne({
+                where: {
+                    acao_id: id,
+                    tipo_conta: 'funcionario',
+                },
+                order: [['created_at', 'DESC']],
+            });
+
+            // Tentar encontrar a conta específica do funcionário pelo nome
+            const contaEspecifica = await ContaPagar.findOne({
+                where: {
+                    acao_id: id,
+                    tipo_conta: 'funcionario',
+                    descricao: { [Op.like]: `%${func.nome}%` },
+                },
+            });
+
+            const contaToUpdate = contaEspecifica || conta;
+            if (contaToUpdate) {
+                await contaToUpdate.update({
+                    valor: novoValor,
+                    observacoes: `Custo diário: R$ ${Number(func.custo_diaria || 0).toFixed(2)} × ${novosDias} dias`,
+                });
+            }
+        }
+
         res.json({ message: 'Dias trabalhados atualizado com sucesso', data: link });
     } catch (error) {
         console.error('Error updating dias_trabalhados:', error);

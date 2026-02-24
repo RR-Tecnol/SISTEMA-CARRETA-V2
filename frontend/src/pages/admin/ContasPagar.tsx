@@ -74,6 +74,8 @@ const ContasPagar = () => {
     const [filterTipo, setFilterTipo] = useState('');
     const [filterStatus, setFilterStatus] = useState('');
     const [filterCidade, setFilterCidade] = useState('');
+    const [filterDataInicio, setFilterDataInicio] = useState('');
+    const [filterDataFim, setFilterDataFim] = useState('');
 
     // Form Data
     const [formData, setFormData] = useState<{
@@ -168,7 +170,9 @@ const ContasPagar = () => {
         const matchesTipo = !filterTipo || conta.tipo_conta === filterTipo;
         const matchesStatus = !filterStatus || conta.status === filterStatus;
         const matchesCidade = !filterCidade || conta.cidade?.toLowerCase().includes(filterCidade.toLowerCase());
-        return matchesSearch && matchesTipo && matchesStatus && matchesCidade;
+        const matchesDataInicio = !filterDataInicio || new Date(conta.data_vencimento) >= new Date(filterDataInicio);
+        const matchesDataFim = !filterDataFim || new Date(conta.data_vencimento) <= new Date(filterDataFim + 'T23:59:59');
+        return matchesSearch && matchesTipo && matchesStatus && matchesCidade && matchesDataInicio && matchesDataFim;
     });
 
     const getTotalPorStatus = (status: string) => {
@@ -243,10 +247,12 @@ const ContasPagar = () => {
         setFilterTipo('');
         setFilterStatus('');
         setFilterCidade('');
+        setFilterDataInicio('');
+        setFilterDataFim('');
         setSearchTerm('');
     };
 
-    const hasActiveFilters = filterTipo || filterStatus || filterCidade;
+    const hasActiveFilters = filterTipo || filterStatus || filterCidade || filterDataInicio || filterDataFim;
 
     if (loading) {
         return (
@@ -370,14 +376,20 @@ const ContasPagar = () => {
                                         startIcon={<FileText size={18} />}
                                         onClick={async () => {
                                             try {
-                                                const periodo = new Date().toISOString().slice(0, 7);
-                                                const response = await api.get(`/contas-pagar/relatorios/exportar?formato=xlsx&periodo=${periodo}`, {
+                                                const params = new URLSearchParams({ formato: 'xlsx' });
+                                                if (filterTipo) params.set('tipo_conta', filterTipo);
+                                                if (filterStatus) params.set('status', filterStatus);
+                                                if (filterCidade) params.set('cidade', filterCidade);
+                                                if (filterDataInicio) params.set('data_inicio', filterDataInicio);
+                                                if (filterDataFim) params.set('data_fim', filterDataFim);
+                                                const response = await api.get(`/contas-pagar/relatorios/exportar?${params.toString()}`, {
                                                     responseType: 'blob',
                                                 });
                                                 const url = window.URL.createObjectURL(new Blob([response.data]));
                                                 const link = document.createElement('a');
                                                 link.href = url;
-                                                link.setAttribute('download', `contas-pagar-${periodo}.xlsx`);
+                                                const label = filterDataInicio && filterDataFim ? `${filterDataInicio}_a_${filterDataFim}` : new Date().toISOString().slice(0, 7);
+                                                link.setAttribute('download', `contas-pagar-${label}.xlsx`);
                                                 document.body.appendChild(link);
                                                 link.click();
                                                 link.remove();
@@ -410,14 +422,20 @@ const ContasPagar = () => {
                                         startIcon={<FileText size={18} />}
                                         onClick={async () => {
                                             try {
-                                                const periodo = new Date().toISOString().slice(0, 7);
-                                                const response = await api.get(`/contas-pagar/relatorios/exportar?formato=csv&periodo=${periodo}`, {
+                                                const params = new URLSearchParams({ formato: 'csv' });
+                                                if (filterTipo) params.set('tipo_conta', filterTipo);
+                                                if (filterStatus) params.set('status', filterStatus);
+                                                if (filterCidade) params.set('cidade', filterCidade);
+                                                if (filterDataInicio) params.set('data_inicio', filterDataInicio);
+                                                if (filterDataFim) params.set('data_fim', filterDataFim);
+                                                const response = await api.get(`/contas-pagar/relatorios/exportar?${params.toString()}`, {
                                                     responseType: 'blob',
                                                 });
                                                 const url = window.URL.createObjectURL(new Blob([response.data]));
                                                 const link = document.createElement('a');
                                                 link.href = url;
-                                                link.setAttribute('download', `contas-pagar-${periodo}.csv`);
+                                                const label = filterDataInicio && filterDataFim ? `${filterDataInicio}_a_${filterDataFim}` : new Date().toISOString().slice(0, 7);
+                                                link.setAttribute('download', `contas-pagar-${label}.csv`);
                                                 document.body.appendChild(link);
                                                 link.click();
                                                 link.remove();
@@ -450,7 +468,14 @@ const ContasPagar = () => {
                                         startIcon={<MapPin size={18} />}
                                         onClick={async () => {
                                             try {
-                                                const response = await api.get('/contas-pagar/relatorios/por-cidade', {
+                                                const params = new URLSearchParams();
+                                                if (filterTipo) params.set('tipo_conta', filterTipo);
+                                                if (filterStatus) params.set('status', filterStatus);
+                                                if (filterCidade) params.set('cidade', filterCidade);
+                                                if (filterDataInicio) params.set('data_inicio', filterDataInicio);
+                                                if (filterDataFim) params.set('data_fim', filterDataFim);
+                                                const qs = params.toString() ? `?${params.toString()}` : '';
+                                                const response = await api.get(`/contas-pagar/relatorios/por-cidade${qs}`, {
                                                     responseType: 'blob',
                                                 });
                                                 const url = window.URL.createObjectURL(new Blob([response.data]));
@@ -490,7 +515,14 @@ const ContasPagar = () => {
                                         startIcon={<Truck size={18} />}
                                         onClick={async () => {
                                             try {
-                                                const response = await api.get('/contas-pagar/relatorios/por-acao', {
+                                                const params = new URLSearchParams();
+                                                if (filterTipo) params.set('tipo_conta', filterTipo);
+                                                if (filterStatus) params.set('status', filterStatus);
+                                                if (filterCidade) params.set('cidade', filterCidade);
+                                                if (filterDataInicio) params.set('data_inicio', filterDataInicio);
+                                                if (filterDataFim) params.set('data_fim', filterDataFim);
+                                                const qs = params.toString() ? `?${params.toString()}` : '';
+                                                const response = await api.get(`/contas-pagar/relatorios/por-acao${qs}`, {
                                                     responseType: 'blob',
                                                 });
                                                 const url = window.URL.createObjectURL(new Blob([response.data]));
@@ -619,6 +651,42 @@ const ContasPagar = () => {
                                 </Grid>
                                 <Grid item xs={12} sm={6} md={4}>
                                     <TextField fullWidth label="Cidade" value={filterCidade} onChange={(e) => setFilterCidade(e.target.value)} size="small" />
+                                </Grid>
+                                <Grid item xs={12} sm={6} md={6}>
+                                    <TextField
+                                        fullWidth
+                                        label="Vencimento — Data Início"
+                                        type="date"
+                                        value={filterDataInicio}
+                                        onChange={(e) => setFilterDataInicio(e.target.value)}
+                                        size="small"
+                                        InputLabelProps={{ shrink: true }}
+                                        InputProps={{
+                                            startAdornment: (
+                                                <InputAdornment position="start">
+                                                    <Calendar size={16} color={expressoTheme.colors.primary} />
+                                                </InputAdornment>
+                                            ),
+                                        }}
+                                    />
+                                </Grid>
+                                <Grid item xs={12} sm={6} md={6}>
+                                    <TextField
+                                        fullWidth
+                                        label="Vencimento — Data Fim"
+                                        type="date"
+                                        value={filterDataFim}
+                                        onChange={(e) => setFilterDataFim(e.target.value)}
+                                        size="small"
+                                        InputLabelProps={{ shrink: true }}
+                                        InputProps={{
+                                            startAdornment: (
+                                                <InputAdornment position="start">
+                                                    <Calendar size={16} color={expressoTheme.colors.primary} />
+                                                </InputAdornment>
+                                            ),
+                                        }}
+                                    />
                                 </Grid>
                             </Grid>
                         </Collapse>

@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { Funcionario } from '../models/Funcionario';
+import { FuncionarioAnotacao } from '../models/FuncionarioAnotacao';
 import { authenticate, authorizeAdmin } from '../middlewares/auth';
 import Joi from 'joi';
 import { validate } from '../middlewares/validation';
@@ -101,6 +102,85 @@ router.delete('/:id', authenticate, authorizeAdmin, async (req: Request, res: Re
         res.json({ message: 'Funcionário excluído com sucesso' });
     } catch (error) {
         res.status(500).json({ error: 'Erro ao excluir funcionário' });
+    }
+});
+
+// ==================== ANOTAÇÕES ====================
+
+// GET /api/funcionarios/:id/anotacoes
+router.get('/:id/anotacoes', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+    try {
+        const anotacoes = await FuncionarioAnotacao.findAll({
+            where: { funcionario_id: req.params.id },
+            order: [
+                ['pinned', 'DESC'],
+                ['created_at', 'DESC'],
+            ],
+        });
+        res.json(anotacoes);
+    } catch (error) {
+        res.status(500).json({ error: 'Erro ao buscar anotações' });
+    }
+});
+
+// POST /api/funcionarios/:id/anotacoes
+router.post('/:id/anotacoes', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+    try {
+        const { titulo, conteudo, cor, pinned } = req.body;
+        if (!titulo || !conteudo) {
+            res.status(400).json({ error: 'Título e conteúdo são obrigatórios' });
+            return;
+        }
+        const anotacao = await FuncionarioAnotacao.create({
+            funcionario_id: req.params.id,
+            titulo,
+            conteudo,
+            cor: cor || '#4682b4',
+            pinned: pinned || false,
+        });
+        res.status(201).json(anotacao);
+    } catch (error) {
+        res.status(500).json({ error: 'Erro ao criar anotação' });
+    }
+});
+
+// PUT /api/funcionarios/:id/anotacoes/:anotacaoId
+router.put('/:id/anotacoes/:anotacaoId', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+    try {
+        const anotacao = await FuncionarioAnotacao.findOne({
+            where: { id: req.params.anotacaoId, funcionario_id: req.params.id },
+        });
+        if (!anotacao) {
+            res.status(404).json({ error: 'Anotação não encontrada' });
+            return;
+        }
+        const { titulo, conteudo, cor, pinned } = req.body;
+        await anotacao.update({
+            ...(titulo !== undefined && { titulo }),
+            ...(conteudo !== undefined && { conteudo }),
+            ...(cor !== undefined && { cor }),
+            ...(pinned !== undefined && { pinned }),
+        });
+        res.json(anotacao);
+    } catch (error) {
+        res.status(500).json({ error: 'Erro ao atualizar anotação' });
+    }
+});
+
+// DELETE /api/funcionarios/:id/anotacoes/:anotacaoId
+router.delete('/:id/anotacoes/:anotacaoId', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+    try {
+        const anotacao = await FuncionarioAnotacao.findOne({
+            where: { id: req.params.anotacaoId, funcionario_id: req.params.id },
+        });
+        if (!anotacao) {
+            res.status(404).json({ error: 'Anotação não encontrada' });
+            return;
+        }
+        await anotacao.destroy();
+        res.json({ message: 'Anotação excluída com sucesso' });
+    } catch (error) {
+        res.status(500).json({ error: 'Erro ao excluir anotação' });
     }
 });
 

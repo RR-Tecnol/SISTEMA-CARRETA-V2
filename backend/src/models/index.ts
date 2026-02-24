@@ -23,6 +23,7 @@ import { CustoAcao } from './CustoAcao';
 import { ManutencaoCaminhao } from './ManutencaoCaminhao';
 import { PontoMedico } from './PontoMedico';
 import { AtendimentoMedico } from './AtendimentoMedico';
+import { FuncionarioAnotacao } from './FuncionarioAnotacao';
 
 // Define associations
 export function setupAssociations(): void {
@@ -304,6 +305,17 @@ export function setupAssociations(): void {
         foreignKey: 'acao_id',
         as: 'acao',
     });
+
+    // Funcionario <-> FuncionarioAnotacao (1:N)
+    Funcionario.hasMany(FuncionarioAnotacao, {
+        foreignKey: 'funcionario_id',
+        as: 'anotacoes',
+        onDelete: 'CASCADE',
+    });
+    FuncionarioAnotacao.belongsTo(Funcionario, {
+        foreignKey: 'funcionario_id',
+        as: 'funcionario',
+    });
 }
 
 // Export all models
@@ -332,5 +344,6 @@ export {
     ManutencaoCaminhao,
     PontoMedico,
     AtendimentoMedico,
+    FuncionarioAnotacao,
 };
 

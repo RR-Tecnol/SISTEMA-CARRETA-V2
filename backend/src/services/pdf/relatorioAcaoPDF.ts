@@ -287,8 +287,9 @@ export class RelatorioAcaoPDF {
             .fillColor('#424242')
             .font('Helvetica');
 
-        // Description
-        const descricao = conta.descricao.length > 30 ? conta.descricao.substring(0, 30) + '...' : conta.descricao;
+        // Description — fallback to tipo label when blank
+        const rawDescricao = conta.descricao && conta.descricao.trim() ? conta.descricao : this.getTipoLabel(conta.tipo_conta);
+        const descricao = rawDescricao.length > 30 ? rawDescricao.substring(0, 30) + '...' : rawDescricao;
         this.drawCell(currentX, this.currentY, this.colWidths.descricao, rowHeight, descricao, 'left');
         currentX += this.colWidths.descricao;
 
@@ -363,15 +364,32 @@ export class RelatorioAcaoPDF {
 
 
 
-    async gerarPDF(): Promise<Buffer> {
+    async gerarPDF(filtros?: {
+        status?: string;
+        tipo_conta?: string;
+        cidade?: string;
+        data_inicio?: string;
+        data_fim?: string;
+    }): Promise<Buffer> {
         return new Promise(async (resolve, reject) => {
             try {
                 const acoes = await Acao.findAll({
                     attributes: ['id', 'nome']
                 });
 
+                const where: any = {};
+
+                if (filtros?.status) where.status = filtros.status;
+                if (filtros?.tipo_conta) where.tipo_conta = filtros.tipo_conta;
+                if (filtros?.cidade) where.cidade = { [Op.iLike]: `%${filtros.cidade}%` };
+                if (filtros?.data_inicio && filtros?.data_fim) {
+                    where.data_vencimento = {
+                        [Op.between]: [new Date(filtros.data_inicio), new Date(filtros.data_fim)],
+                    };
+                }
+
                 const contas = await ContaPagar.findAll({
-                    where: { acao_id: { [Op.ne]: null } },
+                    where,
                     order: [['acao_id', 'ASC'], ['data_vencimento', 'DESC']],
                 });
 

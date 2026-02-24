@@ -657,22 +657,38 @@ const MedicoMonitoring: React.FC = () => {
                         <AnimatePresence>
                             {filteredMedicos.map((medico, idx) => {
                                 const pontoAtivo = getPontoAtivo(medico.id);
-                                // Busca atendimentos direto do AtendimentoMedico de hoje (não depende de ponto)
-                                const atdsMedico = atendimentosHoje.filter((a: any) => {
-                                    const fid = a.funcionario_id ?? a.funcionario?.id;
-                                    return String(fid) === String(medico.id);
-                                });
-                                const totalAtd = atdsMedico.filter((a: any) => a.status === 'concluido').length;
-                                const emAndamento = atdsMedico.filter((a: any) => a.status === 'em_andamento').length;
 
-                                // Horas hoje = soma de pontos finalizados + ponto ativo atual
+                                // Helper para normalizar funcionario_id
+                                const getFid = (a: any) => String(a.funcionario_id ?? a.funcionario?.id ?? '');
+
+                                // atendimentos de hoje (histórico)
+                                const atdsMedico = atendimentosHoje.filter((a: any) => getFid(a) === String(medico.id));
+
+                                // atendimentos ao vivo deste médico (mais confiável para em_andamento)
+                                const liveDoMedico = liveAtendimentos.filter(a => getFid(a) === String(medico.id));
+
+                                const totalAtd = atdsMedico.filter((a: any) => a.status === 'concluido').length;
+
+                                // Em andamento: prefere live (tempo real)
+                                const emAndamento = Math.max(
+                                    atdsMedico.filter((a: any) => a.status === 'em_andamento').length,
+                                    liveDoMedico.length,
+                                );
+
+                                // Horas hoje = pontos finalizados + ponto ativo
+                                // Se não há ponto mas há live, usa hora_inicio do atendimento ao vivo
                                 const pontosDoMedico = pontos.filter(p => String(p.funcionario_id) === String(medico.id));
                                 const horasFinalizadas = pontosDoMedico
                                     .filter(p => p.status === 'saiu' && p.horas_trabalhadas)
                                     .reduce((acc, p) => acc + (Number(p.horas_trabalhadas) || 0), 0);
-                                const minutosAtivo = pontoAtivo ? calcMinutosDesde(pontoAtivo.data_hora_entrada) : 0;
+                                const minutosAtivo = pontoAtivo
+                                    ? calcMinutosDesde(pontoAtivo.data_hora_entrada)
+                                    : liveDoMedico.length > 0
+                                        ? calcMinutosDesde(liveDoMedico[0].hora_inicio)
+                                        : 0;
                                 const totalMinutosHoje = Math.round(horasFinalizadas * 60) + minutosAtivo;
-                                const isAtivo = !!pontoAtivo;
+
+                                const isAtivo = !!pontoAtivo || emAndamento > 0 || liveDoMedico.length > 0;
                                 const horasDisplay = totalMinutosHoje > 0
                                     ? `${Math.floor(totalMinutosHoje / 60)}h${(totalMinutosHoje % 60).toString().padStart(2, '0')}min`
                                     : '--';
@@ -841,23 +857,70 @@ const MedicoMonitoring: React.FC = () => {
             </Dialog>
 
             {/* MODAL ATENDIMENTO */}
-            <Dialog open={atendimentoModal.open} onClose={() => setAtendimentoModal({ open: false })} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: expressoTheme.borderRadius.large } }}>
-                <DialogTitle sx={{ background: 'linear-gradient(135deg,#22c55e,#16a34a)', color: 'white', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                    <Plus size={22} /> Novo Atendimento -- {atendimentoModal.medico?.nome}
+            <Dialog open={atendimentoModal.open} onClose={() => setAtendimentoModal({ open: false })} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: '20px', overflow: 'hidden', boxShadow: '0 24px 64px rgba(34,197,94,0.2)' } }}>
+                <DialogTitle sx={{
+                    background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
+                    color: 'white', fontWeight: 800, fontSize: '1.1rem',
+                    display: 'flex', alignItems: 'center', gap: 1.5,
+                    py: 2.5, px: 3,
+                }}>
+                    <Box sx={{ background: 'rgba(255,255,255,0.2)', borderRadius: '10px', p: 0.8, display: 'flex' }}>
+                        <Plus size={20} />
+                    </Box>
+                    Novo Atendimento — {atendimentoModal.medico?.nome}
                 </DialogTitle>
-                <DialogContent sx={{ pt: 3, pb: 2, px: 3 }}>
-                    <Grid container spacing={2}>
+                <DialogContent sx={{ pt: '32px !important', pb: 2, px: 4 }}>
+                    <Grid container spacing={3}>
                         <Grid item xs={12}>
-                            <TextField fullWidth label="Nome do Paciente (opcional)" value={atendForm.nome_paciente} onChange={e => setAtendForm(f => ({ ...f, nome_paciente: e.target.value }))} helperText="Deixe em branco se não souber o nome" />
+                            <TextField
+                                fullWidth
+                                label="Nome do Paciente (opcional)"
+                                value={atendForm.nome_paciente}
+                                onChange={e => setAtendForm(f => ({ ...f, nome_paciente: e.target.value }))}
+                                helperText="Deixe em branco se não souber o nome"
+                                sx={{
+                                    '& .MuiOutlinedInput-root': {
+                                        borderRadius: '12px',
+                                        fontSize: '0.95rem',
+                                        '&:hover fieldset': { borderColor: '#22c55e' },
+                                        '&.Mui-focused fieldset': { borderColor: '#22c55e' },
+                                    },
+                                    '& .MuiInputLabel-root.Mui-focused': { color: '#16a34a' },
+                                }}
+                            />
                         </Grid>
                         <Grid item xs={12}>
-                            <TextField fullWidth multiline rows={2} label="Observações (opcional)" value={atendForm.observacoes} onChange={e => setAtendForm(f => ({ ...f, observacoes: e.target.value }))} />
+                            <TextField
+                                fullWidth
+                                multiline
+                                rows={4}
+                                label="Observações (opcional)"
+                                value={atendForm.observacoes}
+                                onChange={e => setAtendForm(f => ({ ...f, observacoes: e.target.value }))}
+                                sx={{
+                                    '& .MuiOutlinedInput-root': {
+                                        borderRadius: '12px',
+                                        fontSize: '0.95rem',
+                                        '&:hover fieldset': { borderColor: '#22c55e' },
+                                        '&.Mui-focused fieldset': { borderColor: '#22c55e' },
+                                    },
+                                    '& .MuiInputLabel-root.Mui-focused': { color: '#16a34a' },
+                                }}
+                            />
                         </Grid>
                     </Grid>
                 </DialogContent>
-                <DialogActions sx={{ p: 3, gap: 1 }}>
-                    <Button onClick={() => setAtendimentoModal({ open: false })} sx={{ color: expressoTheme.colors.textSecondary }}>Cancelar</Button>
-                    <Button variant="contained" onClick={handleAtendimento} sx={{ background: 'linear-gradient(135deg,#22c55e,#16a34a)', color: 'white', fontWeight: 700, px: 3, textTransform: 'none', borderRadius: expressoTheme.borderRadius.medium }}>
+                <DialogActions sx={{ px: 4, pb: 3, pt: 1, gap: 1.5 }}>
+                    <Button onClick={() => setAtendimentoModal({ open: false })} sx={{ color: expressoTheme.colors.textSecondary, fontWeight: 600, textTransform: 'none', borderRadius: '10px', px: 2 }}>Cancelar</Button>
+                    <Button variant="contained" onClick={handleAtendimento}
+                        sx={{
+                            background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
+                            color: 'white', fontWeight: 700, px: 4, py: 1.2,
+                            textTransform: 'none', borderRadius: '12px', flex: 1,
+                            fontSize: '0.95rem',
+                            boxShadow: '0 4px 16px rgba(34,197,94,0.4)',
+                            '&:hover': { boxShadow: '0 6px 20px rgba(34,197,94,0.55)' },
+                        }}>
                         Iniciar Atendimento
                     </Button>
                 </DialogActions>

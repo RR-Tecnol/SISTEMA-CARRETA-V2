@@ -213,9 +213,9 @@ const GerenciarAcao = () => {
             await api.post(`/acoes/${id}/funcionarios`, { funcionario_id: selectedFuncionario });
             setOpenFuncionarioDialog(false);
             setSelectedFuncionario('');
-            loadFuncionariosAcao();
-            loadData();
-            enqueueSnackbar('Funcion�rio adicionado com sucesso!', { variant: 'success' });
+            // Recarregar funcionários E custos (novo funcionário gera ContaPagar)
+            await Promise.all([loadFuncionariosAcao(), loadCustos()]);
+            enqueueSnackbar('Funcionário adicionado com sucesso!', { variant: 'success' });
         } catch (error: any) {
             enqueueSnackbar(error.response?.data?.error || 'Erro ao adicionar funcionário', { variant: 'error' });
         }
@@ -225,9 +225,8 @@ const GerenciarAcao = () => {
         if (!window.confirm('Deseja realmente remover este funcionário da ação?')) return;
         try {
             await api.delete(`/acoes/${id}/funcionarios/${funcionario_id}`);
-            loadFuncionariosAcao();
-            loadData();
-            enqueueSnackbar('Funcion�rio removido com sucesso!', { variant: 'success' });
+            await Promise.all([loadFuncionariosAcao(), loadCustos()]);
+            enqueueSnackbar('Funcionário removido com sucesso!', { variant: 'success' });
         } catch (error: any) {
             enqueueSnackbar(error.response?.data?.error || 'Erro ao remover funcionário', { variant: 'error' });
         }
@@ -2524,7 +2523,8 @@ const GerenciarAcao = () => {
                                                                         await api.put(`/acoes/${id}/funcionarios/${af.id}`, {
                                                                             dias_trabalhados: newDias
                                                                         });
-                                                                        loadFuncionariosAcao();
+                                                                        // Recarregar funcionários E custos (para atualizar tabela de Custos da Ação)
+                                                                        await Promise.all([loadFuncionariosAcao(), loadCustos()]);
                                                                         enqueueSnackbar('Dias trabalhados atualizado!', { variant: 'success' });
                                                                     } catch (error: any) {
                                                                         enqueueSnackbar(error.response?.data?.error || 'Erro ao atualizar', { variant: 'error' });

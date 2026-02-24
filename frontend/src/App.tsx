@@ -24,6 +24,7 @@ import Instituicoes from './pages/admin/Instituicoes';
 import NovaInstituicao from './pages/admin/NovaInstituicao';
 import Caminhoes from './pages/admin/Caminhoes';
 import Funcionarios from './pages/admin/Funcionarios';
+import FuncionarioAnotacoes from './pages/admin/FuncionarioAnotacoes';
 import Relatorios from './pages/admin/Relatorios';
 import CursosExames from './pages/admin/CursosExames';
 import Cidadaos from './pages/admin/Cidadaos';
@@ -76,6 +77,7 @@ function App() {
                 <Route path="caminhoes" element={<Caminhoes />} />
                 <Route path="caminhoes/:id/manutencao" element={<ManutencaoCaminhao />} />
                 <Route path="funcionarios" element={<Funcionarios />} />
+                <Route path="funcionarios/:id/anotacoes" element={<FuncionarioAnotacoes />} />
                 <Route path="relatorios" element={<Relatorios />} />
                 <Route path="cursos-exames" element={<CursosExames />} />
                 <Route path="cidadaos" element={<Cidadaos />} />

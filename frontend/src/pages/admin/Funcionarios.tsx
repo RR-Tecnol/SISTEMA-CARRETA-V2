@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { formatCPF, formatPhone } from '../../utils/formatters';
-import { Container, Typography, Grid, Box, TextField, Button, Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress, IconButton, Switch, FormControlLabel, Collapse, Divider } from '@mui/material';
+import { Container, Typography, Grid, Box, TextField, Button, Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress, IconButton, Switch, FormControlLabel, Collapse, Divider, Tooltip } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Search, X, Users, Briefcase, DollarSign, Edit, Stethoscope } from 'lucide-react';
+import { Plus, Search, X, Users, Briefcase, DollarSign, Edit, Stethoscope, StickyNote } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useSnackbar } from 'notistack';
 import api from '../../services/api';
 import { expressoTheme } from '../../theme/expressoTheme';
@@ -22,6 +23,7 @@ interface Funcionario {
 
 const Funcionarios: React.FC = () => {
     const { enqueueSnackbar } = useSnackbar();
+    const navigate = useNavigate();
     const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -204,11 +206,39 @@ const Funcionarios: React.FC = () => {
                                         )}
 
                                         <Box sx={{ borderTop: `1px solid ${expressoTheme.colors.border}`, pt: 2, mt: 2 }}>
-                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                <DollarSign size={16} color={expressoTheme.colors.primaryDark} />
-                                                <Typography sx={{ color: expressoTheme.colors.primaryDark, fontSize: '0.9rem', fontWeight: 600 }}>
-                                                    R$ {Number(func.custo_diaria).toFixed(2)}/dia
-                                                </Typography>
+                                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                    <DollarSign size={16} color={expressoTheme.colors.primaryDark} />
+                                                    <Typography sx={{ color: expressoTheme.colors.primaryDark, fontSize: '0.9rem', fontWeight: 600 }}>
+                                                        R$ {Number(func.custo_diaria).toFixed(2)}/dia
+                                                    </Typography>
+                                                </Box>
+                                                <Tooltip title="Anotações deste funcionário">
+                                                    <Button
+                                                        size="small"
+                                                        startIcon={<StickyNote size={13} />}
+                                                        onClick={() => navigate(`/admin/funcionarios/${func.id}/anotacoes`)}
+                                                        sx={{
+                                                            borderColor: '#4682b4',
+                                                            color: '#4682b4',
+                                                            border: '1px solid',
+                                                            borderRadius: '8px',
+                                                            textTransform: 'none',
+                                                            fontSize: '0.72rem',
+                                                            fontWeight: 700,
+                                                            px: 1.2,
+                                                            py: 0.5,
+                                                            '&:hover': {
+                                                                background: 'linear-gradient(135deg, #4682b4 0%, #5b9bd5 100%)',
+                                                                color: 'white',
+                                                                borderColor: '#4682b4',
+                                                            },
+                                                            transition: 'all 0.2s',
+                                                        }}
+                                                    >
+                                                        Anotações
+                                                    </Button>
+                                                </Tooltip>
                                             </Box>
                                         </Box>
                                     </Box>

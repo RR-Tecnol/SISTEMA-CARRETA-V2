@@ -25,6 +25,23 @@ import { useSnackbar } from 'notistack';
 import api from '../../services/api';
 import { systemTruckTheme } from '../../theme/systemTruckTheme';
 
+const maskCNPJ = (value: string) => {
+    const d = value.replace(/\D/g, '').slice(0, 14);
+    return d
+        .replace(/(\d{2})(\d)/, '$1.$2')
+        .replace(/(\d{2}\.\d{3})(\d)/, '$1.$2')
+        .replace(/(\d{2}\.\d{3}\.\d{3})(\d)/, '$1/$2')
+        .replace(/(\d{2}\.\d{3}\.\d{3}\/\d{4})(\d)/, '$1-$2');
+};
+
+const maskPhone = (value: string) => {
+    const d = value.replace(/\D/g, '').slice(0, 11);
+    if (d.length <= 10) {
+        return d.replace(/(\d{2})(\d)/, '($1) $2').replace(/(\(\d{2}\) \d{4})(\d)/, '$1-$2');
+    }
+    return d.replace(/(\d{2})(\d)/, '($1) $2').replace(/(\(\d{2}\) \d{5})(\d)/, '$1-$2');
+};
+
 const NovaInstituicao = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
@@ -46,7 +63,12 @@ const NovaInstituicao = () => {
 
         try {
             const response = await api.get(`/instituicoes/${id}`);
-            setFormData(response.data);
+            const data = response.data;
+            setFormData({
+                ...data,
+                cnpj: maskCNPJ(data.cnpj || ''),
+                responsavel_tel: maskPhone(data.responsavel_tel || ''),
+            });
         } catch (error: any) {
             enqueueSnackbar(
                 error.response?.data?.error || 'Erro ao carregar instituição',
@@ -62,11 +84,13 @@ const NovaInstituicao = () => {
         loadInstituicao();
     }, [loadInstituicao]);
 
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setFormData({
-            ...formData,
-            [e.target.name]: e.target.value,
-        });
+        const { name, value } = e.target;
+        let masked = value;
+        if (name === 'cnpj') masked = maskCNPJ(value);
+        if (name === 'responsavel_tel') masked = maskPhone(value);
+        setFormData({ ...formData, [name]: masked });
     };
 
     const handleSubmit = async (e: React.FormEvent) => {

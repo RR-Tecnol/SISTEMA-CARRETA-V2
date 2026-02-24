@@ -351,12 +351,20 @@ router.get('/relatorio/mensal', authenticate, async (req: Request, res: Response
 
 /**
  * GET /api/contas-pagar/relatorios/por-acao
- * Relatório de custos por ação
+ * Relatório de custos por ação (com filtros)
  */
 router.get('/relatorios/por-acao', authenticate, async (req: Request, res: Response) => {
     try {
+        const { status, tipo_conta, cidade, data_inicio, data_fim } = req.query;
+        const filtros = {
+            status: status as string | undefined,
+            tipo_conta: tipo_conta as string | undefined,
+            cidade: cidade as string | undefined,
+            data_inicio: data_inicio as string | undefined,
+            data_fim: data_fim as string | undefined,
+        };
         const pdfService = new RelatorioAcaoPDF();
-        const pdfBuffer = await pdfService.gerarPDF();
+        const pdfBuffer = await pdfService.gerarPDF(filtros);
 
         const dataAtual = new Date().toISOString().slice(0, 10);
         res.setHeader('Content-Type', 'application/pdf');
@@ -370,12 +378,20 @@ router.get('/relatorios/por-acao', authenticate, async (req: Request, res: Respo
 
 /**
  * GET /api/contas-pagar/relatorios/por-cidade
- * Relatório de custos por cidade
+ * Relatório de custos por cidade (com filtros)
  */
 router.get('/relatorios/por-cidade', authenticate, async (req: Request, res: Response) => {
     try {
+        const { status, tipo_conta, cidade, data_inicio, data_fim } = req.query;
+        const filtros = {
+            status: status as string | undefined,
+            tipo_conta: tipo_conta as string | undefined,
+            cidade: cidade as string | undefined,
+            data_inicio: data_inicio as string | undefined,
+            data_fim: data_fim as string | undefined,
+        };
         const pdfService = new RelatorioCidadePDF();
-        const pdfBuffer = await pdfService.gerarPDF();
+        const pdfBuffer = await pdfService.gerarPDF(filtros);
 
         const dataAtual = new Date().toISOString().slice(0, 10);
         res.setHeader('Content-Type', 'application/pdf');
