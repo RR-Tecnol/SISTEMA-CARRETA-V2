@@ -92,7 +92,11 @@ const MedicoPanel: React.FC = () => {
     useEffect(() => {
         if (emAndamento) {
             const inicio = new Date(emAndamento.hora_inicio).getTime();
-            const update = () => setTimerSecs(Math.floor((Date.now() - inicio) / 1000));
+            const update = () => {
+                const srvOffset = (window as any).__serverTimeOffset || 0;
+                const nowServer = Date.now() + srvOffset;
+                setTimerSecs(Math.max(0, Math.floor((nowServer - inicio) / 1000)));
+            };
             update();
             timerRef.current = setInterval(update, 1000);
         } else {
@@ -128,6 +132,13 @@ const MedicoPanel: React.FC = () => {
                 : '/medico-monitoring/me';
             const r = await api.get(url);
             const data = r.data;
+
+            // Sincronizar relógio com o servidor para o Timer
+            if (r.headers?.date) {
+                const srvTime = new Date(r.headers.date).getTime();
+                (window as any).__serverTimeOffset = srvTime - Date.now();
+            }
+
             setAtendimentos(data.atendimentos || []);
             setEmAndamento(data.emAndamento || null);
             setPontoStatus(data.pontoStatus || null);
