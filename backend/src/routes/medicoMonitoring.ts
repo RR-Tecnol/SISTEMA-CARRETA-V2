@@ -151,6 +151,7 @@ router.get('/me', authenticate, authorizeMedicoOrAdmin, async (req: any, res: Re
             pontoStatus: pontoAtivo?.status || null,
             emAndamento,
             atendimentos: atendimentos.map((a) => a.toJSON()),
+            serverTime: new Date().toISOString(),
         });
     } catch (error) {
         console.error('Erro ao buscar dados do médico:', error);

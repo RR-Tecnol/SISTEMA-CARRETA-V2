@@ -133,9 +133,9 @@ const MedicoPanel: React.FC = () => {
             const r = await api.get(url);
             const data = r.data;
 
-            // Sincronizar relógio com o servidor para o Timer
-            if (r.headers?.date) {
-                const srvTime = new Date(r.headers.date).getTime();
+            // Sincronizar relógio com o servidor (usando payload explícito) para o Timer
+            if (data.serverTime) {
+                const srvTime = new Date(data.serverTime).getTime();
                 (window as any).__serverTimeOffset = srvTime - Date.now();
             }
 
