@@ -774,8 +774,8 @@ const MedicoMonitoring: React.FC = () => {
                                                         </Box>
                                                     </Box>
                                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                                        <PulsingDot color={emAndamento > 0 ? expressoTheme.colors.error : (isAtivo ? expressoTheme.colors.success : '#94a3b8')} />
-                                                        <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: emAndamento > 0 ? expressoTheme.colors.error : (isAtivo ? expressoTheme.colors.success : expressoTheme.colors.textLight) }}>
+                                                        <PulsingDot color={emAndamento > 0 ? expressoTheme.colors.danger : (isAtivo ? expressoTheme.colors.success : '#94a3b8')} />
+                                                        <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: emAndamento > 0 ? expressoTheme.colors.danger : (isAtivo ? expressoTheme.colors.success : expressoTheme.colors.textLight) }}>
                                                             {emAndamento > 0 ? 'EM ATENDIMENTO' : (isAtivo ? 'ATIVO' : 'FORA')}
                                                         </Typography>
                                                     </Box>
