@@ -35,6 +35,8 @@
         "src/scripts/test-*.ts",
         "src/scripts/check-*.ts",
         "src/scripts/fix-*.ts",
-        "src/scripts/delete-*.ts"
+        "src/scripts/delete-*.ts",
+        "src/scripts/**/*.ts",
+        "src/check-data.ts"
     ]
 }
