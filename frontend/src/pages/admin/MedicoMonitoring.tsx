@@ -762,7 +762,7 @@ const MedicoMonitoring: React.FC = () => {
                                                 transition: 'all .3s',
                                                 '&:hover': { boxShadow: expressoTheme.shadows.cardHover }
                                             }}>
-                                                {/* Card Header */}
+                                                // Card Header
                                                 <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 2 }}>
                                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                                                         <Box sx={{ width: 48, height: 48, borderRadius: '50%', background: expressoTheme.gradients.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: expressoTheme.shadows.button, flexShrink: 0 }}>
@@ -774,9 +774,9 @@ const MedicoMonitoring: React.FC = () => {
                                                         </Box>
                                                     </Box>
                                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                                        <PulsingDot color={isAtivo ? expressoTheme.colors.success : '#94a3b8'} />
-                                                        <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: isAtivo ? expressoTheme.colors.success : expressoTheme.colors.textLight }}>
-                                                            {isAtivo ? 'ATIVO' : 'FORA'}
+                                                        <PulsingDot color={emAndamento > 0 ? expressoTheme.colors.error : (isAtivo ? expressoTheme.colors.success : '#94a3b8')} />
+                                                        <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: emAndamento > 0 ? expressoTheme.colors.error : (isAtivo ? expressoTheme.colors.success : expressoTheme.colors.textLight) }}>
+                                                            {emAndamento > 0 ? 'EM ATENDIMENTO' : (isAtivo ? 'ATIVO' : 'FORA')}
                                                         </Typography>
                                                     </Box>
                                                 </Box>
