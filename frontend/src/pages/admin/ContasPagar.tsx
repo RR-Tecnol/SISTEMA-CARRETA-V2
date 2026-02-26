@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     Container,
     Typography,
@@ -33,7 +33,8 @@ import {
     Edit,
     Trash2,
     FileText,
-
+    Paperclip,
+    Download,
     Truck,
     Wrench,
     Droplet,
@@ -68,7 +69,10 @@ const ContasPagar = () => {
     const [showFilters, setShowFilters] = useState(false);
     const [showModal, setShowModal] = useState(false);
     const [editingConta, setEditingConta] = useState<ContaPagar | null>(null);
-    const [acoes, setAcoes] = useState<Array<{ id: string; nome: string }>>([]);
+    const [acoes, setAcoes] = useState<Array<{ id: string; nome: string }>>([])
+    const [uploadingAnexoId, setUploadingAnexoId] = useState<string | null>(null);
+    const fileInputRef = React.useRef<HTMLInputElement>(null);
+    const [anexoTargetId, setAnexoTargetId] = useState<string | null>(null);;
 
     // Filtros
     const [filterTipo, setFilterTipo] = useState('');
@@ -241,6 +245,52 @@ const ContasPagar = () => {
         } catch (error: any) {
             enqueueSnackbar(error.response?.data?.error || 'Erro ao deletar conta', { variant: 'error' });
         }
+    };
+
+    // ── Anexo de Arquivo ──
+    const handleAnexoClick = (contaId: string) => {
+        setAnexoTargetId(contaId);
+        fileInputRef.current?.click();
+    };
+
+    const handleAnexoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !anexoTargetId) return;
+        e.target.value = '';
+
+        setUploadingAnexoId(anexoTargetId);
+        try {
+            const formData = new FormData();
+            formData.append('arquivo', file);
+            const res = await api.patch(`/contas-pagar/${anexoTargetId}/anexo`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            });
+            // Atualiza localmente a comprovante_url da conta
+            setContas(prev =>
+                prev.map(c =>
+                    c.id === anexoTargetId
+                        ? { ...c, comprovante_url: res.data.comprovante_url }
+                        : c
+                )
+            );
+            enqueueSnackbar(`Anexo "${file.name}" enviado com sucesso!`, { variant: 'success' });
+        } catch (error: any) {
+            enqueueSnackbar(error.response?.data?.error || 'Erro ao enviar anexo', { variant: 'error' });
+        } finally {
+            setUploadingAnexoId(null);
+            setAnexoTargetId(null);
+        }
+    };
+
+    const handleDownloadAnexo = (comprovante_url: string, descricao: string) => {
+        const baseUrl = (api.defaults.baseURL || '').replace('/api', '');
+        const link = document.createElement('a');
+        link.href = `${baseUrl}${comprovante_url}`;
+        link.setAttribute('download', descricao);
+        link.setAttribute('target', '_blank');
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
     };
 
     const clearFilters = () => {
@@ -798,7 +848,51 @@ const ContasPagar = () => {
                                                     )}
                                                 </Box>
 
-                                                <Box sx={{ display: 'flex', gap: 1 }}>
+                                                {/* Botões: clipe de anexo à esquerda, editar + lixeira à direita */}
+                                                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                                                    {/* Input oculto de arquivo */}
+                                                    <input
+                                                        ref={fileInputRef}
+                                                        type="file"
+                                                        accept=".jpg,.jpeg,.png,.pdf"
+                                                        style={{ display: 'none' }}
+                                                        onChange={handleAnexoChange}
+                                                    />
+
+                                                    {/* Clipe: envia ou baixa o anexo */}
+                                                    {conta.comprovante_url ? (
+                                                        <IconButton
+                                                            size="small"
+                                                            title="Baixar anexo"
+                                                            onClick={() => handleDownloadAnexo(conta.comprovante_url!, conta.descricao)}
+                                                            sx={{
+                                                                color: '#22c55e',
+                                                                border: '1.5px solid #22c55e',
+                                                                borderRadius: '8px',
+                                                                '&:hover': { background: 'rgba(34,197,94,0.1)' },
+                                                            }}
+                                                        >
+                                                            <Download size={14} />
+                                                        </IconButton>
+                                                    ) : (
+                                                        <IconButton
+                                                            size="small"
+                                                            title="Anexar nota fiscal / comprovante"
+                                                            onClick={() => handleAnexoClick(conta.id)}
+                                                            disabled={uploadingAnexoId === conta.id}
+                                                            sx={{
+                                                                color: '#94a3b8',
+                                                                border: '1.5px solid #cbd5e1',
+                                                                borderRadius: '8px',
+                                                                '&:hover': { color: expressoTheme.colors.primary, borderColor: expressoTheme.colors.primary, background: `${expressoTheme.colors.primary}10` },
+                                                            }}
+                                                        >
+                                                            {uploadingAnexoId === conta.id
+                                                                ? <CircularProgress size={14} />
+                                                                : <Paperclip size={14} />}
+                                                        </IconButton>
+                                                    )}
+
                                                     <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} style={{ flex: 1 }}>
                                                         <Button
                                                             fullWidth

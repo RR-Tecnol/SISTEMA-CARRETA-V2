@@ -297,6 +297,77 @@ router.delete('/:id', authenticate, async (req: Request, res: Response) => {
 });
 
 /**
+ * PATCH /api/contas-pagar/:id/anexo
+ * Upload de anexo (nota fiscal, comprovante) para uma conta específica
+ */
+router.patch('/:id/anexo', authenticate, upload.single('arquivo'), async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const conta = await ContaPagar.findByPk(id);
+
+        if (!conta) {
+            res.status(404).json({ error: 'Conta não encontrada' });
+            return;
+        }
+
+        if (!req.file) {
+            res.status(400).json({ error: 'Nenhum arquivo enviado' });
+            return;
+        }
+
+        // Remove arquivo anterior se existir
+        if (conta.comprovante_url) {
+            const oldPath = path.join(process.cwd(), conta.comprovante_url);
+            if (fs.existsSync(oldPath)) {
+                fs.unlinkSync(oldPath);
+            }
+        }
+
+        const comprovante_url = `/uploads/comprovantes/${req.file.filename}`;
+        await conta.update({ comprovante_url });
+
+        res.json({
+            message: 'Anexo enviado com sucesso',
+            comprovante_url,
+            nome_arquivo: req.file.originalname,
+            tamanho: req.file.size,
+        });
+    } catch (error: any) {
+        console.error('Erro ao fazer upload de anexo:', error);
+        res.status(500).json({ error: 'Erro ao enviar anexo' });
+    }
+});
+
+/**
+ * DELETE /api/contas-pagar/:id/anexo
+ * Remove o anexo de uma conta
+ */
+router.delete('/:id/anexo', authenticate, async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const conta = await ContaPagar.findByPk(id);
+
+        if (!conta) {
+            res.status(404).json({ error: 'Conta não encontrada' });
+            return;
+        }
+
+        if (conta.comprovante_url) {
+            const filePath = path.join(process.cwd(), conta.comprovante_url);
+            if (fs.existsSync(filePath)) {
+                fs.unlinkSync(filePath);
+            }
+            await conta.update({ comprovante_url: null });
+        }
+
+        res.json({ message: 'Anexo removido com sucesso' });
+    } catch (error: any) {
+        console.error('Erro ao remover anexo:', error);
+        res.status(500).json({ error: 'Erro ao remover anexo' });
+    }
+});
+
+/**
  * GET /api/contas-pagar/relatorio/mensal
  * Relatório mensal de contas
  */
