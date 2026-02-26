@@ -107,6 +107,45 @@ router.delete('/:id', authenticate, authorizeAdmin, async (req: Request, res: Re
     }
 });
 
+// PATCH /api/funcionarios/:id/toggle-ativo — ativa ou desativa o funcionário
+// Se for médico, também desativa/restaura o acesso ao login
+router.patch('/:id/toggle-ativo', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+    try {
+        const funcionario = await Funcionario.findByPk(req.params.id);
+        if (!funcionario) {
+            res.status(404).json({ error: 'Funcionário não encontrado' });
+            return;
+        }
+
+        const novoAtivo = !(funcionario as any).ativo;
+        const updateData: any = { ativo: novoAtivo };
+
+        // Se for médico e estiver sendo desativado, suspende o login
+        // Se estiver sendo reativado, restaura o login_cpf (mantém como estava antes)
+        if ((funcionario as any).is_medico) {
+            if (!novoAtivo) {
+                // Desativando: guarda o login_cpf no campo e zera o acesso
+                updateData.login_habilitado = false;
+            } else {
+                // Reativando: restaura o acesso
+                updateData.login_habilitado = true;
+            }
+        }
+
+        await funcionario.update(updateData);
+
+        const status = novoAtivo ? 'ativado' : 'desativado';
+        res.json({
+            message: `Funcionário ${status} com sucesso`,
+            ativo: novoAtivo,
+            funcionario,
+        });
+    } catch (error) {
+        console.error('Erro ao alternar status do funcionário:', error);
+        res.status(500).json({ error: 'Erro ao alterar status do funcionário' });
+    }
+});
+
 // ==================== ANOTAÇÕES ====================
 
 // GET /api/funcionarios/:id/anotacoes

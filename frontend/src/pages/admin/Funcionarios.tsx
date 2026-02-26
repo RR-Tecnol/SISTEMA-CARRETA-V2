@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { formatCPF, formatPhone } from '../../utils/formatters';
 import { Container, Typography, Grid, Box, TextField, Button, Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress, IconButton, Switch, FormControlLabel, Collapse, Divider, Tooltip } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Search, X, Users, Briefcase, DollarSign, Edit, Stethoscope, StickyNote } from 'lucide-react';
+import { Plus, Search, X, Users, Briefcase, DollarSign, Edit, Stethoscope, StickyNote, Power } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSnackbar } from 'notistack';
 import api from '../../services/api';
@@ -77,6 +77,23 @@ const Funcionarios: React.FC = () => {
             fetchFuncionarios();
         } catch (error: any) {
             enqueueSnackbar(error.response?.data?.error || 'Erro ao salvar', { variant: 'error' });
+        }
+    };
+
+    const toggleAtivo = async (func: Funcionario) => {
+        try {
+            const res = await api.patch(`/funcionarios/${func.id}/toggle-ativo`);
+            const novoAtivo = res.data.ativo;
+            // Atualiza localmente sem refetch
+            setFuncionarios(prev =>
+                prev.map(f => f.id === func.id ? { ...f, ativo: novoAtivo } : f)
+            );
+            const msg = novoAtivo
+                ? `${func.nome} ativado com sucesso`
+                : `${func.nome} desativado${func.is_medico ? ' — login médico suspenso' : ''}`;
+            enqueueSnackbar(msg, { variant: novoAtivo ? 'success' : 'warning' });
+        } catch (error: any) {
+            enqueueSnackbar(error.response?.data?.error || 'Erro ao alterar status', { variant: 'error' });
         }
     };
 
@@ -162,36 +179,69 @@ const Funcionarios: React.FC = () => {
                                 >
                                     <Box
                                         sx={{
-                                            background: expressoTheme.colors.cardBackground,
+                                            background: func.ativo
+                                                ? expressoTheme.colors.cardBackground
+                                                : 'rgba(200,200,200,0.18)',
                                             borderRadius: expressoTheme.borderRadius.large,
-                                            border: `1px solid ${expressoTheme.colors.border}`,
+                                            border: func.ativo
+                                                ? `1px solid ${expressoTheme.colors.border}`
+                                                : '1px solid rgba(200,50,50,0.25)',
                                             p: 3,
                                             height: '100%',
                                             transition: 'all 0.3s ease',
                                             boxShadow: expressoTheme.shadows.card,
+                                            opacity: func.ativo ? 1 : 0.65,
                                             '&:hover': {
-                                                background: expressoTheme.colors.cardHover,
-                                                borderColor: expressoTheme.colors.primary,
+                                                background: func.ativo ? expressoTheme.colors.cardHover : 'rgba(200,200,200,0.22)',
+                                                borderColor: func.ativo ? expressoTheme.colors.primary : 'rgba(200,50,50,0.4)',
                                                 boxShadow: expressoTheme.shadows.cardHover,
                                             },
                                         }}
                                     >
                                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 2 }}>
-                                            <Box sx={{ display: 'inline-flex', padding: 1.5, borderRadius: expressoTheme.borderRadius.medium, background: expressoTheme.gradients.primary, boxShadow: expressoTheme.shadows.button }}>
+                                            <Box sx={{ display: 'inline-flex', padding: 1.5, borderRadius: expressoTheme.borderRadius.medium, background: func.ativo ? expressoTheme.gradients.primary : 'linear-gradient(135deg,#aaa,#888)', boxShadow: expressoTheme.shadows.button }}>
                                                 <Users size={24} color="white" />
                                             </Box>
-                                            <IconButton
-                                                size="small"
-                                                onClick={() => handleOpenDialog(func)}
-                                                sx={{ color: expressoTheme.colors.primary, '&:hover': { background: expressoTheme.colors.cardHover } }}
-                                            >
-                                                <Edit size={18} />
-                                            </IconButton>
+                                            <Box sx={{ display: 'flex', gap: 0.5 }}>
+                                                <IconButton
+                                                    size="small"
+                                                    onClick={() => handleOpenDialog(func)}
+                                                    sx={{ color: expressoTheme.colors.primary, '&:hover': { background: expressoTheme.colors.cardHover } }}
+                                                >
+                                                    <Edit size={18} />
+                                                </IconButton>
+                                                <Tooltip title={func.ativo
+                                                    ? `Desativar ${func.nome}${func.is_medico ? ' (suspende login médico)' : ''}`
+                                                    : `Ativar ${func.nome}${func.is_medico ? ' (restaura login médico)' : ''}`
+                                                }>
+                                                    <IconButton
+                                                        size="small"
+                                                        onClick={() => toggleAtivo(func)}
+                                                        sx={{
+                                                            color: func.ativo ? '#ef4444' : '#22c55e',
+                                                            border: `1.5px solid ${func.ativo ? '#ef4444' : '#22c55e'}`,
+                                                            borderRadius: '8px',
+                                                            '&:hover': {
+                                                                background: func.ativo ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)',
+                                                            },
+                                                        }}
+                                                    >
+                                                        <Power size={16} />
+                                                    </IconButton>
+                                                </Tooltip>
+                                            </Box>
                                         </Box>
 
-                                        <Typography variant="h6" sx={{ color: expressoTheme.colors.text, fontWeight: 700, mb: 0.5 }}>
-                                            {func.nome}
-                                        </Typography>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                                            <Typography variant="h6" sx={{ color: expressoTheme.colors.text, fontWeight: 700 }}>
+                                                {func.nome}
+                                            </Typography>
+                                            {!func.ativo && (
+                                                <Box sx={{ background: '#ef4444', color: '#fff', fontSize: '0.65rem', fontWeight: 700, px: 1, py: 0.2, borderRadius: '100px', lineHeight: 1.6 }}>
+                                                    INATIVO
+                                                </Box>
+                                            )}
+                                        </Box>
 
                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                                             <Briefcase size={16} color={expressoTheme.colors.primary} />

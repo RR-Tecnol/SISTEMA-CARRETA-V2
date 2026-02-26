@@ -78,6 +78,12 @@ router.post('/login', validate(loginSchema), async (req: Request, res: Response)
         });
 
         if (medico && medico.senha) {
+            // ── Bloqueia login se o funcionário estiver desativado ──
+            if (!(medico as any).ativo) {
+                res.status(403).json({ error: 'Acesso suspenso. Entre em contato com o administrador.' });
+                return;
+            }
+
             const senhaValida = await bcrypt.compare(senha, medico.senha);
             if (senhaValida) {
                 const token = generateToken({
@@ -99,6 +105,7 @@ router.post('/login', validate(loginSchema), async (req: Request, res: Response)
                 return;
             }
         }
+
 
         // ── 2. Login como CIDADÃO ou ADMIN ──
         const cidadao = await Cidadao.findOne({
