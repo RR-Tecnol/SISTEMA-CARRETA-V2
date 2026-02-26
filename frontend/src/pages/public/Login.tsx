@@ -65,6 +65,8 @@ const Login: React.FC = () => {
                     window.location.href = '/admin';
                 } else if (response.data.user.tipo === 'medico') {
                     window.location.href = '/medico';
+                } else if (response.data.user.tipo === 'admin_estrada') {
+                    window.location.href = '/admin';
                 } else {
                     window.location.href = '/portal';
                 }

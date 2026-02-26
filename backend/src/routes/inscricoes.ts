@@ -5,7 +5,7 @@ import { AcaoCursoExame } from '../models/AcaoCursoExame';
 import { Cidadao } from '../models/Cidadao';
 import { Acao } from '../models/Acao';
 import { CursoExame } from '../models/CursoExame';
-import { authenticate, authorizeAdmin, AuthRequest } from '../middlewares/auth';
+import { authenticate, authorizeAdminOrEstrada, AuthRequest } from '../middlewares/auth';
 
 const router = Router();
 
@@ -77,7 +77,7 @@ async function checkPeriodicidade(cidadao_id: string, curso_exame_id: string, ac
  * GET /api/inscricoes
  * Listar todas as inscrições (admin only - para BI)
  */
-router.get('/', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+router.get('/', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
     try {
         const inscricoes = await Inscricao.findAll({
             attributes: ['id', 'cidadao_id', 'acao_id', 'curso_exame_id', 'status', 'created_at'],
@@ -198,7 +198,7 @@ router.get('/me', authenticate, async (req: AuthRequest, res: Response) => {
  * PUT /api/inscricoes/:id/presenca
  * Registrar presença (admin)
  */
-router.put('/:id/presenca', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+router.put('/:id/presenca', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const { compareceu } = req.body;
@@ -228,7 +228,7 @@ router.put('/:id/presenca', authenticate, authorizeAdmin, async (req: Request, r
  * GET /api/acoes/:acaoId/inscricoes
  * Listar inscrições de uma ação (admin)
  */
-router.get('/acoes/:acaoId/inscricoes', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+router.get('/acoes/:acaoId/inscricoes', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
     try {
         const { acaoId } = req.params;
 
@@ -274,7 +274,7 @@ router.get('/acoes/:acaoId/inscricoes', authenticate, authorizeAdmin, async (req
  * POST /api/acoes/:acaoId/inscricoes
  * Adicionar cidadão a uma ação manual (admin)
  */
-router.post('/acoes/:acaoId/inscricoes', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+router.post('/acoes/:acaoId/inscricoes', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
     try {
         const { acaoId } = req.params;
         const { cidadao_id, acao_curso_id, cadastro_espontaneo = false } = req.body;
@@ -340,7 +340,7 @@ router.post('/acoes/:acaoId/inscricoes', authenticate, authorizeAdmin, async (re
  * PUT /api/inscricoes/:id/confirmar
  * Confirmar inscrição (admin)
  */
-router.put('/:id/confirmar', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+router.put('/:id/confirmar', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
 
@@ -368,7 +368,7 @@ router.put('/:id/confirmar', authenticate, authorizeAdmin, async (req: Request, 
  * PUT /api/inscricoes/:id/marcar-atendimento
  * Marcar cidadão como atendido (admin)
  */
-router.put('/:id/marcar-atendimento', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+router.put('/:id/marcar-atendimento', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const { observacoes } = req.body;
@@ -398,7 +398,7 @@ router.put('/:id/marcar-atendimento', authenticate, authorizeAdmin, async (req: 
  * DELETE /api/inscricoes/:id
  * Cancelar inscrição (admin)
  */
-router.delete('/:id', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+router.delete('/:id', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const inscricao = await Inscricao.findByPk(id);
@@ -418,7 +418,7 @@ router.delete('/:id', authenticate, authorizeAdmin, async (req: Request, res: Re
  * PUT /api/inscricoes/:id/status
  * Atualizar status da inscrição (admin)
  */
-router.put('/:id/status', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+router.put('/:id/status', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const { status } = req.body; // 'pendente' | 'atendido' | 'faltou'

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Typography, Grid, Box } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../store';
 import { motion } from 'framer-motion';
 import {
     Activity,
@@ -34,6 +36,14 @@ const menuItems = [
     { title: 'Notícias', icon: Newspaper, path: '/admin/noticias', description: 'Publicar e gerenciar notícias' },
 ];
 
+// Paths ocultos para usuários admin_estrada
+const ESTRADA_HIDDEN = new Set([
+    '/admin/relatorios',
+    '/admin/prestacao-contas',
+    '/admin/contas-pagar',
+    '/admin/funcionarios',
+]);
+
 const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -58,6 +68,10 @@ const itemVariants = {
 
 const Dashboard: React.FC = () => {
     const navigate = useNavigate();
+    const userTipo = useSelector((state: RootState) => state.auth.user?.tipo);
+    const visibleMenuItems = userTipo === 'admin_estrada'
+        ? menuItems.filter(item => !ESTRADA_HIDDEN.has(item.path))
+        : menuItems;
     const [totalAlertas, setTotalAlertas] = useState<number | null>(null);
 
     useEffect(() => {
@@ -111,7 +125,7 @@ const Dashboard: React.FC = () => {
                     animate="visible"
                 >
                     <Grid container spacing={3}>
-                        {menuItems.map((item, index) => {
+                        {visibleMenuItems.map((item, index) => {
                             const Icon = item.icon;
                             return (
                                 <Grid item xs={12} sm={6} md={4} lg={3} key={index}>

@@ -21,6 +21,9 @@ const funcionarioSchema = Joi.object({
     is_medico: Joi.boolean().optional(),
     login_cpf: Joi.string().allow(null, '').optional(),
     senha: Joi.string().min(6).allow(null, '').optional(),
+    is_admin_estrada: Joi.boolean().optional(),
+    admin_estrada_login_cpf: Joi.string().allow(null, '').optional(),
+    admin_estrada_senha: Joi.string().min(6).allow(null, '').optional(),
 });
 
 // Schema para atualização - campos opcionais
@@ -37,6 +40,9 @@ const updateFuncionarioSchema = Joi.object({
     is_medico: Joi.boolean().optional(),
     login_cpf: Joi.string().allow(null, '').optional(),
     senha: Joi.string().min(6).allow(null, '').optional(),
+    is_admin_estrada: Joi.boolean().optional(),
+    admin_estrada_login_cpf: Joi.string().allow(null, '').optional(),
+    admin_estrada_senha: Joi.string().min(6).allow(null, '').optional(),
 });
 
 router.get('/', authenticate, authorizeAdmin, async (_req: Request, res: Response) => {
@@ -58,6 +64,13 @@ router.post('/', authenticate, authorizeAdmin, validate(funcionarioSchema), asyn
             data.senha = null;
             data.login_cpf = null;
         }
+        // Hash da senha do admin estrada
+        if (data.is_admin_estrada && data.admin_estrada_senha) {
+            data.admin_estrada_senha = await bcrypt.hash(data.admin_estrada_senha, 10);
+        } else if (!data.is_admin_estrada) {
+            data.admin_estrada_senha = null;
+            data.admin_estrada_login_cpf = null;
+        }
         const funcionario = await Funcionario.create(data);
         res.status(201).json(funcionario);
     } catch (error) {
@@ -74,16 +87,25 @@ router.put('/:id', authenticate, authorizeAdmin, validate(updateFuncionarioSchem
             return;
         }
         const data = { ...req.body };
-        // Hash da nova senha se fornecida
+        // Hash da nova senha do médico se fornecida
         if (data.is_medico && data.senha && data.senha.length > 0) {
             data.senha = await bcrypt.hash(data.senha, 10);
         } else if (data.senha === '' || data.senha === null) {
-            // Manter senha existente se não informada na atualização
             delete data.senha;
         }
         if (!data.is_medico) {
             data.senha = null;
             data.login_cpf = null;
+        }
+        // Hash da nova senha do admin estrada se fornecida
+        if (data.is_admin_estrada && data.admin_estrada_senha && data.admin_estrada_senha.length > 0) {
+            data.admin_estrada_senha = await bcrypt.hash(data.admin_estrada_senha, 10);
+        } else if (data.admin_estrada_senha === '' || data.admin_estrada_senha === null) {
+            delete data.admin_estrada_senha;
+        }
+        if (!data.is_admin_estrada) {
+            data.admin_estrada_senha = null;
+            data.admin_estrada_login_cpf = null;
         }
         await funcionario.update(data);
         res.json(funcionario);

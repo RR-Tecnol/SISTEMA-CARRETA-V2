@@ -4,7 +4,7 @@ interface User {
     id: string;
     nome: string;
     email: string;
-    tipo: 'cidadao' | 'admin';
+    tipo: 'cidadao' | 'admin' | 'medico' | 'admin_estrada';
 }
 
 interface AuthState {

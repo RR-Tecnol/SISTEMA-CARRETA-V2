@@ -48,7 +48,11 @@ const cadastroSchema = Joi.object({
 
 /**
  * POST /api/auth/login
- * Login unificado: cidadão, admin ou médico (Funcionario com is_medico=true)
+ * Login unificado: cidadão, admin, médico ou admin_estrada
+ *
+ * IMPORTANT: Médico e Admin Estrada são checados ANTES de validarCPF()
+ * porque o campo login_cpf/admin_estrada_login_cpf pode ser qualquer string,
+ * não necessariamente um CPF matematicamente válido.
  */
 router.post('/login', validate(loginSchema), async (req: Request, res: Response) => {
     try {
@@ -56,19 +60,15 @@ router.post('/login', validate(loginSchema), async (req: Request, res: Response)
         const senhaRaw = req.body.senha;
         const senha = String(senhaRaw || '').trim();
 
-        if (!validarCPF(cpf)) {
-            res.status(400).json({ error: 'CPF inválido' });
-            return;
-        }
-
         const cleanCPF = cpf.replace(/\D/g, '');
         const formattedCPF = cleanCPF.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4');
 
-        // ── 1. Verificar se é MÉDICO (Funcionario com is_medico=true) ──
+        // ── 1. Verificar se é MÉDICO (antes do validarCPF) ──
         const medico = await Funcionario.findOne({
             where: {
                 is_medico: true,
                 [Op.or]: [
+                    { login_cpf: cpf },
                     { login_cpf: cleanCPF },
                     { login_cpf: formattedCPF },
                     { cpf: cleanCPF },
@@ -78,43 +78,62 @@ router.post('/login', validate(loginSchema), async (req: Request, res: Response)
         });
 
         if (medico && medico.senha) {
-            // ── Bloqueia login se o funcionário estiver desativado ──
             if (!(medico as any).ativo) {
                 res.status(403).json({ error: 'Acesso suspenso. Entre em contato com o administrador.' });
                 return;
             }
-
             const senhaValida = await bcrypt.compare(senha, medico.senha);
             if (senhaValida) {
-                const token = generateToken({
-                    id: medico.id,
-                    tipo: 'medico' as any,
-                    email: medico.email || '',
-                });
+                const token = generateToken({ id: medico.id, tipo: 'medico' as any, email: medico.email || '' });
                 res.json({
                     message: 'Login realizado com sucesso',
                     token,
-                    user: {
-                        id: medico.id,
-                        nome: medico.nome,
-                        email: medico.email || '',
-                        tipo: 'medico',
-                        redirect: '/medico',
-                    },
+                    user: { id: medico.id, nome: medico.nome, email: medico.email || '', tipo: 'medico', redirect: '/medico' },
                 });
                 return;
             }
         }
 
-
-        // ── 2. Login como CIDADÃO ou ADMIN ──
-        const cidadao = await Cidadao.findOne({
+        // ── 2. Verificar se é ADMIN ESTRADA (antes do validarCPF) ──
+        const adminEstrada = await Funcionario.findOne({
             where: {
+                is_admin_estrada: true,
                 [Op.or]: [
+                    { admin_estrada_login_cpf: cpf },
+                    { admin_estrada_login_cpf: cleanCPF },
+                    { admin_estrada_login_cpf: formattedCPF },
                     { cpf: cleanCPF },
                     { cpf: formattedCPF },
                 ],
             },
+        });
+
+        if (adminEstrada && (adminEstrada as any).admin_estrada_senha) {
+            if (!(adminEstrada as any).ativo) {
+                res.status(403).json({ error: 'Acesso suspenso. Entre em contato com o administrador.' });
+                return;
+            }
+            const senhaValida = await bcrypt.compare(senha, (adminEstrada as any).admin_estrada_senha);
+            if (senhaValida) {
+                const token = generateToken({ id: adminEstrada.id, tipo: 'admin_estrada' as any, email: adminEstrada.email || '' });
+                res.json({
+                    message: 'Login realizado com sucesso',
+                    token,
+                    user: { id: adminEstrada.id, nome: adminEstrada.nome, email: adminEstrada.email || '', tipo: 'admin_estrada', redirect: '/admin' },
+                });
+                return;
+            }
+        }
+
+        // ── 3. Login como CIDADÃO ou ADMIN ──
+        // Agora sim valida o CPF matematicamente
+        if (!validarCPF(cpf)) {
+            res.status(400).json({ error: 'CPF inválido' });
+            return;
+        }
+
+        const cidadao = await Cidadao.findOne({
+            where: { [Op.or]: [{ cpf: cleanCPF }, { cpf: formattedCPF }] },
         });
 
         if (!cidadao) {
@@ -134,11 +153,7 @@ router.post('/login', validate(loginSchema), async (req: Request, res: Response)
         }
 
         const isAdmin = cidadao.tipo === 'admin';
-        const token = generateToken({
-            id: cidadao.id,
-            tipo: isAdmin ? 'admin' : 'cidadao',
-            email: cidadao.email,
-        });
+        const token = generateToken({ id: cidadao.id, tipo: isAdmin ? 'admin' : 'cidadao', email: cidadao.email });
 
         res.json({
             message: 'Login realizado com sucesso',
@@ -164,18 +179,8 @@ router.post('/login', validate(loginSchema), async (req: Request, res: Response)
 router.post('/cadastro', validate(cadastroSchema), async (req: Request, res: Response) => {
     try {
         const {
-            cpf,
-            nome_completo,
-            data_nascimento,
-            telefone,
-            email,
-            senha,
-            municipio,
-            estado,
-            genero,
-            raca,
-            consentimento_lgpd,
-            campos_customizados,
+            cpf, nome_completo, data_nascimento, telefone, email,
+            senha, municipio, estado, genero, raca, consentimento_lgpd, campos_customizados,
         } = req.body;
 
         if (!validarCPF(cpf)) {
@@ -183,45 +188,22 @@ router.post('/cadastro', validate(cadastroSchema), async (req: Request, res: Res
             return;
         }
 
-        const cleanCPF = cpf.replace(/\\D/g, '');
+        const cleanCPF = cpf.replace(/\D/g, '');
         const formattedCPF = cleanCPF.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4');
 
         const existingEmail = await Cidadao.findOne({ where: { email } });
-        if (existingEmail) {
-            res.status(409).json({ error: 'E-mail já cadastrado.' });
-            return;
-        }
+        if (existingEmail) { res.status(409).json({ error: 'E-mail já cadastrado.' }); return; }
 
-        const existingCPF = await Cidadao.findOne({
-            where: {
-                [Op.or]: [
-                    { cpf: cleanCPF },
-                    { cpf: formattedCPF },
-                ],
-            },
-        });
-
-        if (existingCPF) {
-            res.status(409).json({ error: 'CPF já cadastrado.' });
-            return;
-        }
+        const existingCPF = await Cidadao.findOne({ where: { [Op.or]: [{ cpf: cleanCPF }, { cpf: formattedCPF }] } });
+        if (existingCPF) { res.status(409).json({ error: 'CPF já cadastrado.' }); return; }
 
         const ipAddress = req.ip || req.socket.remoteAddress || '';
 
-        let senhaHash = undefined;
-        if (senha) {
-            senhaHash = await bcrypt.hash(senha, 10);
-        }
+        const senhaHash = senha ? await bcrypt.hash(senha, 10) : undefined;
 
         const cidadao = await Cidadao.create({
-            cpf: formattedCPF,
-            nome_completo,
-            data_nascimento,
-            telefone,
-            email,
-            senha: senhaHash,
-            municipio,
-            estado,
+            cpf: formattedCPF, nome_completo, data_nascimento, telefone, email,
+            senha: senhaHash, municipio, estado,
             genero: genero || 'nao_declarado',
             raca: raca || 'nao_declarada',
             consentimento_lgpd,
@@ -230,21 +212,12 @@ router.post('/cadastro', validate(cadastroSchema), async (req: Request, res: Res
             campos_customizados: campos_customizados || {},
         } as any);
 
-        const token = generateToken({
-            id: cidadao.id,
-            tipo: 'cidadao',
-            email: cidadao.email,
-        });
+        const token = generateToken({ id: cidadao.id, tipo: 'cidadao', email: cidadao.email });
 
         res.status(201).json({
             message: 'Cadastro realizado com sucesso',
             token,
-            user: {
-                id: cidadao.id,
-                nome: cidadao.nome_completo,
-                email: cidadao.email,
-                tipo: 'cidadao',
-            },
+            user: { id: cidadao.id, nome: cidadao.nome_completo, email: cidadao.email, tipo: 'cidadao' },
         });
     } catch (error) {
         console.error('Cadastro error:', error);
@@ -259,10 +232,7 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
     try {
         const { email, cpf } = req.body;
 
-        if (!email && !cpf) {
-            res.status(400).json({ error: 'E-mail ou CPF é obrigatório' });
-            return;
-        }
+        if (!email && !cpf) { res.status(400).json({ error: 'E-mail ou CPF é obrigatório' }); return; }
 
         let cidadao = null;
 
@@ -271,14 +241,7 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
         } else if (cpf) {
             const cleanCPF = cpf.replace(/\D/g, '');
             const formattedCPF = cleanCPF.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4');
-            cidadao = await Cidadao.findOne({
-                where: {
-                    [Op.or]: [
-                        { cpf: cleanCPF },
-                        { cpf: formattedCPF },
-                    ],
-                },
-            });
+            cidadao = await Cidadao.findOne({ where: { [Op.or]: [{ cpf: cleanCPF }, { cpf: formattedCPF }] } });
         }
 
         if (!cidadao) {
@@ -310,24 +273,13 @@ router.post('/reset-password', async (req: Request, res: Response) => {
     try {
         const { token, senha } = req.body;
 
-        if (!token || !senha) {
-            res.status(400).json({ error: 'Token e nova senha são obrigatórios' });
-            return;
-        }
+        if (!token || !senha) { res.status(400).json({ error: 'Token e nova senha são obrigatórios' }); return; }
 
         const cidadao = await Cidadao.findOne({
-            where: {
-                reset_password_token: token,
-                reset_password_expires: {
-                    [Op.gt]: new Date(),
-                },
-            },
+            where: { reset_password_token: token, reset_password_expires: { [Op.gt]: new Date() } },
         });
 
-        if (!cidadao) {
-            res.status(400).json({ error: 'Token inválido ou expirado' });
-            return;
-        }
+        if (!cidadao) { res.status(400).json({ error: 'Token inválido ou expirado' }); return; }
 
         const senhaHash = await bcrypt.hash(senha, 10);
         cidadao.senha = senhaHash;

@@ -16,6 +16,10 @@ export interface FuncionarioAttributes {
     is_medico?: boolean;
     login_cpf?: string;
     senha?: string;
+    // Campos de login admin estrada
+    is_admin_estrada?: boolean;
+    admin_estrada_login_cpf?: string;
+    admin_estrada_senha?: string;
 }
 
 export class Funcionario extends Model<FuncionarioAttributes> implements FuncionarioAttributes {
@@ -32,6 +36,9 @@ export class Funcionario extends Model<FuncionarioAttributes> implements Funcion
     public is_medico?: boolean;
     public login_cpf?: string;
     public senha?: string;
+    public is_admin_estrada?: boolean;
+    public admin_estrada_login_cpf?: string;
+    public admin_estrada_senha?: string;
 
     public readonly created_at!: Date;
     public readonly updated_at!: Date;
@@ -96,6 +103,20 @@ Funcionario.init(
             type: DataTypes.STRING,
             allowNull: true,
             comment: 'Hash bcrypt da senha do medico para login',
+        },
+        is_admin_estrada: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: false,
+        },
+        admin_estrada_login_cpf: {
+            type: DataTypes.STRING,
+            allowNull: true,
+        },
+        admin_estrada_senha: {
+            type: DataTypes.STRING,
+            allowNull: true,
+            comment: 'Hash bcrypt da senha do admin estrada para login',
         },
     },
     {

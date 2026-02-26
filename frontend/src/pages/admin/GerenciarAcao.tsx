@@ -1614,7 +1614,7 @@ const GerenciarAcao = () => {
 
                         {cursosExamesVinculados.length === 0 && (
                             <Alert severity="warning" sx={{ mb: 2 }}>
-                                Para inscrever alunos, primeiro adicione cursos/exames na aba "Recursos".
+                                Para inscrever alunos, primeiro adicione exames na aba "Recursos".
                             </Alert>
                         )}
 

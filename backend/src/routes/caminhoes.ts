@@ -4,7 +4,7 @@ import { ManutencaoCaminhao } from '../models/ManutencaoCaminhao';
 import { ContaPagar } from '../models/ContaPagar';
 import { AcaoCaminhao } from '../models/AcaoCaminhao';
 import { Acao } from '../models/Acao';
-import { authenticate, authorizeAdmin } from '../middlewares/auth';
+import { authenticate, authorizeAdmin, authorizeAdminOrEstrada } from '../middlewares/auth';
 import Joi from 'joi';
 import { validate } from '../middlewares/validation';
 import { Op } from 'sequelize';
@@ -107,7 +107,7 @@ async function syncContaPagar(manutencao: ManutencaoCaminhao) {
 
 // ── Caminhões CRUD ──────────────────────────────────────────────────────────
 
-router.get('/', authenticate, authorizeAdmin, async (_req: Request, res: Response) => {
+router.get('/', authenticate, authorizeAdminOrEstrada, async (_req: Request, res: Response) => {
     try {
         const caminhoes = await Caminhao.findAll({ order: [['modelo', 'ASC']] });
         res.json(caminhoes);
@@ -117,7 +117,7 @@ router.get('/', authenticate, authorizeAdmin, async (_req: Request, res: Respons
     }
 });
 
-router.post('/', authenticate, authorizeAdmin, validate(caminhaoSchema), async (req: Request, res: Response) => {
+router.post('/', authenticate, authorizeAdminOrEstrada, validate(caminhaoSchema), async (req: Request, res: Response) => {
     try {
         const caminhao = await Caminhao.create(req.body);
         res.status(201).json(caminhao);
@@ -130,7 +130,7 @@ router.post('/', authenticate, authorizeAdmin, validate(caminhaoSchema), async (
     }
 });
 
-router.put('/:id', authenticate, authorizeAdmin, validate(updateCaminhaoSchema), async (req: Request, res: Response) => {
+router.put('/:id', authenticate, authorizeAdminOrEstrada, validate(updateCaminhaoSchema), async (req: Request, res: Response) => {
     try {
         const caminhao = await Caminhao.findByPk(req.params.id);
         if (!caminhao) { res.status(404).json({ error: 'Caminhão não encontrado' }); return; }
@@ -141,7 +141,7 @@ router.put('/:id', authenticate, authorizeAdmin, validate(updateCaminhaoSchema),
     }
 });
 
-router.delete('/:id', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+router.delete('/:id', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
     try {
         const caminhao = await Caminhao.findByPk(req.params.id);
         if (!caminhao) { res.status(404).json({ error: 'Caminhão não encontrado' }); return; }
@@ -154,7 +154,7 @@ router.delete('/:id', authenticate, authorizeAdmin, async (req: Request, res: Re
 
 // ── Manutenções sub-routes ──────────────────────────────────────────────────
 
-router.get('/:id/manutencoes/stats', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+router.get('/:id/manutencoes/stats', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const manutencoes = await ManutencaoCaminhao.findAll({ where: { caminhao_id: id } });
@@ -193,7 +193,7 @@ router.get('/:id/manutencoes/stats', authenticate, authorizeAdmin, async (req: R
     }
 });
 
-router.get('/:id/manutencoes', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+router.get('/:id/manutencoes', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const { status, tipo, prioridade } = req.query;
@@ -208,7 +208,7 @@ router.get('/:id/manutencoes', authenticate, authorizeAdmin, async (req: Request
     }
 });
 
-router.post('/:id/manutencoes', authenticate, authorizeAdmin, validate(manutencaoSchema), async (req: Request, res: Response) => {
+router.post('/:id/manutencoes', authenticate, authorizeAdminOrEstrada, validate(manutencaoSchema), async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const caminhao = await Caminhao.findByPk(id);
@@ -232,7 +232,7 @@ router.post('/:id/manutencoes', authenticate, authorizeAdmin, validate(manutenca
     }
 });
 
-router.put('/:id/manutencoes/:mid', authenticate, authorizeAdmin, validate(manutencaoSchema), async (req: Request, res: Response) => {
+router.put('/:id/manutencoes/:mid', authenticate, authorizeAdminOrEstrada, validate(manutencaoSchema), async (req: Request, res: Response) => {
     try {
         const { id, mid } = req.params;
         const manutencao = await ManutencaoCaminhao.findOne({ where: { id: mid, caminhao_id: id } });
@@ -272,7 +272,7 @@ router.put('/:id/manutencoes/:mid', authenticate, authorizeAdmin, validate(manut
     }
 });
 
-router.delete('/:id/manutencoes/:mid', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+router.delete('/:id/manutencoes/:mid', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
     try {
         const { id, mid } = req.params;
         const manutencao = await ManutencaoCaminhao.findOne({ where: { id: mid, caminhao_id: id } });

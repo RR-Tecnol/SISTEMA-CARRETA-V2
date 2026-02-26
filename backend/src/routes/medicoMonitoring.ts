@@ -10,7 +10,7 @@ const cargoMedicoWhere = {
         { cargo: { [Op.iLike]: '%dr.%' } },
     ],
 };
-import { authenticate, authorizeAdmin } from '../middlewares/auth';
+import { authenticate, authorizeAdmin, authorizeAdminOrEstrada } from '../middlewares/auth';
 import { Funcionario } from '../models/Funcionario';
 import { PontoMedico } from '../models/PontoMedico';
 import { AtendimentoMedico } from '../models/AtendimentoMedico';
@@ -253,7 +253,7 @@ router.put('/atendimento/:id/cancelar', authenticate, authorizeMedicoOrAdmin, as
 
 // �"?�"?�"? M�?DICOS �"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?
 // GET /medicos �?" lista apenas funcionários com cargo médico
-router.get('/medicos', authenticate, authorizeAdmin, async (_req: Request, res: Response) => {
+router.get('/medicos', authenticate, authorizeAdminOrEstrada, async (_req: Request, res: Response) => {
     try {
         const medicos = await Funcionario.findAll({
             where: {
@@ -271,7 +271,7 @@ router.get('/medicos', authenticate, authorizeAdmin, async (_req: Request, res: 
 
 // �"?�"?�"? DASHBOARD �"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?
 // GET /dashboard �?" KPIs globais
-router.get('/dashboard', authenticate, authorizeAdmin, async (_req: Request, res: Response) => {
+router.get('/dashboard', authenticate, authorizeAdminOrEstrada, async (_req: Request, res: Response) => {
     try {
         const hoje = new Date();
         hoje.setHours(0, 0, 0, 0);
@@ -452,7 +452,7 @@ router.put('/ponto/:id/saida', authenticate, authorizeMedicoOrAdmin, async (req:
 });
 
 // GET /ponto �?" listar pontos com filtros
-router.get('/ponto', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+router.get('/ponto', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
     try {
         const { funcionario_id, acao_id, data_inicio, data_fim, status } = req.query;
 
@@ -516,7 +516,7 @@ router.get('/ponto', authenticate, authorizeAdmin, async (req: Request, res: Res
 
 // �"?�"?�"? ATENDIMENTOS �"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?
 // POST /atendimentos �?" iniciar atendimento
-router.post('/atendimentos', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+router.post('/atendimentos', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
     try {
         const { funcionario_id, acao_id, cidadao_id, ponto_id, observacoes, nome_paciente } = req.body;
         if (!funcionario_id) {
@@ -559,7 +559,7 @@ router.post('/atendimentos', authenticate, authorizeAdmin, async (req: Request, 
 });
 
 // PUT /atendimentos/:id/finalizar
-router.put('/atendimentos/:id/finalizar', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+router.put('/atendimentos/:id/finalizar', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
     try {
         const atendimento = await AtendimentoMedico.findByPk(req.params.id);
         if (!atendimento) {
@@ -586,7 +586,7 @@ router.put('/atendimentos/:id/finalizar', authenticate, authorizeAdmin, async (r
 });
 
 // PUT /atendimentos/:id/cancelar
-router.put('/atendimentos/:id/cancelar', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+router.put('/atendimentos/:id/cancelar', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
     try {
         const atendimento = await AtendimentoMedico.findByPk(req.params.id);
         if (!atendimento) {
@@ -602,7 +602,7 @@ router.put('/atendimentos/:id/cancelar', authenticate, authorizeAdmin, async (re
 
 // GET /debug-timestamps — endpoint temporário para diagnóstico de timezone
 // Remove este endpoint após diagnosticar o problema
-router.get('/debug-timestamps', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+router.get('/debug-timestamps', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
     try {
         const ultimos = await AtendimentoMedico.findAll({
             order: [['hora_inicio', 'DESC']],
@@ -643,7 +643,7 @@ router.get('/debug-timestamps', authenticate, authorizeAdmin, async (req: Reques
 });
 
 // GET /atendimentos — listar com filtros
-router.get('/atendimentos', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+router.get('/atendimentos', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
     try {
         const { funcionario_id, acao_id, data_inicio, data_fim, status, limit } = req.query;
 
@@ -690,7 +690,7 @@ router.get('/atendimentos', authenticate, authorizeAdmin, async (req: Request, r
 
 // �"?�"?�"? RELAT�"RIO �"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?
 // GET /relatorio/geral — DEVE vir ANTES de /relatorio/:funcionario_id
-router.get('/relatorio/geral', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+router.get('/relatorio/geral', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
     try {
         const { data_inicio, data_fim, acao_id } = req.query;
 
@@ -788,7 +788,7 @@ router.get('/relatorio/geral', authenticate, authorizeAdmin, async (req: Request
 });
 
 // GET /relatorio/:funcionario_id — relatório individual (vem DEPOIS de /relatorio/geral)
-router.get('/relatorio/:funcionario_id', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+router.get('/relatorio/:funcionario_id', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
     try {
         const { funcionario_id } = req.params;
         const { data_inicio, data_fim, acao_id } = req.query;
@@ -878,7 +878,7 @@ router.get('/relatorio/:funcionario_id', authenticate, authorizeAdmin, async (re
 
 
 // ═══ GET /stats/tempo-real ═══ (admin) — atendimentos em andamento AGORA + resumo do dia por médico
-router.get('/stats/tempo-real', authenticate, authorizeAdmin, async (_req: Request, res: Response) => {
+router.get('/stats/tempo-real', authenticate, authorizeAdminOrEstrada, async (_req: Request, res: Response) => {
     try {
         const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
         const amanha = new Date(hoje); amanha.setDate(amanha.getDate() + 1);
@@ -946,7 +946,7 @@ router.get('/stats/tempo-real', authenticate, authorizeAdmin, async (_req: Reque
 
 // ═══ GET /cidadaos/buscar ═══ Busca cidadãos cadastrados (com filtro por ação)
 // Usado pelo autocomplete do modal "Novo Atendimento" no admin
-router.get('/cidadaos/buscar', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+router.get('/cidadaos/buscar', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
     try {
         const { q = '', acao_id } = req.query as { q?: string; acao_id?: string };
         const termo = String(q).trim();

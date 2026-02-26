@@ -2,13 +2,13 @@ import { Router, Request, Response } from 'express';
 import { Abastecimento } from '../models/Abastecimento';
 import { Caminhao } from '../models/Caminhao';
 import { ContaPagar } from '../models/ContaPagar';
-import { authenticate, authorizeAdmin } from '../middlewares/auth';
+import { authenticate, authorizeAdmin, authorizeAdminOrEstrada } from '../middlewares/auth';
 import { sequelize } from '../config/database';
 
 const router = Router();
 
 // Listar abastecimentos de uma ação
-router.get('/acoes/:acaoId/abastecimentos', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+router.get('/acoes/:acaoId/abastecimentos', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
     try {
         const { acaoId } = req.params;
 
@@ -31,7 +31,7 @@ router.get('/acoes/:acaoId/abastecimentos', authenticate, authorizeAdmin, async 
 });
 
 // Registrar novo abastecimento
-router.post('/acoes/:acaoId/abastecimentos', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+router.post('/acoes/:acaoId/abastecimentos', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
     const t = await sequelize.transaction();
 
     try {
@@ -91,7 +91,7 @@ router.post('/acoes/:acaoId/abastecimentos', authenticate, authorizeAdmin, async
 });
 
 // Deletar abastecimento de uma ação
-router.delete('/acoes/:acaoId/abastecimentos/:id', authenticate, authorizeAdmin, async (req: Request, res: Response): Promise<void> => {
+router.delete('/acoes/:acaoId/abastecimentos/:id', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response): Promise<void> => {
     const t = await sequelize.transaction();
 
     try {
@@ -142,7 +142,7 @@ router.delete('/acoes/:acaoId/abastecimentos/:id', authenticate, authorizeAdmin,
 
 
 // Atualizar abastecimento
-router.put('/abastecimentos/:id', authenticate, authorizeAdmin, async (req: Request, res: Response): Promise<void> => {
+router.put('/abastecimentos/:id', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response): Promise<void> => {
     const t = await sequelize.transaction();
 
     try {
@@ -215,7 +215,7 @@ router.put('/abastecimentos/:id', authenticate, authorizeAdmin, async (req: Requ
 });
 
 // Deletar abastecimento
-router.delete('/abastecimentos/:id', authenticate, authorizeAdmin, async (req: Request, res: Response): Promise<void> => {
+router.delete('/abastecimentos/:id', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response): Promise<void> => {
     try {
         const { id } = req.params;
 
@@ -233,7 +233,7 @@ router.delete('/abastecimentos/:id', authenticate, authorizeAdmin, async (req: R
 });
 
 // Calcular custo teórico de uma ação
-router.get('/acoes/:acaoId/custo-teorico', authenticate, authorizeAdmin, async (req: Request, res: Response): Promise<void> => {
+router.get('/acoes/:acaoId/custo-teorico', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response): Promise<void> => {
     try {
         const { acaoId } = req.params;
         const { Acao } = require('../models');
@@ -290,7 +290,7 @@ router.get('/acoes/:acaoId/custo-teorico', authenticate, authorizeAdmin, async (
 });
 
 // Calcular custo real de uma ação (soma dos abastecimentos)
-router.get('/acoes/:acaoId/custo-real', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+router.get('/acoes/:acaoId/custo-real', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
     try {
         const { acaoId } = req.params;
 

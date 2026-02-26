@@ -14,7 +14,7 @@ export async function comparePassword(password: string, hash: string): Promise<b
 
 export interface JWTPayload {
     id: string;
-    tipo: 'cidadao' | 'admin';
+    tipo: 'cidadao' | 'admin' | 'medico' | 'admin_estrada';
     email?: string;
 }
 

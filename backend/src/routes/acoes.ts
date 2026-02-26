@@ -10,7 +10,7 @@ import { AcaoFuncionario } from '../models/AcaoFuncionario';
 import { Inscricao } from '../models/Inscricao';
 import { ContaPagar } from '../models/ContaPagar';
 import { ManutencaoCaminhao } from '../models/ManutencaoCaminhao';
-import { authenticate, authorizeAdmin } from '../middlewares/auth';
+import { authenticate, authorizeAdmin, authorizeAdminOrEstrada } from '../middlewares/auth';
 import { cacheMiddleware, clearCache } from '../middlewares/cache';
 import Joi from 'joi';
 import { validate } from '../middlewares/validation';
@@ -224,7 +224,7 @@ router.get('/:id', async (req: Request, res: Response) => {
  * GET /api/acoes/:id/funcionarios
  * Listar funcionários vinculados à ação (admin)
  */
-router.get('/:id/funcionarios', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+router.get('/:id/funcionarios', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
 
@@ -300,7 +300,7 @@ router.post(
  * PUT /api/acoes/:id
  * Atualizar ação (admin)
  */
-router.put('/:id', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+router.put('/:id', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const updateData = req.body;
@@ -375,7 +375,7 @@ router.put('/:id', authenticate, authorizeAdmin, async (req: Request, res: Respo
  * POST /api/acoes/:id/cursos-exames
  * Vincular curso/exame (admin)
  */
-router.post('/:id/cursos-exames', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+router.post('/:id/cursos-exames', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const { curso_exame_id, vagas } = req.body;
@@ -420,7 +420,7 @@ router.post('/:id/cursos-exames', authenticate, authorizeAdmin, async (req: Requ
  * DELETE /api/acoes/:id/cursos-exames/:cursoExameId
  * Desvincular curso/exame (admin)
  */
-router.delete('/:id/cursos-exames/:cursoExameId', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+router.delete('/:id/cursos-exames/:cursoExameId', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
     try {
         const { id, cursoExameId } = req.params;
 
@@ -454,7 +454,7 @@ router.delete('/:id/cursos-exames/:cursoExameId', authenticate, authorizeAdmin, 
  * POST /api/acoes/:id/caminhoes
  * Vincular caminhão (admin)
  */
-router.post('/:id/caminhoes', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+router.post('/:id/caminhoes', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const { caminhao_id } = req.body; // Front manda { caminhao_id: "..." }
@@ -518,7 +518,7 @@ router.post('/:id/caminhoes', authenticate, authorizeAdmin, async (req: Request,
  * DELETE /api/acoes/:id/caminhoes/:caminhaoId
  * Desvincular caminhão
  */
-router.delete('/:id/caminhoes/:caminhaoId', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+router.delete('/:id/caminhoes/:caminhaoId', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
     try {
         const { id, caminhaoId } = req.params;
 
@@ -565,7 +565,7 @@ router.delete('/:id/caminhoes/:caminhaoId', authenticate, authorizeAdmin, async 
  * POST /api/acoes/:id/funcionarios
  * Vincular funcionário (admin)
  */
-router.post('/:id/funcionarios', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+router.post('/:id/funcionarios', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const { funcionario_id, data_vencimento } = req.body;
@@ -682,7 +682,7 @@ router.post('/:id/funcionarios', authenticate, authorizeAdmin, async (req: Reque
  * DELETE /api/acoes/:id/funcionarios/:funcionarioId
  * Desvincular funcionário
  */
-router.delete('/:id/funcionarios/:funcionarioId', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+router.delete('/:id/funcionarios/:funcionarioId', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
     try {
         const { id, funcionarioId } = req.params;
 
@@ -710,7 +710,7 @@ router.delete('/:id/funcionarios/:funcionarioId', authenticate, authorizeAdmin, 
  * PUT /api/acoes/:id/funcionarios/:funcionarioId
  * Atualizar dias trabalhados do funcionário
  */
-router.put('/:id/funcionarios/:funcionarioId', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+router.put('/:id/funcionarios/:funcionarioId', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
     try {
         const { id, funcionarioId } = req.params;
         const { dias_trabalhados } = req.body;

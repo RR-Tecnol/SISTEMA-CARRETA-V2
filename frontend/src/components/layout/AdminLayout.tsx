@@ -46,7 +46,7 @@ const AdminLayout: React.FC = () => {
         }
     }, [isAuthenticated, user]);
 
-    if (!isAuthenticated || user?.tipo !== 'admin') {
+    if (!isAuthenticated || (user?.tipo !== 'admin' && user?.tipo !== 'admin_estrada')) {
         return <Navigate to="/" replace />;
     }
 
@@ -97,7 +97,7 @@ const AdminLayout: React.FC = () => {
                 >
                     <Toolbar>
                         <Typography variant="h6" component="div" sx={{ flexGrow: 1, fontWeight: 600, color: expressoTheme.colors.primaryDark }}>
-                            Painel Administrativo
+                            {user?.tipo === 'admin_estrada' ? 'Painel Operacional' : 'Painel Administrativo'}
                         </Typography>
                         <IconButton
                             onClick={handleMenuOpen}

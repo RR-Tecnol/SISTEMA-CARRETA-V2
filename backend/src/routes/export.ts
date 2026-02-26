@@ -4,7 +4,7 @@ import { AcaoCursoExame } from '../models/AcaoCursoExame';
 import { Cidadao } from '../models/Cidadao';
 import { CursoExame } from '../models/CursoExame';
 import { Acao } from '../models/Acao';
-import { authenticate, authorizeAdmin } from '../middlewares/auth';
+import { authenticate, authorizeAdmin, authorizeAdminOrEstrada } from '../middlewares/auth';
 import PDFDocument from 'pdfkit';
 import { createObjectCsvWriter } from 'csv-writer';
 import { promises as fs } from 'fs';
@@ -16,7 +16,7 @@ const router = Router();
  * GET /api/acoes/:acaoId/export/inscritos?format=pdf|csv
  * Exportar lista de inscritos
  */
-router.get('/acoes/:acaoId/export/inscritos', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+router.get('/acoes/:acaoId/export/inscritos', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
     try {
         const { acaoId } = req.params;
         const format = (req.query.format as string) || 'pdf';
@@ -95,7 +95,7 @@ router.get('/acoes/:acaoId/export/inscritos', authenticate, authorizeAdmin, asyn
  * GET /api/acoes/:acaoId/export/atendidos?format=pdf|csv
  * Exportar lista de atendidos
  */
-router.get('/acoes/:acaoId/export/atendidos', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+router.get('/acoes/:acaoId/export/atendidos', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
     try {
         const { acaoId } = req.params;
         const format = (req.query.format as string) || 'pdf';

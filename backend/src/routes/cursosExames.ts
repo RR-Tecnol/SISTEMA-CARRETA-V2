@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { CursoExame } from '../models/CursoExame';
-import { authenticate, authorizeAdmin } from '../middlewares/auth';
+import { authenticate, authorizeAdmin, authorizeAdminOrEstrada } from '../middlewares/auth';
 
 const router = Router();
 
@@ -53,7 +53,7 @@ router.get('/:id', async (req: Request, res: Response) => {
  * POST /api/cursos-exames
  * Criar novo curso/exame (admin only)
  */
-router.post('/', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+router.post('/', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
     try {
         const { nome, tipo } = req.body;
 
@@ -83,7 +83,7 @@ router.post('/', authenticate, authorizeAdmin, async (req: Request, res: Respons
  * PUT /api/cursos-exames/:id
  * Atualizar curso/exame (admin only)
  */
-router.put('/:id', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+router.put('/:id', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const { nome, tipo } = req.body;
@@ -116,7 +116,7 @@ router.put('/:id', authenticate, authorizeAdmin, async (req: Request, res: Respo
  * DELETE /api/cursos-exames/:id
  * Deletar curso/exame (admin only)
  */
-router.delete('/:id', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+router.delete('/:id', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
 

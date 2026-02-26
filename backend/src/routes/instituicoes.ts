@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { Instituicao } from '../models/Instituicao';
-import { authenticate, authorizeAdmin } from '../middlewares/auth';
+import { authenticate, authorizeAdmin, authorizeAdminOrEstrada } from '../middlewares/auth';
 
 const router = Router();
 
@@ -8,7 +8,7 @@ const router = Router();
  * GET /api/instituicoes
  * Listar instituições (admin)
  */
-router.get('/', authenticate, authorizeAdmin, async (_req: Request, res: Response) => {
+router.get('/', authenticate, authorizeAdminOrEstrada, async (_req: Request, res: Response) => {
     try {
         const instituicoes = await Instituicao.findAll({
             where: { ativo: true },
@@ -40,7 +40,7 @@ router.get('/', authenticate, authorizeAdmin, async (_req: Request, res: Respons
  * POST /api/instituicoes
  * Criar instituição (admin)
  */
-router.post('/', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+router.post('/', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
     try {
         const instituicao = await Instituicao.create(req.body);
         res.status(201).json({ message: 'Instituição criada com sucesso', instituicao });
@@ -54,7 +54,7 @@ router.post('/', authenticate, authorizeAdmin, async (req: Request, res: Respons
  * GET /api/instituicoes/:id
  * Buscar instituição por ID (admin)
  */
-router.get('/:id', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+router.get('/:id', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const instituicao = await Instituicao.findByPk(id);
@@ -75,7 +75,7 @@ router.get('/:id', authenticate, authorizeAdmin, async (req: Request, res: Respo
  * PUT /api/instituicoes/:id
  * Atualizar instituição (admin)
  */
-router.put('/:id', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+router.put('/:id', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const instituicao = await Instituicao.findByPk(id);

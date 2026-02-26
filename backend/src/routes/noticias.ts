@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { Noticia } from '../models/Noticia';
-import { authenticate, authorizeAdmin } from '../middlewares/auth';
+import { authenticate, authorizeAdmin, authorizeAdminOrEstrada } from '../middlewares/auth';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -64,7 +64,7 @@ router.get('/', async (req: Request, res: Response) => {
  * GET /api/noticias/all
  * Listar TODAS as notícias incluindo inativas (admin)
  */
-router.get('/all', authenticate, authorizeAdmin, async (_req: Request, res: Response) => {
+router.get('/all', authenticate, authorizeAdminOrEstrada, async (_req: Request, res: Response) => {
     try {
         const noticias = await Noticia.findAll({
             order: [['data_publicacao', 'DESC']],
@@ -97,7 +97,7 @@ router.get('/:id', async (req: Request, res: Response) => {
  * POST /api/noticias
  * Criar notícia com upload de imagem (admin)
  */
-router.post('/', authenticate, authorizeAdmin, upload.single('imagem'), async (req: Request, res: Response) => {
+router.post('/', authenticate, authorizeAdminOrEstrada, upload.single('imagem'), async (req: Request, res: Response) => {
     try {
         const {
             titulo,
@@ -138,7 +138,7 @@ router.post('/', authenticate, authorizeAdmin, upload.single('imagem'), async (r
  * PUT /api/noticias/:id
  * Atualizar notícia com upload de imagem opcional (admin)
  */
-router.put('/:id', authenticate, authorizeAdmin, upload.single('imagem'), async (req: Request, res: Response) => {
+router.put('/:id', authenticate, authorizeAdminOrEstrada, upload.single('imagem'), async (req: Request, res: Response) => {
     try {
         const noticia = await Noticia.findByPk(req.params.id);
         if (!noticia) {
@@ -190,7 +190,7 @@ router.put('/:id', authenticate, authorizeAdmin, upload.single('imagem'), async 
  * DELETE /api/noticias/:id
  * Excluir notícia e imagem associada (admin)
  */
-router.delete('/:id', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+router.delete('/:id', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
     try {
         const noticia = await Noticia.findByPk(req.params.id);
         if (!noticia) {

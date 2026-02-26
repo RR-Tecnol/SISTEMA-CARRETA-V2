@@ -30,6 +30,7 @@ export function authenticate(req: AuthRequest, res: Response, next: NextFunction
     }
 }
 
+/** Permite apenas tipo 'admin' — reservado para rotas financeiras */
 export function authorizeAdmin(req: AuthRequest, res: Response, next: NextFunction): void {
     if (!req.user) {
         res.status(401).json({ error: 'Não autenticado' });
@@ -38,6 +39,21 @@ export function authorizeAdmin(req: AuthRequest, res: Response, next: NextFuncti
 
     if (req.user.tipo !== 'admin') {
         res.status(403).json({ error: 'Acesso negado. Apenas administradores.' });
+        return;
+    }
+
+    next();
+}
+
+/** Permite 'admin' E 'admin_estrada' — usado na maioria das rotas do painel */
+export function authorizeAdminOrEstrada(req: AuthRequest, res: Response, next: NextFunction): void {
+    if (!req.user) {
+        res.status(401).json({ error: 'Não autenticado' });
+        return;
+    }
+
+    if (req.user.tipo !== 'admin' && req.user.tipo !== 'admin_estrada') {
+        res.status(403).json({ error: 'Acesso negado.' });
         return;
     }
 

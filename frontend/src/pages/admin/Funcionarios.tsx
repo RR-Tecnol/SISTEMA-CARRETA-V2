@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { formatCPF, formatPhone } from '../../utils/formatters';
 import { Container, Typography, Grid, Box, TextField, Button, Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress, IconButton, Switch, FormControlLabel, Collapse, Divider, Tooltip } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Search, X, Users, Briefcase, DollarSign, Edit, Stethoscope, StickyNote, Power } from 'lucide-react';
+import { Plus, Search, X, Users, Briefcase, DollarSign, Edit, Stethoscope, StickyNote, Power, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSnackbar } from 'notistack';
 import api from '../../services/api';
@@ -20,6 +20,7 @@ interface Funcionario {
     custo_diaria: number;
     ativo: boolean;
     is_medico?: boolean;
+    is_admin_estrada?: boolean;
 }
 
 const Funcionarios: React.FC = () => {
@@ -30,7 +31,12 @@ const Funcionarios: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [openDialog, setOpenDialog] = useState(false);
     const [editingFuncionario, setEditingFuncionario] = useState<Funcionario | null>(null);
-    const [formData, setFormData] = useState({ nome: '', cargo: '', cpf: '', telefone: '', email: '', especialidade: '', crm: '', custo_diaria: 0, ativo: true, is_medico: false, login_cpf: '', senha: '' });
+    const [formData, setFormData] = useState({
+        nome: '', cargo: '', cpf: '', telefone: '', email: '',
+        especialidade: '', crm: '', custo_diaria: 0, ativo: true,
+        is_medico: false, login_cpf: '', senha: '',
+        is_admin_estrada: false, admin_estrada_login_cpf: '', admin_estrada_senha: '',
+    });
 
     useEffect(() => {
         fetchFuncionarios();
@@ -51,10 +57,23 @@ const Funcionarios: React.FC = () => {
     const handleOpenDialog = (funcionario?: Funcionario) => {
         if (funcionario) {
             setEditingFuncionario(funcionario);
-            setFormData({ nome: funcionario.nome, cargo: funcionario.cargo, cpf: funcionario.cpf, telefone: funcionario.telefone, email: funcionario.email, especialidade: funcionario.especialidade || '', crm: funcionario.crm || '', custo_diaria: funcionario.custo_diaria, ativo: funcionario.ativo, is_medico: funcionario.is_medico || false, login_cpf: '', senha: '' });
+            setFormData({
+                nome: funcionario.nome, cargo: funcionario.cargo, cpf: funcionario.cpf,
+                telefone: funcionario.telefone, email: funcionario.email,
+                especialidade: funcionario.especialidade || '', crm: funcionario.crm || '',
+                custo_diaria: funcionario.custo_diaria, ativo: funcionario.ativo,
+                is_medico: funcionario.is_medico || false, login_cpf: '', senha: '',
+                is_admin_estrada: funcionario.is_admin_estrada || false,
+                admin_estrada_login_cpf: '', admin_estrada_senha: '',
+            });
         } else {
             setEditingFuncionario(null);
-            setFormData({ nome: '', cargo: '', cpf: '', telefone: '', email: '', especialidade: '', crm: '', custo_diaria: 0, ativo: true, is_medico: false, login_cpf: '', senha: '' });
+            setFormData({
+                nome: '', cargo: '', cpf: '', telefone: '', email: '',
+                especialidade: '', crm: '', custo_diaria: 0, ativo: true,
+                is_medico: false, login_cpf: '', senha: '',
+                is_admin_estrada: false, admin_estrada_login_cpf: '', admin_estrada_senha: '',
+            });
         }
         setOpenDialog(true);
     };
@@ -84,7 +103,6 @@ const Funcionarios: React.FC = () => {
         try {
             const res = await api.patch(`/funcionarios/${func.id}/toggle-ativo`);
             const novoAtivo = res.data.ativo;
-            // Atualiza localmente sem refetch
             setFuncionarios(prev =>
                 prev.map(f => f.id === func.id ? { ...f, ativo: novoAtivo } : f)
             );
@@ -241,6 +259,11 @@ const Funcionarios: React.FC = () => {
                                                     INATIVO
                                                 </Box>
                                             )}
+                                            {func.is_admin_estrada && func.ativo && (
+                                                <Box sx={{ background: '#f59e0b', color: '#fff', fontSize: '0.65rem', fontWeight: 700, px: 1, py: 0.2, borderRadius: '100px', lineHeight: 1.6 }}>
+                                                    ESTRADA
+                                                </Box>
+                                            )}
                                         </Box>
 
                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
@@ -299,11 +322,12 @@ const Funcionarios: React.FC = () => {
                     </AnimatePresence>
                 </Grid>
 
+                {/* ── Dialog Criar / Editar ── */}
                 <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
                     <DialogTitle sx={{ background: expressoTheme.gradients.primary, color: 'white', fontWeight: 700 }}>
                         {editingFuncionario ? 'Editar Funcionário' : 'Novo Funcionário'}
                     </DialogTitle>
-                    <DialogContent dividers sx={{ pt: 6, px: 3, pb: 3 }}>
+                    <DialogContent dividers sx={{ pt: 3, px: 3, pb: 3 }}>
                         <Grid container spacing={2}>
                             <Grid item xs={12}>
                                 <TextField fullWidth label="Nome" value={formData.nome} onChange={(e) => setFormData({ ...formData, nome: e.target.value })} />
@@ -331,20 +355,16 @@ const Funcionarios: React.FC = () => {
                                     value={formData.custo_diaria}
                                     onChange={(e) => setFormData({ ...formData, custo_diaria: Number(e.target.value) })}
                                     onFocus={(e) => {
-                                        if (formData.custo_diaria === 0) {
-                                            setFormData({ ...formData, custo_diaria: '' as any });
-                                        }
+                                        if (formData.custo_diaria === 0) setFormData({ ...formData, custo_diaria: '' as any });
                                         e.target.select();
                                     }}
                                     onBlur={(e) => {
-                                        if (e.target.value === '') {
-                                            setFormData({ ...formData, custo_diaria: 0 });
-                                        }
+                                        if (e.target.value === '') setFormData({ ...formData, custo_diaria: 0 });
                                     }}
                                 />
                             </Grid>
 
-                            {/* Toggle Médico */}
+                            {/* ── Toggle Médico ── */}
                             <Grid item xs={12}>
                                 <Divider sx={{ my: 1 }} />
                                 <FormControlLabel
@@ -366,7 +386,7 @@ const Funcionarios: React.FC = () => {
                                 />
                             </Grid>
 
-                            {/* Campos de Login do Médico */}
+                            {/* Credenciais Médico */}
                             <Grid item xs={12}>
                                 <Collapse in={formData.is_medico}>
                                     <Box sx={{ mt: 1, px: 2, pt: 1.5, pb: 2, background: 'rgba(59,130,246,0.05)', borderRadius: 2, border: '1px solid rgba(59,130,246,0.2)' }}>
@@ -389,12 +409,7 @@ const Funcionarios: React.FC = () => {
                                                             </Box>
                                                         ),
                                                     }}
-                                                    sx={{
-                                                        '& .MuiOutlinedInput-root': {
-                                                            '&:hover fieldset': { borderColor: expressoTheme.colors.primary },
-                                                            '&.Mui-focused fieldset': { borderColor: expressoTheme.colors.primary },
-                                                        },
-                                                    }}
+                                                    sx={{ '& .MuiOutlinedInput-root': { '&:hover fieldset': { borderColor: expressoTheme.colors.primary }, '&.Mui-focused fieldset': { borderColor: expressoTheme.colors.primary } } }}
                                                 />
                                             </Grid>
                                             <Grid item xs={6}>
@@ -415,6 +430,66 @@ const Funcionarios: React.FC = () => {
                                                     value={formData.senha}
                                                     onChange={(e) => setFormData({ ...formData, senha: e.target.value })}
                                                     helperText="Mínimo 6 caracteres"
+                                                />
+                                            </Grid>
+                                        </Grid>
+                                    </Box>
+                                </Collapse>
+                            </Grid>
+
+                            {/* ── Toggle Admin Estrada ── */}
+                            <Grid item xs={12}>
+                                <Divider sx={{ my: 1 }} />
+                                <FormControlLabel
+                                    control={
+                                        <Switch
+                                            checked={formData.is_admin_estrada}
+                                            onChange={(e) => setFormData({ ...formData, is_admin_estrada: e.target.checked })}
+                                            sx={{
+                                                '& .MuiSwitch-switchBase.Mui-checked': { color: '#f59e0b' },
+                                                '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: '#f59e0b' },
+                                            }}
+                                        />
+                                    }
+                                    label={
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                            <ShieldCheck size={18} color={formData.is_admin_estrada ? '#f59e0b' : expressoTheme.colors.textSecondary} />
+                                            <Typography sx={{ fontWeight: formData.is_admin_estrada ? 700 : 400, color: formData.is_admin_estrada ? '#f59e0b' : expressoTheme.colors.text }}>
+                                                É Administrador Estrada (habilitar login no painel)
+                                            </Typography>
+                                        </Box>
+                                    }
+                                />
+                            </Grid>
+
+                            {/* Credenciais Admin Estrada */}
+                            <Grid item xs={12}>
+                                <Collapse in={formData.is_admin_estrada}>
+                                    <Box sx={{ mt: 1, px: 2, pt: 1.5, pb: 2, background: 'rgba(245,158,11,0.05)', borderRadius: 2, border: '1px solid rgba(245,158,11,0.25)' }}>
+                                        <Typography sx={{ fontSize: '0.8rem', color: expressoTheme.colors.textSecondary, mb: 2 }}>
+                                            🛡️ Credenciais de acesso ao Painel Operacional (sem acesso financeiro)
+                                        </Typography>
+                                        <Grid container spacing={2}>
+                                            <Grid item xs={6}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="CPF de Login"
+                                                    placeholder="000.000.000-00"
+                                                    value={formData.admin_estrada_login_cpf}
+                                                    onChange={(e) => setFormData({ ...formData, admin_estrada_login_cpf: e.target.value })}
+                                                    helperText="CPF para login no painel"
+                                                    sx={{ '& .MuiOutlinedInput-root': { '&:hover fieldset': { borderColor: '#f59e0b' }, '&.Mui-focused fieldset': { borderColor: '#f59e0b' } } }}
+                                                />
+                                            </Grid>
+                                            <Grid item xs={6}>
+                                                <TextField
+                                                    fullWidth
+                                                    type="password"
+                                                    label={editingFuncionario ? 'Nova Senha (deixe em branco para manter)' : 'Senha de Acesso'}
+                                                    value={formData.admin_estrada_senha}
+                                                    onChange={(e) => setFormData({ ...formData, admin_estrada_senha: e.target.value })}
+                                                    helperText="Mínimo 6 caracteres"
+                                                    sx={{ '& .MuiOutlinedInput-root': { '&:hover fieldset': { borderColor: '#f59e0b' }, '&.Mui-focused fieldset': { borderColor: '#f59e0b' } } }}
                                                 />
                                             </Grid>
                                         </Grid>

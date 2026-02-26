@@ -22,6 +22,8 @@ import {
     Newspaper,
 } from 'lucide-react';
 import { systemTruckTheme } from '../../theme/systemTruckTheme';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../store';
 
 interface MenuItem {
     title: string;
@@ -78,12 +80,26 @@ const itemVariants = {
     }),
 };
 
+// Paths ocultos para o admin_estrada
+const ESTRADA_HIDDEN = new Set([
+    '/admin/relatorios',
+    '/admin/prestacao-contas',
+    '/admin/contas-pagar',
+    '/admin/funcionarios',
+]);
+
 export const AdminSidebar: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const [isOpen, setIsOpen] = useState(!isMobile);
+    const userTipo = useSelector((state: RootState) => state.auth.user?.tipo);
+
+    // Filtra itens escondidos para admin_estrada
+    const visibleItems = userTipo === 'admin_estrada'
+        ? menuItems.filter(item => !ESTRADA_HIDDEN.has(item.path))
+        : menuItems;
 
     const isActive = (path: string) => {
         // Dashboard deve ser ativo apenas em /admin exato
@@ -190,7 +206,7 @@ export const AdminSidebar: React.FC = () => {
 
                 {/* Navigation Items */}
                 <Box sx={{ flex: 1, overflowY: 'auto', p: 2 }}>
-                    {menuItems.map((item, index) => {
+                    {visibleItems.map((item, index) => {
                         const Icon = item.icon;
                         const active = isActive(item.path);
 

@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { Notificacao } from '../models/Notificacao';
-import { authenticate, authorizeAdmin } from '../middlewares/auth';
+import { authenticate, authorizeAdmin, authorizeAdminOrEstrada } from '../middlewares/auth';
 
 const router = Router();
 
@@ -8,7 +8,7 @@ const router = Router();
  * GET /api/notificacoes
  * Listar notificações (admin)
  */
-router.get('/', authenticate, authorizeAdmin, async (_req: Request, res: Response) => {
+router.get('/', authenticate, authorizeAdminOrEstrada, async (_req: Request, res: Response) => {
     try {
         const notificacoes = await Notificacao.findAll({
             order: [['created_at', 'DESC']],
@@ -25,7 +25,7 @@ router.get('/', authenticate, authorizeAdmin, async (_req: Request, res: Respons
  * POST /api/notificacoes/campanha
  * Criar campanha de notificação (admin)
  */
-router.post('/campanha', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+router.post('/campanha', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
     try {
         const notificacao = await Notificacao.create(req.body);
         res.status(201).json({ message: 'Campanha criada com sucesso', notificacao });

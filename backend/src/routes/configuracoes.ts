@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { ConfiguracaoCampo } from '../models/ConfiguracaoCampo';
-import { authenticate, authorizeAdmin } from '../middlewares/auth';
+import { authenticate, authorizeAdmin, authorizeAdminOrEstrada } from '../middlewares/auth';
 
 const router = Router();
 
@@ -31,7 +31,7 @@ router.get('/campos', async (req: Request, res: Response) => {
  * POST /api/configuracoes/campos
  * Criar campo customizado (admin)
  */
-router.post('/campos', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+router.post('/campos', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
     try {
         const campo = await ConfiguracaoCampo.create(req.body);
         res.status(201).json({ message: 'Campo criado com sucesso', campo });
