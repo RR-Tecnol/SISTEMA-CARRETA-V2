@@ -34,6 +34,7 @@ import Estoque from './pages/admin/Estoque';
 import AlertasExames from './pages/admin/AlertasExames';
 import ManutencaoCaminhao from './pages/admin/ManutencaoCaminhao';
 import MedicoMonitoring from './pages/admin/MedicoMonitoring';
+import PrestacaoContas from './pages/admin/PrestacaoContas';
 import MedicoPanel from './pages/medico/MedicoPanel';
 import MedicoAcoes from './pages/medico/MedicoAcoes';
 
@@ -85,6 +86,7 @@ function App() {
                 <Route path="estoque" element={<Estoque />} />
                 <Route path="alertas" element={<AlertasExames />} />
                 <Route path="medicos" element={<MedicoMonitoring />} />
+                <Route path="prestacao-contas" element={<PrestacaoContas />} />
             </Route>
 
             {/* Medico panel */}

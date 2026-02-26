@@ -16,6 +16,7 @@ interface Funcionario {
     telefone: string;
     email: string;
     especialidade?: string;
+    crm?: string;
     custo_diaria: number;
     ativo: boolean;
     is_medico?: boolean;
@@ -29,7 +30,7 @@ const Funcionarios: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [openDialog, setOpenDialog] = useState(false);
     const [editingFuncionario, setEditingFuncionario] = useState<Funcionario | null>(null);
-    const [formData, setFormData] = useState({ nome: '', cargo: '', cpf: '', telefone: '', email: '', especialidade: '', custo_diaria: 0, ativo: true, is_medico: false, login_cpf: '', senha: '' });
+    const [formData, setFormData] = useState({ nome: '', cargo: '', cpf: '', telefone: '', email: '', especialidade: '', crm: '', custo_diaria: 0, ativo: true, is_medico: false, login_cpf: '', senha: '' });
 
     useEffect(() => {
         fetchFuncionarios();
@@ -50,10 +51,10 @@ const Funcionarios: React.FC = () => {
     const handleOpenDialog = (funcionario?: Funcionario) => {
         if (funcionario) {
             setEditingFuncionario(funcionario);
-            setFormData({ nome: funcionario.nome, cargo: funcionario.cargo, cpf: funcionario.cpf, telefone: funcionario.telefone, email: funcionario.email, especialidade: funcionario.especialidade || '', custo_diaria: funcionario.custo_diaria, ativo: funcionario.ativo, is_medico: funcionario.is_medico || false, login_cpf: '', senha: '' });
+            setFormData({ nome: funcionario.nome, cargo: funcionario.cargo, cpf: funcionario.cpf, telefone: funcionario.telefone, email: funcionario.email, especialidade: funcionario.especialidade || '', crm: funcionario.crm || '', custo_diaria: funcionario.custo_diaria, ativo: funcionario.ativo, is_medico: funcionario.is_medico || false, login_cpf: '', senha: '' });
         } else {
             setEditingFuncionario(null);
-            setFormData({ nome: '', cargo: '', cpf: '', telefone: '', email: '', especialidade: '', custo_diaria: 0, ativo: true, is_medico: false, login_cpf: '', senha: '' });
+            setFormData({ nome: '', cargo: '', cpf: '', telefone: '', email: '', especialidade: '', crm: '', custo_diaria: 0, ativo: true, is_medico: false, login_cpf: '', senha: '' });
         }
         setOpenDialog(true);
     };
@@ -323,6 +324,29 @@ const Funcionarios: React.FC = () => {
                                             🔐 Credenciais de acesso ao Painel Médico
                                         </Typography>
                                         <Grid container spacing={2}>
+                                            <Grid item xs={12}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="CRM / RQE"
+                                                    placeholder="Ex: 12345-MA ou 12345/MA-RQE 6789"
+                                                    value={formData.crm}
+                                                    onChange={(e) => setFormData({ ...formData, crm: e.target.value })}
+                                                    helperText="Número do CRM (e RQE, se houver) do médico Responsável Técnico"
+                                                    InputProps={{
+                                                        startAdornment: (
+                                                            <Box sx={{ mr: 1, display: 'flex', alignItems: 'center' }}>
+                                                                <Stethoscope size={16} color={expressoTheme.colors.primary} />
+                                                            </Box>
+                                                        ),
+                                                    }}
+                                                    sx={{
+                                                        '& .MuiOutlinedInput-root': {
+                                                            '&:hover fieldset': { borderColor: expressoTheme.colors.primary },
+                                                            '&.Mui-focused fieldset': { borderColor: expressoTheme.colors.primary },
+                                                        },
+                                                    }}
+                                                />
+                                            </Grid>
                                             <Grid item xs={6}>
                                                 <TextField
                                                     fullWidth

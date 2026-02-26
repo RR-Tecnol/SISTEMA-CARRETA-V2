@@ -13,6 +13,7 @@ import {
     DollarSign,
     Package,
     Bell,
+    FileText,
 } from 'lucide-react';
 import { expressoTheme } from '../../theme/expressoTheme';
 import api from '../../services/api';
@@ -20,6 +21,7 @@ import api from '../../services/api';
 const menuItems = [
     { title: 'Alertas de Exames', icon: Bell, path: '/admin/alertas', description: 'Periodicidade e pendências', destaque: true },
     { title: 'Relatórios e BI', icon: BarChart3, path: '/admin/relatorios', description: 'Analytics e métricas' },
+    { title: 'Prestação de Contas', icon: FileText, path: '/admin/prestacao-contas', description: 'Relatório mensal executivo' },
     { title: 'Ações', icon: Activity, path: '/admin/acoes', description: 'Gerenciar ações de saúde' },
     { title: 'Contas a Pagar', icon: DollarSign, path: '/admin/contas-pagar', description: 'Custos e despesas' },
     { title: 'Estoque', icon: Package, path: '/admin/estoque', description: 'Controle de insumos' },

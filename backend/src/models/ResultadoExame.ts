@@ -14,6 +14,8 @@ export interface ResultadoExameAttributes {
     data_realizacao: Date;
     resultado?: string;
     arquivo_resultado_url?: string;
+    numero_laudo?: string;
+    data_emissao_laudo?: Date;
     observacoes?: string;
 }
 
@@ -26,6 +28,8 @@ export class ResultadoExame extends Model<ResultadoExameAttributes> implements R
     public data_realizacao!: Date;
     public resultado?: string;
     public arquivo_resultado_url?: string;
+    public numero_laudo?: string;
+    public data_emissao_laudo?: Date;
     public observacoes?: string;
 
     public readonly created_at!: Date;
@@ -84,6 +88,16 @@ ResultadoExame.init(
             type: DataTypes.STRING,
             allowNull: true,
             comment: 'URL do arquivo PDF com o resultado completo',
+        },
+        numero_laudo: {
+            type: DataTypes.STRING(50),
+            allowNull: true,
+            comment: 'Número identificador do laudo emitido',
+        },
+        data_emissao_laudo: {
+            type: DataTypes.DATE,
+            allowNull: true,
+            comment: 'Data de emissão do laudo (para cálculo de prazo SLA)',
         },
         observacoes: {
             type: DataTypes.TEXT,

@@ -22,6 +22,13 @@ export interface AcaoAttributes {
     preco_combustivel_referencia?: number;
     campos_customizados?: Record<string, any>;
     permitir_inscricao_previa?: boolean;
+    // Campos para Prestação de Contas
+    numero_processo?: string;
+    lote_regiao?: string;
+    numero_cnes?: string;
+    responsavel_tecnico_id?: string;
+    meta_mensal_total?: number;
+    intercorrencias?: string;
 }
 
 export class Acao extends Model<AcaoAttributes> implements AcaoAttributes {
@@ -42,6 +49,12 @@ export class Acao extends Model<AcaoAttributes> implements AcaoAttributes {
     public preco_combustivel_referencia?: number;
     public campos_customizados?: Record<string, any>;
     public permitir_inscricao_previa?: boolean;
+    public numero_processo?: string;
+    public lote_regiao?: string;
+    public numero_cnes?: string;
+    public responsavel_tecnico_id?: string;
+    public meta_mensal_total?: number;
+    public intercorrencias?: string;
 
     public readonly created_at!: Date;
     public readonly updated_at!: Date;
@@ -133,6 +146,37 @@ Acao.init(
             allowNull: false,
             defaultValue: true,
             comment: 'Permite inscrição antecipada para esta ação',
+        },
+        numero_processo: {
+            type: DataTypes.STRING,
+            allowNull: true,
+            comment: 'Número do processo/contrato (ex: AG5U5.002888/2025-81)',
+        },
+        lote_regiao: {
+            type: DataTypes.STRING,
+            allowNull: true,
+            comment: 'Lote / Região de atuação',
+        },
+        numero_cnes: {
+            type: DataTypes.STRING(20),
+            allowNull: true,
+            comment: 'CNES da Unidade Móvel',
+        },
+        responsavel_tecnico_id: {
+            type: DataTypes.UUID,
+            allowNull: true,
+            references: { model: 'funcionarios', key: 'id' },
+            comment: 'Funcionário que é o Responsável Técnico (RT) da ação',
+        },
+        meta_mensal_total: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+            comment: 'Meta contratual mensal de atendimentos',
+        },
+        intercorrencias: {
+            type: DataTypes.TEXT,
+            allowNull: true,
+            comment: 'Intercorrências e ações corretivas do período',
         },
     },
     {

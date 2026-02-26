@@ -11,6 +11,8 @@ export interface CursoExameAttributes {
     descricao?: string;
     requisitos?: string;
     certificadora?: string;
+    codigo_sus?: string;
+    valor_unitario?: number;
     ativo: boolean;
 }
 
@@ -22,6 +24,8 @@ export class CursoExame extends Model<CursoExameAttributes> implements CursoExam
     public descricao?: string;
     public requisitos?: string;
     public certificadora?: string;
+    public codigo_sus?: string;
+    public valor_unitario?: number;
     public ativo!: boolean;
 
     public readonly created_at!: Date;
@@ -58,6 +62,16 @@ CursoExame.init(
         certificadora: {
             type: DataTypes.STRING,
             allowNull: true,
+        },
+        codigo_sus: {
+            type: DataTypes.STRING(20),
+            allowNull: true,
+            comment: 'Código SIGTAP do procedimento no SUS',
+        },
+        valor_unitario: {
+            type: DataTypes.DECIMAL(10, 2),
+            allowNull: true,
+            comment: 'Valor unitário do procedimento em reais',
         },
         ativo: {
             type: DataTypes.BOOLEAN,

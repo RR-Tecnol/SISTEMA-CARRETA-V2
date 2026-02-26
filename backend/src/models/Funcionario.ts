@@ -9,6 +9,7 @@ export interface FuncionarioAttributes {
     telefone?: string;
     email?: string;
     especialidade?: string;
+    crm?: string;
     custo_diaria: number;
     ativo: boolean;
     // Campos de login médico
@@ -25,6 +26,7 @@ export class Funcionario extends Model<FuncionarioAttributes> implements Funcion
     public telefone?: string;
     public email?: string;
     public especialidade?: string;
+    public crm?: string;
     public custo_diaria!: number;
     public ativo!: boolean;
     public is_medico?: boolean;
@@ -65,6 +67,11 @@ Funcionario.init(
         especialidade: {
             type: DataTypes.STRING,
             allowNull: true,
+        },
+        crm: {
+            type: DataTypes.STRING(30),
+            allowNull: true,
+            comment: 'CRM/RQE do médico Responsável Técnico',
         },
         custo_diaria: {
             type: DataTypes.DECIMAL(10, 2),

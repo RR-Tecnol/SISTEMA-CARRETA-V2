@@ -181,6 +181,25 @@ async function startServer(): Promise<void> {
             console.warn('⚠️ Migration medico (ignorar se ja existir):', migErr);
         }
 
+        // Migration: campos do módulo de Prestação de Contas
+        try {
+            await sequelize.query(`ALTER TABLE funcionarios ADD COLUMN IF NOT EXISTS crm VARCHAR(30)`);
+            await sequelize.query(`ALTER TABLE acoes ADD COLUMN IF NOT EXISTS numero_processo VARCHAR(255)`);
+            await sequelize.query(`ALTER TABLE acoes ADD COLUMN IF NOT EXISTS lote_regiao VARCHAR(255)`);
+            await sequelize.query(`ALTER TABLE acoes ADD COLUMN IF NOT EXISTS numero_cnes VARCHAR(20)`);
+            await sequelize.query(`ALTER TABLE acoes ADD COLUMN IF NOT EXISTS responsavel_tecnico_id UUID REFERENCES funcionarios(id) ON DELETE SET NULL`);
+            await sequelize.query(`ALTER TABLE acoes ADD COLUMN IF NOT EXISTS meta_mensal_total INTEGER`);
+            await sequelize.query(`ALTER TABLE acoes ADD COLUMN IF NOT EXISTS intercorrencias TEXT`);
+            await sequelize.query(`ALTER TABLE cursos_exames ADD COLUMN IF NOT EXISTS codigo_sus VARCHAR(20)`);
+            await sequelize.query(`ALTER TABLE cursos_exames ADD COLUMN IF NOT EXISTS valor_unitario DECIMAL(10,2)`);
+            await sequelize.query(`ALTER TABLE inscricoes ADD COLUMN IF NOT EXISTS numero_prontuario VARCHAR(50)`);
+            await sequelize.query(`ALTER TABLE resultados_exames ADD COLUMN IF NOT EXISTS numero_laudo VARCHAR(50)`);
+            await sequelize.query(`ALTER TABLE resultados_exames ADD COLUMN IF NOT EXISTS data_emissao_laudo TIMESTAMPTZ`);
+            console.log('✅ Migration prestação de contas: colunas verificadas/adicionadas');
+        } catch (migErr) {
+            console.warn('⚠️ Migration prestação de contas (ignorar se ja existir):', migErr);
+        }
+
         // Connect to Redis
         await connectRedis();
 

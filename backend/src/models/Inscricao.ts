@@ -11,6 +11,7 @@ export interface InscricaoAttributes {
     status: 'pendente' | 'atendido' | 'faltou';
     data_inscricao: Date;
     observacoes?: string;
+    numero_prontuario?: string;
     campos_customizados?: Record<string, any>;
 }
 
@@ -22,6 +23,7 @@ export class Inscricao extends Model<InscricaoAttributes> implements InscricaoAt
     public status!: 'pendente' | 'atendido' | 'faltou';
     public data_inscricao!: Date;
     public observacoes?: string;
+    public numero_prontuario?: string;
     public campos_customizados?: Record<string, any>;
 
     public readonly created_at!: Date;
@@ -75,6 +77,11 @@ Inscricao.init(
         observacoes: {
             type: DataTypes.TEXT,
             allowNull: true,
+        },
+        numero_prontuario: {
+            type: DataTypes.STRING(50),
+            allowNull: true,
+            comment: 'Número do registro no prontuário eletrônico',
         },
         campos_customizados: {
             type: DataTypes.JSONB,

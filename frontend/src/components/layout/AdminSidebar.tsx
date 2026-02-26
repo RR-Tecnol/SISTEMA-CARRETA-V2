@@ -18,6 +18,7 @@ import {
     Package,
     Bell,
     HeartPulse,
+    FileCheck,
 } from 'lucide-react';
 import { systemTruckTheme } from '../../theme/systemTruckTheme';
 
@@ -30,6 +31,7 @@ interface MenuItem {
 const menuItems: MenuItem[] = [
     { title: 'Dashboard', icon: LayoutDashboard, path: '/admin' },
     { title: 'Relatórios e BI', icon: BarChart3, path: '/admin/relatorios' },
+    { title: 'Prestação de Contas', icon: FileCheck, path: '/admin/prestacao-contas' },
     { title: 'Ações', icon: Activity, path: '/admin/acoes' },
     { title: 'Contas a Pagar', icon: DollarSign, path: '/admin/contas-pagar' },
     { title: 'Estoque', icon: Package, path: '/admin/estoque' },
