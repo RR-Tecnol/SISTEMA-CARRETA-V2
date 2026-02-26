@@ -3,8 +3,37 @@ import { Cidadao } from '../models/Cidadao';
 import { authenticate, AuthRequest } from '../middlewares/auth';
 import { uploadPerfil } from '../config/upload';
 import { Op } from 'sequelize';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 
 const router = Router();
+
+// ── Multer config para laudos ──────────────────────────────────────────────────
+const laudoStorage = multer.diskStorage({
+    destination: (_req, _file, cb) => {
+        const dir = 'uploads/laudos';
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        cb(null, dir);
+    },
+    filename: (_req, file, cb) => {
+        const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
+        cb(null, 'laudo-' + unique + path.extname(file.originalname));
+    },
+});
+const uploadLaudo = multer({
+    storage: laudoStorage,
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
+    fileFilter: (_req, file, cb) => {
+        const allowed = /jpeg|jpg|png|pdf/;
+        if (allowed.test(path.extname(file.originalname).toLowerCase()) && allowed.test(file.mimetype)) {
+            cb(null, true);
+        } else {
+            cb(new Error('Apenas imagens (JPEG, PNG) e PDF são permitidos'));
+        }
+    },
+});
+
 
 /**
  * GET /api/cidadaos/autocomplete-cpf
@@ -365,4 +394,96 @@ router.get('/buscar-cpf/:cpf', authenticate, async (req: AuthRequest, res: Respo
     }
 });
 
+
+// ── Laudos ────────────────────────────────────────────────────────────────────
+
+/**
+ * POST /api/cidadaos/:id/laudos
+ * Upload de laudo para um cidadão (admin)
+ */
+router.post('/:id/laudos', authenticate, uploadLaudo.single('laudo'), async (req: AuthRequest, res: Response) => {
+    try {
+        if (req.user!.tipo !== 'admin') { res.status(403).json({ error: 'Acesso negado' }); return; }
+        const cidadao = await Cidadao.findByPk(req.params.id);
+        if (!cidadao) { res.status(404).json({ error: 'Cidadão não encontrado' }); return; }
+        if (!req.file) { res.status(400).json({ error: 'Nenhum arquivo enviado' }); return; }
+
+        const laudo = {
+            filename: req.file.filename,
+            originalname: req.file.originalname,
+            url: `/uploads/laudos/${req.file.filename}`,
+            mimetype: req.file.mimetype,
+            size: req.file.size,
+            uploadedAt: new Date().toISOString(),
+        };
+
+        // Persist metadata to sidecar JSON
+        const metaFile = `uploads/laudos/.meta-${req.params.id}.json`;
+        let existing: any[] = [];
+        if (fs.existsSync(metaFile)) existing = JSON.parse(fs.readFileSync(metaFile, 'utf-8'));
+        existing.push(laudo);
+        fs.writeFileSync(metaFile, JSON.stringify(existing, null, 2));
+
+        res.status(201).json({ message: 'Laudo enviado com sucesso', laudo });
+    } catch (err: any) {
+        console.error('Error uploading laudo:', err);
+        res.status(500).json({ error: err.message || 'Erro ao enviar laudo' });
+    }
+});
+
+/**
+ * GET /api/cidadaos/:id/laudos
+ * Listar laudos de um cidadão (admin)
+ */
+router.get('/:id/laudos', authenticate, async (req: AuthRequest, res: Response) => {
+    try {
+        if (req.user!.tipo !== 'admin') { res.status(403).json({ error: 'Acesso negado' }); return; }
+        const cidadao = await Cidadao.findByPk(req.params.id);
+        if (!cidadao) { res.status(404).json({ error: 'Cidadão não encontrado' }); return; }
+
+        const dir = 'uploads/laudos';
+        const prefix = `cidadao-${req.params.id}-`;
+        // Store metadata in a simple JSON sidecar per cidadao
+        const metaFile = `${dir}/.meta-${req.params.id}.json`;
+        let laudos: any[] = [];
+        if (fs.existsSync(metaFile)) {
+            laudos = JSON.parse(fs.readFileSync(metaFile, 'utf-8'));
+            // Remove entries whose files no longer exist
+            laudos = laudos.filter(l => fs.existsSync(`${dir}/${l.filename}`));
+        }
+        res.json(laudos);
+    } catch (err) {
+        console.error('Error fetching laudos:', err);
+        res.status(500).json({ error: 'Erro ao buscar laudos' });
+    }
+});
+
+/**
+ * DELETE /api/cidadaos/:id/laudos/:filename
+ * Deletar um laudo (admin)
+ */
+router.delete('/:id/laudos/:filename', authenticate, async (req: AuthRequest, res: Response) => {
+    try {
+        if (req.user!.tipo !== 'admin') { res.status(403).json({ error: 'Acesso negado' }); return; }
+        const { filename } = req.params;
+        // Security: only allow filenames starting with laudo-
+        if (!filename.startsWith('laudo-')) { res.status(400).json({ error: 'Arquivo inválido' }); return; }
+        const filePath = `uploads/laudos/${filename}`;
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+
+        // Update sidecar meta
+        const metaFile = `uploads/laudos/.meta-${req.params.id}.json`;
+        if (fs.existsSync(metaFile)) {
+            let laudos = JSON.parse(fs.readFileSync(metaFile, 'utf-8'));
+            laudos = laudos.filter((l: any) => l.filename !== filename);
+            fs.writeFileSync(metaFile, JSON.stringify(laudos, null, 2));
+        }
+        res.json({ message: 'Laudo removido com sucesso' });
+    } catch (err) {
+        console.error('Error deleting laudo:', err);
+        res.status(500).json({ error: 'Erro ao remover laudo' });
+    }
+});
+
 export default router;
+

@@ -8,6 +8,7 @@ import Cadastro from './pages/public/Cadastro';
 import Login from './pages/public/Login';
 import EsqueciSenha from './pages/public/EsqueciSenha';
 import RedefinirSenha from './pages/public/RedefinirSenha';
+import NoticiaDetalhe from './pages/public/NoticiaDetalhe';
 
 // Citizen portal
 import Portal from './pages/citizen/Portal';
@@ -35,6 +36,7 @@ import AlertasExames from './pages/admin/AlertasExames';
 import ManutencaoCaminhao from './pages/admin/ManutencaoCaminhao';
 import MedicoMonitoring from './pages/admin/MedicoMonitoring';
 import PrestacaoContas from './pages/admin/PrestacaoContas';
+import Noticias from './pages/admin/Noticias';
 import MedicoPanel from './pages/medico/MedicoPanel';
 import MedicoAcoes from './pages/medico/MedicoAcoes';
 
@@ -55,6 +57,7 @@ function App() {
                 <Route path="login" element={<Login />} />
                 <Route path="recuperar-senha" element={<EsqueciSenha />} />
                 <Route path="redefinir-senha" element={<RedefinirSenha />} />
+                <Route path="noticias/:id" element={<NoticiaDetalhe />} />
             </Route>
 
             {/* Citizen portal routes */}
@@ -87,6 +90,7 @@ function App() {
                 <Route path="alertas" element={<AlertasExames />} />
                 <Route path="medicos" element={<MedicoMonitoring />} />
                 <Route path="prestacao-contas" element={<PrestacaoContas />} />
+                <Route path="noticias" element={<Noticias />} />
             </Route>
 
             {/* Medico panel */}

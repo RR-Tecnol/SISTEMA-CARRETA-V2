@@ -19,6 +19,7 @@ import {
     Bell,
     HeartPulse,
     FileCheck,
+    Newspaper,
 } from 'lucide-react';
 import { systemTruckTheme } from '../../theme/systemTruckTheme';
 
@@ -42,6 +43,7 @@ const menuItems: MenuItem[] = [
     { title: 'Central de Alertas', icon: Bell, path: '/admin/alertas' },
     { title: 'Monit. Médicos', icon: HeartPulse, path: '/admin/medicos' },
     { title: 'Cidadãos', icon: UserCheck, path: '/admin/cidadaos' },
+    { title: 'Notícias', icon: Newspaper, path: '/admin/noticias' },
 ];
 
 const sidebarVariants = {

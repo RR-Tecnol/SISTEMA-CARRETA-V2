@@ -31,6 +31,10 @@ import {
     Edit,
     UserPlus,
     Save,
+    Paperclip,
+    Trash2,
+    ExternalLink,
+    FileText,
 } from 'lucide-react';
 import { useSnackbar } from 'notistack';
 import api, { BASE_URL } from '../../services/api';
@@ -79,6 +83,13 @@ const Cidadaos: React.FC = () => {
     const [editData, setEditData] = useState<Cidadao | null>(null);
     const [createOpen, setCreateOpen] = useState(false);
     const [submitting, setSubmitting] = useState(false);
+
+    // ─── Laudos ────────────────────────────────────────────────────────────────
+    const [laudosOpen, setLaudosOpen] = useState(false);
+    const [laudosCidadao, setLaudosCidadao] = useState<Cidadao | null>(null);
+    const [laudos, setLaudos] = useState<any[]>([]);
+    const [loadingLaudos, setLoadingLaudos] = useState(false);
+    const [uploadingLaudo, setUploadingLaudo] = useState(false);
     const [formData, setFormData] = useState({
         nome_completo: '',
         nome_mae: '',
@@ -190,6 +201,49 @@ const Cidadaos: React.FC = () => {
             return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
         }
         return name.substring(0, 2).toUpperCase();
+    };
+
+    // ─── Laudos helpers ────────────────────────────────────────────────────────
+    const openLaudos = async (cidadao: Cidadao) => {
+        setLaudosCidadao(cidadao);
+        setLaudosOpen(true);
+        setLoadingLaudos(true);
+        try {
+            const res = await api.get(`/cidadaos/${cidadao.id}/laudos`);
+            setLaudos(Array.isArray(res.data) ? res.data : []);
+        } catch { setLaudos([]); }
+        finally { setLoadingLaudos(false); }
+    };
+
+    const uploadLaudo = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files?.[0] || !laudosCidadao) return;
+        const file = e.target.files[0];
+        const form = new FormData();
+        form.append('laudo', file);
+        setUploadingLaudo(true);
+        try {
+            const res = await api.post(`/cidadaos/${laudosCidadao.id}/laudos`, form, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            });
+            setLaudos(prev => [...prev, res.data.laudo]);
+            enqueueSnackbar('Laudo enviado com sucesso!', { variant: 'success' });
+        } catch (err: any) {
+            enqueueSnackbar(err.response?.data?.error || 'Erro ao enviar laudo', { variant: 'error' });
+        } finally {
+            setUploadingLaudo(false);
+            e.target.value = '';
+        }
+    };
+
+    const deleteLaudo = async (filename: string) => {
+        if (!laudosCidadao) return;
+        try {
+            await api.delete(`/cidadaos/${laudosCidadao.id}/laudos/${filename}`);
+            setLaudos(prev => prev.filter(l => l.filename !== filename));
+            enqueueSnackbar('Laudo removido', { variant: 'success' });
+        } catch {
+            enqueueSnackbar('Erro ao remover laudo', { variant: 'error' });
+        }
     };
 
     if (loading && cidadaos.length === 0) {
@@ -397,7 +451,7 @@ const Cidadaos: React.FC = () => {
                                                 </Box>
 
                                                 {/* Actions */}
-                                                <Box sx={{ display: 'flex', gap: 1, mt: 1.5 }}>
+                                                <Box sx={{ display: 'flex', gap: 1, mt: 1.5, alignItems: 'center' }}>
                                                     <Button
                                                         fullWidth
                                                         variant="outlined"
@@ -436,6 +490,22 @@ const Cidadaos: React.FC = () => {
                                                     >
                                                         Editar
                                                     </Button>
+                                                    {/* Laudos clip icon */}
+                                                    <IconButton
+                                                        onClick={() => openLaudos(cidadao)}
+                                                        size="small"
+                                                        title="Laudos / Anexos"
+                                                        sx={{
+                                                            border: `1px solid ${systemTruckTheme.colors.border}`,
+                                                            borderRadius: systemTruckTheme.borderRadius.medium,
+                                                            color: systemTruckTheme.colors.primary,
+                                                            p: 1,
+                                                            flexShrink: 0,
+                                                            '&:hover': { background: systemTruckTheme.colors.cardHover },
+                                                        }}
+                                                    >
+                                                        <Paperclip size={18} />
+                                                    </IconButton>
                                                 </Box>
                                             </Box>
                                         </motion.div>
@@ -466,7 +536,138 @@ const Cidadaos: React.FC = () => {
                 )}
             </Container>
 
+            {/* ── Laudos Dialog ──────────────────────────────────────────────── */}
+            <Dialog
+                open={laudosOpen}
+                onClose={() => setLaudosOpen(false)}
+                maxWidth="sm"
+                fullWidth
+                PaperProps={{ sx: { borderRadius: systemTruckTheme.borderRadius.large, background: systemTruckTheme.colors.cardBackground } }}
+            >
+                <DialogTitle sx={{ borderBottom: `1px solid ${systemTruckTheme.colors.border}`, pb: 2 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        <Paperclip size={22} color={systemTruckTheme.colors.primary} />
+                        <Box>
+                            <Typography variant="h6" sx={{ fontWeight: 700, color: systemTruckTheme.colors.primaryDark, lineHeight: 1.2 }}>
+                                Laudos / Anexos
+                            </Typography>
+                            <Typography sx={{ fontSize: '0.8rem', color: systemTruckTheme.colors.textSecondary }}>
+                                {laudosCidadao?.nome_completo}
+                            </Typography>
+                        </Box>
+                    </Box>
+                </DialogTitle>
+
+                <DialogContent sx={{ pt: 3 }}>
+                    {/* Upload zone */}
+                    <Box
+                        component="label"
+                        htmlFor="laudo-file-input"
+                        sx={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 1,
+                            p: 3,
+                            mb: 3,
+                            border: `2px dashed ${systemTruckTheme.colors.primary}`,
+                            borderRadius: systemTruckTheme.borderRadius.large,
+                            background: 'rgba(0,188,212,0.04)',
+                            cursor: uploadingLaudo ? 'wait' : 'pointer',
+                            transition: 'all 0.2s',
+                            '&:hover': { background: 'rgba(0,188,212,0.09)' },
+                        }}
+                    >
+                        <input
+                            id="laudo-file-input"
+                            type="file"
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            style={{ display: 'none' }}
+                            onChange={uploadLaudo}
+                            disabled={uploadingLaudo}
+                        />
+                        {uploadingLaudo ? (
+                            <CircularProgress size={28} sx={{ color: systemTruckTheme.colors.primary }} />
+                        ) : (
+                            <Paperclip size={28} color={systemTruckTheme.colors.primary} />
+                        )}
+                        <Typography sx={{ fontWeight: 600, color: systemTruckTheme.colors.primary, fontSize: '0.9rem' }}>
+                            {uploadingLaudo ? 'Enviando...' : 'Clique para adicionar laudo'}
+                        </Typography>
+                        <Typography sx={{ fontSize: '0.75rem', color: systemTruckTheme.colors.textSecondary }}>
+                            PDF, JPEG ou PNG · máx. 10 MB
+                        </Typography>
+                    </Box>
+
+                    {/* Lista de laudos */}
+                    {loadingLaudos ? (
+                        <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+                            <CircularProgress size={32} sx={{ color: systemTruckTheme.colors.primary }} />
+                        </Box>
+                    ) : laudos.length === 0 ? (
+                        <Box sx={{ textAlign: 'center', py: 4, color: systemTruckTheme.colors.textSecondary }}>
+                            <FileText size={36} style={{ opacity: 0.3, marginBottom: 8 }} />
+                            <Typography sx={{ fontSize: '0.9rem' }}>Nenhum laudo anexado</Typography>
+                        </Box>
+                    ) : (
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                            {laudos.map((laudo, i) => {
+                                const isPdf = laudo.mimetype === 'application/pdf';
+                                const sizeKb = Math.round((laudo.size || 0) / 1024);
+                                const date = laudo.uploadedAt ? new Date(laudo.uploadedAt).toLocaleDateString('pt-BR') : '';
+                                return (
+                                    <Box key={i} sx={{
+                                        display: 'flex', alignItems: 'center', gap: 1.5, p: 1.5,
+                                        borderRadius: systemTruckTheme.borderRadius.medium,
+                                        border: `1px solid ${systemTruckTheme.colors.border}`,
+                                        background: systemTruckTheme.colors.background,
+                                    }}>
+                                        <Box sx={{ p: 1, borderRadius: 2, background: isPdf ? '#fee2e2' : '#e0f2fe', flexShrink: 0 }}>
+                                            <FileText size={20} color={isPdf ? '#dc2626' : '#0284c7'} />
+                                        </Box>
+                                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                                            <Typography sx={{ fontWeight: 600, fontSize: '0.82rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                {laudo.originalname}
+                                            </Typography>
+                                            <Typography sx={{ fontSize: '0.72rem', color: systemTruckTheme.colors.textSecondary }}>
+                                                {sizeKb} KB · {date}
+                                            </Typography>
+                                        </Box>
+                                        <Box sx={{ display: 'flex', gap: 0.5, flexShrink: 0 }}>
+                                            <IconButton
+                                                size="small"
+                                                title="Abrir / Baixar"
+                                                onClick={() => window.open(`${BASE_URL}${laudo.url}`, '_blank')}
+                                                sx={{ color: systemTruckTheme.colors.primary }}
+                                            >
+                                                <ExternalLink size={16} />
+                                            </IconButton>
+                                            <IconButton
+                                                size="small"
+                                                title="Remover laudo"
+                                                onClick={() => deleteLaudo(laudo.filename)}
+                                                sx={{ color: systemTruckTheme.colors.danger || '#dc2626' }}
+                                            >
+                                                <Trash2 size={16} />
+                                            </IconButton>
+                                        </Box>
+                                    </Box>
+                                );
+                            })}
+                        </Box>
+                    )}
+                </DialogContent>
+
+                <DialogActions sx={{ borderTop: `1px solid ${systemTruckTheme.colors.border}`, p: 2 }}>
+                    <Button onClick={() => setLaudosOpen(false)} sx={{ textTransform: 'none', fontWeight: 600 }}>
+                        Fechar
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
             {/* Details Dialog */}
+
             <Dialog
                 open={detailsOpen}
                 onClose={() => setDetailsOpen(false)}

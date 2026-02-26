@@ -56,7 +56,8 @@ const AcoesDisponiveis: React.FC = () => {
     const [loading, setLoading] = useState(true);
 
     // Filtros
-    const [filtroTipo, setFiltroTipo] = useState('todos');
+    const [filtroDataInicio, setFiltroDataInicio] = useState('');
+    const [filtroDataFim, setFiltroDataFim] = useState('');
     const [filtroMunicipio, setFiltroMunicipio] = useState('');
 
     // Dialog de inscrição
@@ -71,7 +72,7 @@ const AcoesDisponiveis: React.FC = () => {
 
     useEffect(() => {
         aplicarFiltros();
-    }, [filtroTipo, filtroMunicipio, acoes]);
+    }, [filtroDataInicio, filtroDataFim, filtroMunicipio, acoes]);
 
     const formatDate = (dateString: string | null | undefined): string => {
         if (!dateString) return 'Data não disponível';
@@ -101,8 +102,18 @@ const AcoesDisponiveis: React.FC = () => {
     const aplicarFiltros = () => {
         let filtered = [...acoes];
 
-        if (filtroTipo !== 'todos') {
-            filtered = filtered.filter(a => a.tipo.toLowerCase() === filtroTipo);
+        // Filtro por data: mantém ação se seu período se sobrepõe ao intervalo selecionado
+        if (filtroDataInicio) {
+            filtered = filtered.filter(a => {
+                const fimAcao = a.data_fim ? new Date(a.data_fim) : new Date(a.data_inicio);
+                return fimAcao >= new Date(filtroDataInicio);
+            });
+        }
+        if (filtroDataFim) {
+            filtered = filtered.filter(a => {
+                const inicioAcao = new Date(a.data_inicio);
+                return inicioAcao <= new Date(filtroDataFim);
+            });
         }
 
         if (filtroMunicipio) {
@@ -226,30 +237,39 @@ const AcoesDisponiveis: React.FC = () => {
                                 </Typography>
                             </Box>
                             <Grid container spacing={2}>
-                                <Grid item xs={12} sm={6}>
+                                <Grid item xs={12} sm={4}>
                                     <TextField
-                                        select
                                         fullWidth
-                                        label="Tipo de Ação"
-                                        value={filtroTipo}
-                                        onChange={(e) => setFiltroTipo(e.target.value)}
+                                        type="date"
+                                        label="Data Início"
+                                        value={filtroDataInicio}
+                                        onChange={(e) => setFiltroDataInicio(e.target.value)}
+                                        InputLabelProps={{ shrink: true }}
                                         sx={{
                                             '& .MuiOutlinedInput-root': {
-                                                '&:hover fieldset': {
-                                                    borderColor: systemTruckTheme.colors.primary,
-                                                },
-                                                '&.Mui-focused fieldset': {
-                                                    borderColor: systemTruckTheme.colors.primary,
-                                                },
+                                                '&:hover fieldset': { borderColor: systemTruckTheme.colors.primary },
+                                                '&.Mui-focused fieldset': { borderColor: systemTruckTheme.colors.primary },
                                             },
                                         }}
-                                    >
-                                        <MenuItem value="todos">Todos</MenuItem>
-                                        <MenuItem value="saude">Saúde</MenuItem>
-                                        <MenuItem value="educacao">Educação</MenuItem>
-                                    </TextField>
+                                    />
                                 </Grid>
-                                <Grid item xs={12} sm={6}>
+                                <Grid item xs={12} sm={4}>
+                                    <TextField
+                                        fullWidth
+                                        type="date"
+                                        label="Data Fim"
+                                        value={filtroDataFim}
+                                        onChange={(e) => setFiltroDataFim(e.target.value)}
+                                        InputLabelProps={{ shrink: true }}
+                                        sx={{
+                                            '& .MuiOutlinedInput-root': {
+                                                '&:hover fieldset': { borderColor: systemTruckTheme.colors.primary },
+                                                '&.Mui-focused fieldset': { borderColor: systemTruckTheme.colors.primary },
+                                            },
+                                        }}
+                                    />
+                                </Grid>
+                                <Grid item xs={12} sm={4}>
                                     <TextField
                                         fullWidth
                                         label="Município"

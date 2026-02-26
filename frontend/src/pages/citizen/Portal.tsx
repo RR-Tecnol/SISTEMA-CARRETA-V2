@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Container,
     Typography,
@@ -21,44 +21,36 @@ import {
     CalendarToday,
     ArrowForward,
 } from '@mui/icons-material';
+import { Link as RouterLink } from 'react-router-dom';
+import api, { BASE_URL } from '../../services/api';
 
-interface NewsItem {
-    id: number;
-    title: string;
-    description: string;
-    date: string;
-    image: string;
-    category: string;
+interface NoticiaAPI {
+    id: string;
+    titulo: string;
+    conteudo: string;
+    imagem_url?: string;
+    destaque: boolean;
+    data_publicacao: string;
+    campos_customizados?: {
+        resumo?: string;
+        categoria?: string;
+    };
 }
 
 const Portal: React.FC = () => {
-    // Notícias de exemplo
-    const [news] = useState<NewsItem[]>([
-        {
-            id: 1,
-            title: 'Nova Ação de Saúde em São Luís',
-            description: 'Exames preventivos e consultas gratuitas estarão disponíveis para a população.',
-            date: '15/02/2026',
-            image: '/images/truck-hero.png',
-            category: 'Ações de Saúde',
-        },
-        {
-            id: 2,
-            title: 'Campanha de Vacinação Itinerante',
-            description: 'Unidades móveis percorrerão comunidades oferecendo vacinas essenciais.',
-            date: '10/02/2026',
-            image: '/images/truck-hero.png',
-            category: 'Prevenção',
-        },
-        {
-            id: 3,
-            title: 'Atendimento Especializado em Oftalmologia',
-            description: 'Consultas e exames de vista gratuitos para toda a família.',
-            date: '05/02/2026',
-            image: '/images/truck-hero.png',
-            category: 'Especialidades',
-        },
-    ]);
+    const [noticias, setNoticias] = useState<NoticiaAPI[]>([]);
+
+    useEffect(() => {
+        api.get('/noticias?limit=3')
+            .then(res => setNoticias(Array.isArray(res.data) ? res.data.slice(0, 3) : []))
+            .catch(() => { });
+    }, []);
+
+    const getImgSrc = (url?: string) => {
+        if (!url) return '';
+        if (url.startsWith('http')) return url;
+        return `${BASE_URL}${url}`;
+    };
 
     // Vídeo do YouTube (ID de exemplo - você pode substituir pelo vídeo real)
     const youtubeVideo = {
@@ -330,87 +322,122 @@ const Portal: React.FC = () => {
                 </Box>
 
                 {/* Seção: Notícias */}
-                <Box sx={{ mb: 6 }}>
-                    <Typography
-                        variant="h4"
-                        sx={{
-                            fontWeight: 700,
-                            mb: 4,
-                            textAlign: 'center',
-                            color: '#2d3748',
-                        }}
-                    >
-                        Últimas Notícias
-                    </Typography>
+                {noticias.length > 0 && (
+                    <Box sx={{ mb: 6 }}>
+                        <Typography
+                            variant="h4"
+                            sx={{
+                                fontWeight: 700,
+                                mb: 4,
+                                textAlign: 'center',
+                                color: '#2d3748',
+                            }}
+                        >
+                            Últimas Notícias
+                        </Typography>
 
-                    <Grid container spacing={4}>
-                        {news.map((item) => (
-                            <Grid item xs={12} md={4} key={item.id}>
-                                <Card
-                                    elevation={0}
-                                    sx={{
-                                        height: '100%',
-                                        borderRadius: 3,
-                                        border: '1px solid #e2e8f0',
-                                        transition: 'all 0.3s ease',
-                                        '&:hover': {
-                                            transform: 'translateY(-8px)',
-                                            boxShadow: '0 12px 24px rgba(0,0,0,0.1)',
-                                        },
-                                    }}
-                                >
-                                    <CardMedia
-                                        component="img"
-                                        height="200"
-                                        image={item.image}
-                                        alt={item.title}
-                                        sx={{ objectFit: 'cover' }}
-                                    />
-                                    <CardContent>
-                                        <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                                            <Chip
-                                                label={item.category}
-                                                size="small"
-                                                sx={{
-                                                    bgcolor: '#5DADE220',
-                                                    color: '#1B4F72',
-                                                    fontWeight: 600,
-                                                }}
+                        <Grid container spacing={4}>
+                            {noticias.map((n) => (
+                                <Grid item xs={12} md={4} key={n.id}>
+                                    <Card
+                                        elevation={0}
+                                        sx={{
+                                            height: '100%',
+                                            borderRadius: 3,
+                                            border: '1px solid #e2e8f0',
+                                            transition: 'all 0.3s ease',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            '&:hover': {
+                                                transform: 'translateY(-8px)',
+                                                boxShadow: '0 12px 24px rgba(0,0,0,0.1)',
+                                                borderColor: '#5DADE2',
+                                            },
+                                        }}
+                                    >
+                                        {/* Imagem */}
+                                        {getImgSrc(n.imagem_url) ? (
+                                            <CardMedia
+                                                component="img"
+                                                height="200"
+                                                image={getImgSrc(n.imagem_url)}
+                                                alt={n.titulo}
+                                                sx={{ objectFit: 'cover' }}
                                             />
-                                            <Box sx={{ display: 'flex', alignItems: 'center', color: '#718096' }}>
-                                                <CalendarToday sx={{ fontSize: 16, mr: 0.5 }} />
-                                                <Typography variant="caption">{item.date}</Typography>
-                                            </Box>
-                                        </Box>
-                                        <Typography
-                                            variant="h6"
-                                            sx={{
-                                                fontWeight: 600,
-                                                mb: 1,
-                                                color: '#2d3748',
-                                            }}
-                                        >
-                                            {item.title}
-                                        </Typography>
-                                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                                            {item.description}
-                                        </Typography>
-                                        <Button
-                                            endIcon={<ArrowForward />}
-                                            sx={{
+                                        ) : (
+                                            <Box sx={{
+                                                height: 200,
+                                                bgcolor: 'linear-gradient(135deg, #E8F4F8, #D0E8F5)',
+                                                background: 'linear-gradient(135deg, #E8F4F8 0%, #D0E8F5 100%)',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
                                                 color: '#5DADE2',
-                                                fontWeight: 600,
-                                                textTransform: 'none',
-                                            }}
-                                        >
-                                            Ler mais
-                                        </Button>
-                                    </CardContent>
-                                </Card>
-                            </Grid>
-                        ))}
-                    </Grid>
-                </Box>
+                                                opacity: 0.4,
+                                            }}>
+                                                <LocalHospital sx={{ fontSize: 48 }} />
+                                            </Box>
+                                        )}
+
+                                        <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                            <Box sx={{ mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                <Chip
+                                                    label={n.campos_customizados?.categoria || 'Geral'}
+                                                    size="small"
+                                                    sx={{
+                                                        bgcolor: '#5DADE220',
+                                                        color: '#1B4F72',
+                                                        fontWeight: 600,
+                                                        fontSize: '0.7rem',
+                                                    }}
+                                                />
+                                                <Box sx={{ display: 'flex', alignItems: 'center', color: '#718096' }}>
+                                                    <CalendarToday sx={{ fontSize: 14, mr: 0.5 }} />
+                                                    <Typography variant="caption">
+                                                        {new Date(n.data_publicacao).toLocaleDateString('pt-BR')}
+                                                    </Typography>
+                                                </Box>
+                                            </Box>
+                                            <Typography
+                                                variant="h6"
+                                                sx={{ fontWeight: 600, mb: 1, color: '#2d3748', fontSize: '1rem' }}
+                                            >
+                                                {n.titulo}
+                                            </Typography>
+                                            <Typography
+                                                variant="body2"
+                                                color="text.secondary"
+                                                sx={{
+                                                    mb: 2, flex: 1,
+                                                    display: '-webkit-box',
+                                                    WebkitLineClamp: 3,
+                                                    WebkitBoxOrient: 'vertical',
+                                                    overflow: 'hidden',
+                                                } as any}
+                                            >
+                                                {n.campos_customizados?.resumo || n.conteudo}
+                                            </Typography>
+                                            <Button
+                                                component={RouterLink}
+                                                to={`/noticias/${n.id}`}
+                                                endIcon={<ArrowForward />}
+                                                sx={{
+                                                    color: '#5DADE2',
+                                                    fontWeight: 600,
+                                                    textTransform: 'none',
+                                                    alignSelf: 'flex-start',
+                                                    p: 0,
+                                                }}
+                                            >
+                                                Ler mais
+                                            </Button>
+                                        </CardContent>
+                                    </Card>
+                                </Grid>
+                            ))}
+                        </Grid>
+                    </Box>
+                )}
             </Container>
         </Box>
     );

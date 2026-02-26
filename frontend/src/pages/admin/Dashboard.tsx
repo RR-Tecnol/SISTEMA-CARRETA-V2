@@ -14,6 +14,7 @@ import {
     Package,
     Bell,
     FileText,
+    Newspaper,
 } from 'lucide-react';
 import { expressoTheme } from '../../theme/expressoTheme';
 import api from '../../services/api';
@@ -30,6 +31,7 @@ const menuItems = [
     { title: 'Funcionários', icon: Users, path: '/admin/funcionarios', description: 'Equipe e colaboradores' },
     { title: 'Exames', icon: Stethoscope, path: '/admin/cursos-exames', description: 'Exames de saúde' },
     { title: 'Cidadãos', icon: UserCheck, path: '/admin/cidadaos', description: 'Cadastro de cidadãos' },
+    { title: 'Notícias', icon: Newspaper, path: '/admin/noticias', description: 'Publicar e gerenciar notícias' },
 ];
 
 const containerVariants = {

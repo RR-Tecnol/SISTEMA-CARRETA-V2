@@ -4,7 +4,7 @@ import {
     DialogTitle, DialogContent, DialogActions, TextField, CircularProgress,
     Chip, Tooltip, MenuItem, Select, FormControl, InputLabel, Divider,
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper,
-    Alert, Collapse, Autocomplete,
+    Alert, Collapse, Autocomplete, Switch, FormControlLabel,
 } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -23,7 +23,7 @@ import api from '../../services/api';
 // -----------------------------------------------------------------------------
 interface Medico { id: string; nome: string; cargo: string; especialidade?: string; custo_diaria: number; ativo: boolean; }
 interface Ponto { id: string; funcionario_id: string; acao_id?: string; data_hora_entrada: string; data_hora_saida?: string; horas_trabalhadas?: number; status: 'trabalhando' | 'saiu'; observacoes?: string; funcionario?: Medico; acao?: { id: string; numero_acao: string; nome: string }; atendimentos?: Atendimento[]; }
-interface Atendimento { id: string; funcionario_id: string; acao_id?: string; cidadao_id?: string; ponto_id?: string | null; hora_inicio: string; hora_fim?: string; duracao_minutos?: number; status: 'em_andamento' | 'concluido' | 'cancelado'; observacoes?: string; nome_paciente?: string; cidadao?: { id: string; nome: string }; funcionario?: Medico; acao?: { id: string; numero_acao: string; nome: string }; }
+interface Atendimento { id: string; funcionario_id: string; acao_id?: string; cidadao_id?: string; ponto_id?: string | null; hora_inicio: string; hora_fim?: string; duracao_minutos?: number; status: 'em_andamento' | 'concluido' | 'cancelado'; observacoes?: string; nome_paciente?: string; cidadao?: { id: string; nome: string; sus_numero?: string; }; funcionario?: Medico; acao?: { id: string; numero_acao: string; nome: string }; }
 interface Dashboard { medicosAtivos: number; atendimentosHoje: number; atendimentosConcluidos: number; tempoMedioMinutos: number; totalMedicos: number; topMedico: { nome: string; total: number } | null; alertas: { medico_nome: string; entrada: string; ponto_id: string }[]; }
 interface Acao { id: string; numero_acao: string; nome: string; status: string; }
 interface Relatorio { funcionario: Medico & { custo_diaria: number }; metricas: { totalDiasTrabalhados: number; totalHorasTrabalhadas: number; totalAtendidos: number; atendimentosCancelados: number; atendimentosEmAndamento: number; tempoMedioMinutos: number; custoTotal: number; }; pontos: Ponto[]; atendimentos: Atendimento[]; }
@@ -82,7 +82,7 @@ const exportarCSV = (dados: any[], nomeArquivo: string) => {
 };
 
 // ── PDF Export (Relatório Individual) ──
-const exportarRelatorioPDF = (relatorio: Relatorio) => {
+const exportarRelatorioPDF = (relatorio: Relatorio, opts?: { showHorario?: boolean; includeSUS?: boolean }) => {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { jsPDF } = require('jspdf');
     // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -144,19 +144,40 @@ const exportarRelatorioPDF = (relatorio: Relatorio) => {
     doc.text('Histórico de Atendimentos', 14, y);
     y += 4;
 
+    const showHorario = opts?.showHorario !== false;
+    const includeSUS = opts?.includeSUS !== false;
+
+    const headers = ['Data', 'Paciente'];
+    if (includeSUS) headers.push('Nº SUS (CNS)');
+    headers.push('Ação', 'Exame');
+    if (showHorario) headers.push('Início', 'Fim', 'Duração');
+    headers.push('Status');
+
     autoTable(doc, {
         startY: y,
-        head: [['Data', 'Paciente', 'Ação', 'Exame', 'Início', 'Fim', 'Duração', 'Status']],
-        body: relatorio.atendimentos.map(a => [
-            new Date(a.hora_inicio).toLocaleDateString('pt-BR'),
-            a.nome_paciente || (a as any).cidadao?.nome || '--',
-            (a as any).acao?.nome || '--',
-            (a as any).acao?.cursos?.map((c: any) => c.nome).join(', ') || '--',
-            new Date(a.hora_inicio).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-            a.hora_fim ? new Date(a.hora_fim).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '--',
-            a.duracao_minutos ? `${a.duracao_minutos}min` : '--',
-            a.status === 'concluido' ? 'Concluído' : a.status === 'cancelado' ? 'Cancelado' : 'Em Andamento',
-        ]),
+        head: [headers],
+        body: relatorio.atendimentos.map(a => {
+            const row: string[] = [
+                new Date(a.hora_inicio).toLocaleDateString('pt-BR'),
+                a.nome_paciente || (a as any).cidadao?.nome || '--',
+            ];
+            if (includeSUS) row.push((a as any).cidadao?.sus_numero || '--');
+            row.push(
+                (a as any).acao?.nome || '--',
+                (a as any).acao?.cursos?.map((c: any) => c.nome).join(', ') || '--',
+            );
+            if (showHorario) {
+                row.push(
+                    new Date(a.hora_inicio).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+                    a.hora_fim ? new Date(a.hora_fim).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '--',
+                    a.duracao_minutos ? `${a.duracao_minutos}min` : '--',
+                );
+            }
+            row.push(
+                a.status === 'concluido' ? 'Concluído' : a.status === 'cancelado' ? 'Cancelado' : 'Em Andamento',
+            );
+            return row;
+        }),
         theme: 'striped',
         headStyles: { fillColor: azul, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 9 },
         bodyStyles: { fontSize: 8.5 },
@@ -318,6 +339,7 @@ const MedicoMonitoring: React.FC = () => {
     const [cidadaoBuscaLoading, setCidadaoBuscaLoading] = useState(false);
     const cidadaoBuscaRef = useRef<NodeJS.Timeout | null>(null);
     const [relFiltros, setRelFiltros] = useState({ data_inicio: '', data_fim: '', acao_id: '' });
+    const [relShowHorario, setRelShowHorario] = useState(true);
     const [relatorio, setRelatorio] = useState<Relatorio | null>(null);
     const [loadingRel, setLoadingRel] = useState(false);
 
@@ -1195,6 +1217,25 @@ const MedicoMonitoring: React.FC = () => {
                         {loadingRel ? 'Gerando...' : 'Gerar Relatório'}
                     </Button>
 
+                    {/* Toggle Início/Fim */}
+                    <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2, p: 1.5, background: expressoTheme.colors.background, borderRadius: expressoTheme.borderRadius.medium, border: `1px solid ${expressoTheme.colors.border}`, width: 'fit-content' }}>
+                        <FormControlLabel
+                            control={
+                                <Switch
+                                    checked={relShowHorario}
+                                    onChange={e => setRelShowHorario(e.target.checked)}
+                                    color="primary"
+                                    size="small"
+                                />
+                            }
+                            label={
+                                <Typography sx={{ fontSize: '0.83rem', fontWeight: 600, color: expressoTheme.colors.text }}>
+                                    Exibir horário de início, fim e duração da consulta
+                                </Typography>
+                            }
+                        />
+                    </Box>
+
                     {relatorio && (
                         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
                             {/* Métricas */}
@@ -1222,7 +1263,14 @@ const MedicoMonitoring: React.FC = () => {
                                 <Table size="small" stickyHeader>
                                     <TableHead>
                                         <TableRow>
-                                            {['Data', 'Paciente', 'Ação', 'Início', 'Fim', 'Duração', 'Status'].map(h => (
+                                            {[
+                                                'Data',
+                                                'Paciente',
+                                                'Nº SUS (CNS)',
+                                                'Ação',
+                                                ...(relShowHorario ? ['Início', 'Fim', 'Duração'] : []),
+                                                'Status',
+                                            ].map(h => (
                                                 <TableCell key={h} sx={{ fontWeight: 700, background: expressoTheme.colors.background, fontSize: '0.75rem' }}>{h}</TableCell>
                                             ))}
                                         </TableRow>
@@ -1232,15 +1280,22 @@ const MedicoMonitoring: React.FC = () => {
                                             <TableRow key={atd.id} hover>
                                                 <TableCell sx={{ fontSize: '0.78rem' }}>{formatData(atd.hora_inicio)}</TableCell>
                                                 <TableCell sx={{ fontSize: '0.78rem' }}>{atd.nome_paciente || atd.cidadao?.nome || '--'}</TableCell>
-                                                <TableCell sx={{ fontSize: '0.78rem' }}>{atd.acao?.nome || '--'}</TableCell>
-                                                <TableCell sx={{ fontSize: '0.78rem' }}>{formatHora(atd.hora_inicio)}</TableCell>
-                                                <TableCell sx={{ fontSize: '0.78rem' }}>{atd.hora_fim ? formatHora(atd.hora_fim) : '--'}</TableCell>
-                                                <TableCell sx={{ fontSize: '0.78rem' }}>{formatDuracao(atd.duracao_minutos)}</TableCell>
+                                                <TableCell sx={{ fontSize: '0.75rem', color: expressoTheme.colors.textSecondary, fontFamily: 'monospace' }}>
+                                                    {(atd as any).cidadao?.sus_numero || '--'}
+                                                </TableCell>
+                                                <TableCell sx={{ fontSize: '0.78rem' }}>{(atd as any).acao?.nome || '--'}</TableCell>
+                                                {relShowHorario && (
+                                                    <>
+                                                        <TableCell sx={{ fontSize: '0.78rem' }}>{formatHora(atd.hora_inicio)}</TableCell>
+                                                        <TableCell sx={{ fontSize: '0.78rem' }}>{atd.hora_fim ? formatHora(atd.hora_fim) : '--'}</TableCell>
+                                                        <TableCell sx={{ fontSize: '0.78rem' }}>{formatDuracao(atd.duracao_minutos)}</TableCell>
+                                                    </>
+                                                )}
                                                 <TableCell><Chip label={atd.status} size="small" sx={{ fontSize: '0.68rem', fontWeight: 700, background: atd.status === 'concluido' ? '#dcfce7' : atd.status === 'em_andamento' ? '#fef9c3' : '#fee2e2', color: atd.status === 'concluido' ? '#166534' : atd.status === 'em_andamento' ? '#854d0e' : '#991b1b' }} /></TableCell>
                                             </TableRow>
                                         ))}
                                         {relatorio.atendimentos.length === 0 && (
-                                            <TableRow><TableCell colSpan={7} align="center" sx={{ py: 3, color: expressoTheme.colors.textSecondary }}>Nenhum atendimento no período</TableCell></TableRow>
+                                            <TableRow><TableCell colSpan={relShowHorario ? 7 : 4} align="center" sx={{ py: 3, color: expressoTheme.colors.textSecondary }}>Nenhum atendimento no período</TableCell></TableRow>
                                         )}
                                     </TableBody>
                                 </Table>
@@ -1256,11 +1311,14 @@ const MedicoMonitoring: React.FC = () => {
                                 onClick={() => exportarCSV(
                                     relatorio.atendimentos.map((a: any) => ({
                                         data: new Date(a.hora_inicio).toLocaleDateString('pt-BR'),
-                                        hora_inicio: new Date(a.hora_inicio).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-                                        hora_fim: a.hora_fim ? new Date(a.hora_fim).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '',
-                                        duracao_minutos: a.duracao_minutos ?? '',
                                         paciente: a.nome_paciente || a.cidadao?.nome || '',
+                                        sus_numero: a.cidadao?.sus_numero || '',
                                         acao: a.acao?.nome || '',
+                                        ...(relShowHorario ? {
+                                            hora_inicio: new Date(a.hora_inicio).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+                                            hora_fim: a.hora_fim ? new Date(a.hora_fim).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '',
+                                            duracao_minutos: a.duracao_minutos ?? '',
+                                        } : {}),
                                         status: a.status,
                                     })),
                                     `relatorio-${relatorio.funcionario.nome.replace(/\s/g, '-')}-${new Date().toISOString().split('T')[0]}.csv`
@@ -1269,7 +1327,7 @@ const MedicoMonitoring: React.FC = () => {
                                 Exportar CSV
                             </Button>
                             <Button variant="contained" startIcon={<FileText size={16} />}
-                                onClick={() => exportarRelatorioPDF(relatorio)}
+                                onClick={() => exportarRelatorioPDF(relatorio, { showHorario: relShowHorario, includeSUS: true })}
                                 sx={{ background: expressoTheme.gradients.primary, color: 'white', textTransform: 'none', fontWeight: 700, borderRadius: expressoTheme.borderRadius.medium, boxShadow: expressoTheme.shadows.button }}>
                                 Exportar PDF
                             </Button>
