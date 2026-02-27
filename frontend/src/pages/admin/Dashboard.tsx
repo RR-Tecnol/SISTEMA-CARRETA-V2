@@ -85,7 +85,8 @@ const Dashboard: React.FC = () => {
             sx={{
                 minHeight: '100vh',
                 background: expressoTheme.colors.background,
-                py: 4,
+                py: { xs: 2, sm: 4 },
+                pt: { xs: 8, sm: 4 }, // espaço para hamburguer fixo em mobile
             }}
         >
             <Container maxWidth="xl">
@@ -95,13 +96,14 @@ const Dashboard: React.FC = () => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5 }}
                 >
-                    <Box sx={{ mb: 5, textAlign: 'center' }}>
+                    <Box sx={{ mb: { xs: 3, sm: 5 }, textAlign: 'center' }}>
                         <Typography
                             variant="h3"
                             sx={{
                                 fontWeight: 700,
                                 color: expressoTheme.colors.primaryDark,
                                 mb: 1,
+                                fontSize: { xs: '1.6rem', sm: '2.4rem', md: '3rem' },
                             }}
                         >
                             Painel Administrativo
@@ -111,6 +113,7 @@ const Dashboard: React.FC = () => {
                             sx={{
                                 color: expressoTheme.colors.textSecondary,
                                 fontWeight: 400,
+                                fontSize: { xs: '0.95rem', sm: '1.1rem' },
                             }}
                         >
                             Sistema de Gestão Expresso Saúde

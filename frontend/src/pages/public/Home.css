@@ -107,8 +107,8 @@
 }
 
 .hero-logo {
-    width: 2000px;
-    max-width: 90%;
+    width: 100%;
+    max-width: 500px;
     height: auto;
     margin-bottom: 0;
     display: block;
@@ -660,5 +660,54 @@
     .benefit-item {
         flex-direction: column;
         text-align: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero-section {
+        padding: 60px 0 40px;
+    }
+
+    .hero-title {
+        font-size: 1.7rem;
+    }
+
+    .hero-subtitle {
+        font-size: 0.9rem;
+    }
+
+    .hero-actions {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .hero-actions a,
+    .hero-actions button {
+        width: 100%;
+        text-align: center;
+        justify-content: center;
+    }
+
+    .actions-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .features-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .section-title {
+        font-size: 1.4rem;
+    }
+
+    .cta-title {
+        font-size: 1.3rem;
+    }
+
+    .about-section,
+    .features-section,
+    .actions-section,
+    .cta-section {
+        padding: 60px 0;
     }
 }

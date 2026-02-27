@@ -1046,3 +1046,119 @@
         background: #fff !important;
     }
 }
+
+/* ══════════════════════════════════════════════════
+   RESPONSIVE — SCREEN (mobile, tablet, notebook)
+   ══════════════════════════════════════════════════ */
+
+@media screen and (max-width: 1024px) {
+    .pc-hero {
+        padding: 28px 24px 36px;
+    }
+
+    .pc-controls-wrapper {
+        padding: 0 24px;
+    }
+
+    .pc-documento-wrapper {
+        padding: 24px 24px 40px;
+    }
+
+    .pc-doc-body {
+        padding: 28px 32px;
+    }
+
+    .pc-kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .pc-hero {
+        padding: 24px 16px 32px;
+    }
+
+    .pc-hero-title {
+        font-size: 1.4rem;
+    }
+
+    .pc-controls-wrapper {
+        padding: 0 16px;
+    }
+
+    .pc-controls-card {
+        padding: 16px;
+        flex-direction: column;
+    }
+
+    .pc-field-group {
+        min-width: unset;
+        width: 100%;
+    }
+
+    .pc-actions-group {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    .pc-btn-primary,
+    .pc-btn-secondary,
+    .pc-btn-pdf {
+        flex: 1;
+        justify-content: center;
+    }
+
+    .pc-documento-wrapper {
+        padding: 16px 16px 32px;
+    }
+
+    .pc-doc-header {
+        padding: 24px 20px;
+    }
+
+    .pc-doc-body {
+        padding: 20px 16px;
+    }
+
+    .pc-kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+
+    .pc-id-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* Tabela responsiva com scroll */
+    .pc-table-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .pc-table {
+        min-width: 500px;
+    }
+
+    .pc-error-bar {
+        margin: 12px 16px 0;
+    }
+
+    .pc-empty-state {
+        margin: 32px 16px;
+        padding: 40px 20px;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .pc-kpi-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .pc-kpi-value {
+        font-size: 1.6rem;
+    }
+
+    .pc-doc-title {
+        font-size: 1rem;
+    }
+}

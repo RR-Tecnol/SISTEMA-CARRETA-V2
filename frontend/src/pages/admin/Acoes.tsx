@@ -126,13 +126,20 @@ const Acoes = () => {
     }
 
     return (
-        <Box sx={{ minHeight: '100vh', background: expressoTheme.colors.background, py: 4 }}>
+        <Box sx={{ minHeight: '100vh', background: expressoTheme.colors.background, py: { xs: 2, sm: 4 }, pt: { xs: 7, sm: 4 } }}>
             <Container maxWidth="xl">
                 {/* Header */}
                 <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+                    <Box sx={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: { xs: 'flex-start', sm: 'center' },
+                        flexDirection: { xs: 'column', sm: 'row' },
+                        gap: { xs: 2, sm: 0 },
+                        mb: 4,
+                    }}>
                         <Box>
-                            <Typography variant="h4" sx={{ fontWeight: 700, color: expressoTheme.colors.primaryDark, mb: 0.5 }}>
+                            <Typography variant="h4" sx={{ fontWeight: 700, color: expressoTheme.colors.primaryDark, mb: 0.5, fontSize: { xs: '1.4rem', sm: '2rem' } }}>
                                 Gerenciar Ações de Saúde
                             </Typography>
                             <Typography sx={{ color: expressoTheme.colors.textSecondary }}>
@@ -153,6 +160,7 @@ const Acoes = () => {
                                     textTransform: 'none',
                                     fontWeight: 600,
                                     boxShadow: expressoTheme.shadows.button,
+                                    whiteSpace: 'nowrap',
                                     '&:hover': {
                                         background: expressoTheme.colors.primaryDark,
                                     }

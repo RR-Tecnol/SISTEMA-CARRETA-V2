@@ -1,5 +1,6 @@
 
 import { Routes, Route } from 'react-router-dom';
+import { GlobalStyles } from '@mui/material';
 
 // Public pages
 import Home from './pages/public/Home';
@@ -48,57 +49,63 @@ import MedicoLayout from './components/layout/MedicoLayout';
 
 function App() {
     return (
-        <Routes>
-            {/* Public routes */}
-            <Route path="/" element={<PublicLayout />}>
-                <Route index element={<Home />} />
-                <Route path="acoes" element={<Acoes />} />
-                <Route path="cadastro" element={<Cadastro />} />
-                <Route path="login" element={<Login />} />
-                <Route path="recuperar-senha" element={<EsqueciSenha />} />
-                <Route path="redefinir-senha" element={<RedefinirSenha />} />
-                <Route path="noticias/:id" element={<NoticiaDetalhe />} />
-            </Route>
+        <>
+            <GlobalStyles styles={{
+                '*, *::before, *::after': { boxSizing: 'border-box' },
+                'html, body': { overflowX: 'hidden', maxWidth: '100vw' },
+            }} />
+            <Routes>
+                {/* Public routes */}
+                <Route path="/" element={<PublicLayout />}>
+                    <Route index element={<Home />} />
+                    <Route path="acoes" element={<Acoes />} />
+                    <Route path="cadastro" element={<Cadastro />} />
+                    <Route path="login" element={<Login />} />
+                    <Route path="recuperar-senha" element={<EsqueciSenha />} />
+                    <Route path="redefinir-senha" element={<RedefinirSenha />} />
+                    <Route path="noticias/:id" element={<NoticiaDetalhe />} />
+                </Route>
 
-            {/* Citizen portal routes */}
-            <Route path="/portal" element={<CitizenLayout />}>
-                <Route index element={<Portal />} />
-                <Route path="acoes" element={<AcoesDisponiveis />} />
-                <Route path="perfil" element={<MeuPerfil />} />
-                <Route path="inscricoes" element={<MinhasInscricoes />} />
-            </Route>
+                {/* Citizen portal routes */}
+                <Route path="/portal" element={<CitizenLayout />}>
+                    <Route index element={<Portal />} />
+                    <Route path="acoes" element={<AcoesDisponiveis />} />
+                    <Route path="perfil" element={<MeuPerfil />} />
+                    <Route path="inscricoes" element={<MinhasInscricoes />} />
+                </Route>
 
-            {/* Admin routes */}
-            <Route path="/admin" element={<AdminLayout />}>
-                <Route index element={<AdminDashboard />} />
-                <Route path="perfil" element={<MeuPerfilAdmin />} />
-                <Route path="acoes" element={<AdminAcoes />} />
-                <Route path="acoes/nova" element={<NovaAcao />} />
-                <Route path="acoes/:id" element={<GerenciarAcao />} />
-                <Route path="instituicoes" element={<Instituicoes />} />
-                <Route path="instituicoes/nova" element={<NovaInstituicao />} />
-                <Route path="instituicoes/:id" element={<NovaInstituicao />} />
-                <Route path="caminhoes" element={<Caminhoes />} />
-                <Route path="caminhoes/:id/manutencao" element={<ManutencaoCaminhao />} />
-                <Route path="funcionarios" element={<Funcionarios />} />
-                <Route path="funcionarios/:id/anotacoes" element={<FuncionarioAnotacoes />} />
-                <Route path="relatorios" element={<Relatorios />} />
-                <Route path="cursos-exames" element={<CursosExames />} />
-                <Route path="cidadaos" element={<Cidadaos />} />
-                <Route path="contas-pagar" element={<ContasPagar />} />
-                <Route path="estoque" element={<Estoque />} />
-                <Route path="alertas" element={<AlertasExames />} />
-                <Route path="medicos" element={<MedicoMonitoring />} />
-                <Route path="prestacao-contas" element={<PrestacaoContas />} />
-                <Route path="noticias" element={<Noticias />} />
-            </Route>
+                {/* Admin routes */}
+                <Route path="/admin" element={<AdminLayout />}>
+                    <Route index element={<AdminDashboard />} />
+                    <Route path="perfil" element={<MeuPerfilAdmin />} />
+                    <Route path="acoes" element={<AdminAcoes />} />
+                    <Route path="acoes/nova" element={<NovaAcao />} />
+                    <Route path="acoes/:id" element={<GerenciarAcao />} />
+                    <Route path="instituicoes" element={<Instituicoes />} />
+                    <Route path="instituicoes/nova" element={<NovaInstituicao />} />
+                    <Route path="instituicoes/:id" element={<NovaInstituicao />} />
+                    <Route path="caminhoes" element={<Caminhoes />} />
+                    <Route path="caminhoes/:id/manutencao" element={<ManutencaoCaminhao />} />
+                    <Route path="funcionarios" element={<Funcionarios />} />
+                    <Route path="funcionarios/:id/anotacoes" element={<FuncionarioAnotacoes />} />
+                    <Route path="relatorios" element={<Relatorios />} />
+                    <Route path="cursos-exames" element={<CursosExames />} />
+                    <Route path="cidadaos" element={<Cidadaos />} />
+                    <Route path="contas-pagar" element={<ContasPagar />} />
+                    <Route path="estoque" element={<Estoque />} />
+                    <Route path="alertas" element={<AlertasExames />} />
+                    <Route path="medicos" element={<MedicoMonitoring />} />
+                    <Route path="prestacao-contas" element={<PrestacaoContas />} />
+                    <Route path="noticias" element={<Noticias />} />
+                </Route>
 
-            {/* Medico panel */}
-            <Route path="/medico" element={<MedicoLayout />}>
-                <Route index element={<MedicoAcoes />} />
-                <Route path="acao/:acaoId" element={<MedicoPanel />} />
-            </Route>
-        </Routes>
+                {/* Medico panel */}
+                <Route path="/medico" element={<MedicoLayout />}>
+                    <Route index element={<MedicoAcoes />} />
+                    <Route path="acao/:acaoId" element={<MedicoPanel />} />
+                </Route>
+            </Routes>
+        </>
     );
 }
 

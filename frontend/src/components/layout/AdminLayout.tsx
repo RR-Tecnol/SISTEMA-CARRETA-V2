@@ -96,7 +96,20 @@ const AdminLayout: React.FC = () => {
                     }}
                 >
                     <Toolbar>
-                        <Typography variant="h6" component="div" sx={{ flexGrow: 1, fontWeight: 600, color: expressoTheme.colors.primaryDark }}>
+                        <Typography
+                            variant="h6"
+                            component="div"
+                            sx={{
+                                flexGrow: 1,
+                                fontWeight: 600,
+                                color: expressoTheme.colors.primaryDark,
+                                pl: { xs: 7, md: 0 }, // espaço para hamburguer fixo em mobile
+                                fontSize: { xs: '0.95rem', sm: '1.1rem' },
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                            }}
+                        >
                             {user?.tipo === 'admin_estrada' ? 'Painel Operacional' : 'Painel Administrativo'}
                         </Typography>
                         <IconButton
