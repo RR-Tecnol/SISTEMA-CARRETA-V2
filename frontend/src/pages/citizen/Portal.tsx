@@ -39,10 +39,19 @@ interface NoticiaAPI {
 
 const Portal: React.FC = () => {
     const [noticias, setNoticias] = useState<NoticiaAPI[]>([]);
+    const [youtubeVideo, setYoutubeVideo] = useState<{ id: string; title: string } | null>(null);
 
     useEffect(() => {
         api.get('/noticias?limit=3')
             .then(res => setNoticias(Array.isArray(res.data) ? res.data.slice(0, 3) : []))
+            .catch(() => { });
+
+        api.get('/configuracoes/sistema')
+            .then(res => {
+                const id = res.data?.youtube_video_id;
+                const title = res.data?.youtube_video_titulo || 'Conheça Nossas Ações de Saúde';
+                if (id) setYoutubeVideo({ id, title });
+            })
             .catch(() => { });
     }, []);
 
@@ -50,12 +59,6 @@ const Portal: React.FC = () => {
         if (!url) return '';
         if (url.startsWith('http')) return url;
         return `${BASE_URL}${url}`;
-    };
-
-    // Vídeo do YouTube (ID de exemplo - você pode substituir pelo vídeo real)
-    const youtubeVideo = {
-        id: 'dQw4w9WgXcQ', // Substitua pelo ID real do vídeo
-        title: 'Conheça Nossas Ações de Saúde',
     };
 
     return (
@@ -268,58 +271,60 @@ const Portal: React.FC = () => {
                 </Box>
 
                 {/* Seção: Vídeos */}
-                <Box sx={{ mb: 8 }}>
-                    <Typography
-                        variant="h4"
-                        sx={{
-                            fontWeight: 700,
-                            mb: 4,
-                            textAlign: 'center',
-                            color: '#2d3748',
-                        }}
-                    >
-                        Conheça Nosso Trabalho
-                    </Typography>
-
-                    <Box sx={{ maxWidth: 900, mx: 'auto' }}>
-                        <Card
-                            elevation={0}
+                {youtubeVideo && (
+                    <Box sx={{ mb: 8 }}>
+                        <Typography
+                            variant="h4"
                             sx={{
-                                borderRadius: 3,
-                                overflow: 'hidden',
-                                border: '1px solid #e2e8f0',
+                                fontWeight: 700,
+                                mb: 4,
+                                textAlign: 'center',
+                                color: '#2d3748',
                             }}
                         >
-                            <Box
+                            Conheça Nosso Trabalho
+                        </Typography>
+
+                        <Box sx={{ maxWidth: 900, mx: 'auto' }}>
+                            <Card
+                                elevation={0}
                                 sx={{
-                                    position: 'relative',
-                                    paddingTop: '56.25%', // 16:9 aspect ratio
-                                    bgcolor: '#000',
+                                    borderRadius: 3,
+                                    overflow: 'hidden',
+                                    border: '1px solid #e2e8f0',
                                 }}
                             >
-                                <iframe
-                                    style={{
-                                        position: 'absolute',
-                                        top: 0,
-                                        left: 0,
-                                        width: '100%',
-                                        height: '100%',
-                                        border: 'none',
+                                <Box
+                                    sx={{
+                                        position: 'relative',
+                                        paddingTop: '56.25%', // 16:9 aspect ratio
+                                        bgcolor: '#000',
                                     }}
-                                    src={`https://www.youtube.com/embed/${youtubeVideo.id}`}
-                                    title={youtubeVideo.title}
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                    allowFullScreen
-                                />
-                            </Box>
-                            <CardContent>
-                                <Typography variant="h6" sx={{ fontWeight: 600, textAlign: 'center' }}>
-                                    {youtubeVideo.title}
-                                </Typography>
-                            </CardContent>
-                        </Card>
+                                >
+                                    <iframe
+                                        style={{
+                                            position: 'absolute',
+                                            top: 0,
+                                            left: 0,
+                                            width: '100%',
+                                            height: '100%',
+                                            border: 'none',
+                                        }}
+                                        src={`https://www.youtube.com/embed/${youtubeVideo.id}`}
+                                        title={youtubeVideo.title}
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                        allowFullScreen
+                                    />
+                                </Box>
+                                <CardContent>
+                                    <Typography variant="h6" sx={{ fontWeight: 600, textAlign: 'center' }}>
+                                        {youtubeVideo.title}
+                                    </Typography>
+                                </CardContent>
+                            </Card>
+                        </Box>
                     </Box>
-                </Box>
+                )}
 
                 {/* Seção: Notícias */}
                 {noticias.length > 0 && (

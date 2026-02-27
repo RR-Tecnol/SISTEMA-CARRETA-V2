@@ -839,6 +839,144 @@
     box-shadow: 0 8px 20px rgba(220, 53, 69, 0.45);
 }
 
+/* ── YouTube Config Panel ───────────────────────────────── */
+.youtube-config-panel {
+    background: white;
+    border-radius: 16px;
+    border: 1.5px solid #ffd6d6;
+    box-shadow: 0 2px 12px rgba(255, 0, 0, 0.07);
+    margin-bottom: 28px;
+    overflow: hidden;
+}
+
+.youtube-config-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 18px 22px;
+    border-bottom: 1px solid #fff0f0;
+    background: linear-gradient(135deg, #fff5f5 0%, #fff0f0 100%);
+}
+
+.youtube-config-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #ff4444, #cc0000);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(255, 0, 0, 0.25);
+}
+
+.youtube-config-header h3 {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #1A1A1A;
+    margin: 0 0 3px;
+}
+
+.youtube-config-header p {
+    font-size: 0.8rem;
+    color: #6C757D;
+    margin: 0;
+}
+
+.youtube-config-body {
+    padding: 18px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.youtube-input-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.youtube-input-wrapper {
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.youtube-input-icon {
+    position: absolute;
+    left: 13px;
+    color: #6C757D;
+    pointer-events: none;
+}
+
+.youtube-input {
+    width: 100%;
+    border: 1.5px solid #DEE2E6;
+    border-radius: 10px;
+    padding: 11px 14px 11px 38px;
+    font-size: 0.9rem;
+    color: #1A1A1A;
+    background: white;
+    outline: none;
+    font-family: inherit;
+    transition: border-color 0.25s, box-shadow 0.25s;
+}
+
+.youtube-input:focus {
+    border-color: #ff4444;
+    box-shadow: 0 0 0 3px rgba(255, 68, 68, 0.12);
+}
+
+.btn-salvar-video {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, #ff4444, #cc0000);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 11px 20px;
+    font-size: 0.88rem;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.25s;
+    box-shadow: 0 4px 12px rgba(255, 0, 0, 0.3);
+}
+
+.btn-salvar-video:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(255, 0, 0, 0.4);
+}
+
+.btn-salvar-video:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.youtube-preview-hint {
+    font-size: 0.82rem;
+    color: #2E7D32;
+    background: #E8F5E9;
+    border-radius: 8px;
+    padding: 8px 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.youtube-preview-hint a {
+    color: #1565C0;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.youtube-preview-hint a:hover {
+    text-decoration: underline;
+}
+
 /* ── Responsive ────────────────────────────────────────── */
 @media (max-width: 768px) {
     .noticias-page {
@@ -856,5 +994,14 @@
     .noticias-header {
         flex-direction: column;
         align-items: flex-start;
+    }
+
+    .youtube-input-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .btn-salvar-video {
+        justify-content: center;
     }
 }

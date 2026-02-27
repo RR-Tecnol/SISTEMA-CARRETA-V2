@@ -4,7 +4,7 @@ import {
     Newspaper, Plus, Edit2, Trash2, Eye, EyeOff,
     Star, Calendar, X, Save, Image, AlertTriangle,
     BarChart2, CheckCircle, XCircle, BookOpen,
-    Upload, RotateCcw
+    Upload, RotateCcw, Youtube, Link
 } from 'lucide-react';
 import { useSnackbar } from 'notistack';
 import api, { BASE_URL } from '../../services/api';
@@ -64,6 +64,10 @@ const Noticias: React.FC = () => {
     const [dragOver, setDragOver] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    // YouTube config
+    const [youtubeInput, setYoutubeInput] = useState<string>('');
+    const [savingVideo, setSavingVideo] = useState(false);
+
     const fetchNoticias = useCallback(async () => {
         try {
             setLoading(true);
@@ -76,13 +80,48 @@ const Noticias: React.FC = () => {
         }
     }, [enqueueSnackbar]);
 
+    const fetchVideoConfig = useCallback(async () => {
+        try {
+            const res = await api.get('/configuracoes/sistema');
+            const id = res.data?.youtube_video_id || '';
+            const titulo = res.data?.youtube_video_titulo || '';
+            if (id) {
+                setYoutubeInput(titulo ? `https://www.youtube.com/watch?v=${id} | ${titulo}` : `https://www.youtube.com/watch?v=${id}`);
+            }
+        } catch { }
+    }, []);
+
+    const extractYoutubeId = (input: string): string => {
+        const cleaned = input.split('|')[0].trim();
+        const match = cleaned.match(/(?:v=|youtu\.be\/)([\w-]{11})/);
+        return match ? match[1] : cleaned.trim();
+    };
+
+    const handleSaveVideo = async () => {
+        const id = extractYoutubeId(youtubeInput);
+        if (!id) {
+            enqueueSnackbar('Cole um link válido do YouTube', { variant: 'warning' });
+            return;
+        }
+        setSavingVideo(true);
+        try {
+            await api.put('/configuracoes/sistema', { chave: 'youtube_video_id', valor: id });
+            await api.put('/configuracoes/sistema', { chave: 'youtube_video_titulo', valor: 'Conheça Nossas Ações de Saúde' });
+            enqueueSnackbar('Vídeo do portal atualizado com sucesso! ✅', { variant: 'success' });
+        } catch {
+            enqueueSnackbar('Erro ao salvar o vídeo', { variant: 'error' });
+        } finally {
+            setSavingVideo(false);
+        }
+    };
+
     const getImgSrc = (url?: string): string => {
         if (!url) return '';
         if (url.startsWith('http')) return url;
         return `${BASE_URL}${url}`;
     };
 
-    useEffect(() => { fetchNoticias(); }, [fetchNoticias]);
+    useEffect(() => { fetchNoticias(); fetchVideoConfig(); }, [fetchNoticias, fetchVideoConfig]);
 
     const openCreate = () => {
         setEditingNoticia(null);
@@ -224,6 +263,56 @@ const Noticias: React.FC = () => {
                     <Plus size={18} />
                     Nova Notícia
                 </motion.button>
+            </motion.div>
+
+            {/* Painel de Configuração do Vídeo YouTube */}
+            <motion.div
+                className="youtube-config-panel"
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.05 }}
+            >
+                <div className="youtube-config-header">
+                    <div className="youtube-config-icon">
+                        <Youtube size={20} />
+                    </div>
+                    <div>
+                        <h3>Vídeo do Portal do Cidadão</h3>
+                        <p>Cole o link do YouTube para atualizar o vídeo exibido na tela inicial do cidadão</p>
+                    </div>
+                </div>
+                <div className="youtube-config-body">
+                    <div className="youtube-input-row">
+                        <div className="youtube-input-wrapper">
+                            <Link size={16} className="youtube-input-icon" />
+                            <input
+                                className="youtube-input"
+                                type="text"
+                                placeholder="Ex: https://www.youtube.com/watch?v=ABC123xyz"
+                                value={youtubeInput}
+                                onChange={e => setYoutubeInput(e.target.value)}
+                            />
+                        </div>
+                        <motion.button
+                            className="btn-salvar-video"
+                            onClick={handleSaveVideo}
+                            disabled={savingVideo}
+                            whileHover={{ scale: 1.03 }}
+                            whileTap={{ scale: 0.97 }}
+                        >
+                            <Youtube size={16} />
+                            {savingVideo ? 'Salvando...' : 'Salvar Vídeo'}
+                        </motion.button>
+                    </div>
+                    {youtubeInput && (() => {
+                        const id = extractYoutubeId(youtubeInput);
+                        return id && id.length === 11 ? (
+                            <div className="youtube-preview-hint">
+                                ✅ ID detectado: <strong>{id}</strong> — <a href={`https://www.youtube.com/watch?v=${id}`} target="_blank" rel="noopener noreferrer">Ver no YouTube ↗</a>
+                            </div>
+                        ) : null;
+                    })()}
+                </div>
             </motion.div>
 
             {/* Stats */}

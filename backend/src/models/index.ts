@@ -8,6 +8,7 @@ import { Inscricao } from './Inscricao';
 import { Notificacao } from './Notificacao';
 import { Noticia } from './Noticia';
 import { ConfiguracaoCampo } from './ConfiguracaoCampo';
+import { ConfiguracaoSistema } from './ConfiguracaoSistema';
 import { Caminhao } from './Caminhao';
 import { Funcionario } from './Funcionario';
 import { AcaoCaminhao } from './AcaoCaminhao';
@@ -329,6 +330,7 @@ export {
     Notificacao,
     Noticia,
     ConfiguracaoCampo,
+    ConfiguracaoSistema,
     Caminhao,
     Funcionario,
     AcaoCaminhao,
