@@ -230,20 +230,26 @@ const ManutencaoCaminhao: React.FC = () => {
 
                 {/* Header */}
                 <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                    <Box sx={{
+                        display: 'flex',
+                        alignItems: { xs: 'flex-start', sm: 'center' },
+                        flexWrap: 'wrap',
+                        gap: 2,
+                        mb: 3,
+                    }}>
                         <IconButton onClick={() => navigate('/admin/caminhoes')}
                             sx={{ color: expressoTheme.colors.primary, border: `1px solid ${expressoTheme.colors.border}`, '&:hover': { background: expressoTheme.colors.cardHover } }}>
                             <ArrowLeft size={20} />
                         </IconButton>
-                        <Box>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
                             <Typography sx={{ fontSize: '0.7rem', color: expressoTheme.colors.textSecondary, fontWeight: 600, letterSpacing: '1px', textTransform: 'uppercase' }}>
                                 Controle de Manutenção
                             </Typography>
-                            <Typography variant="h5" sx={{ fontWeight: 700, color: expressoTheme.colors.primaryDark, lineHeight: 1.2 }}>
+                            <Typography variant="h5" sx={{ fontWeight: 700, color: expressoTheme.colors.primaryDark, lineHeight: 1.2, fontSize: { xs: '1.1rem', sm: '1.5rem' } }}>
                                 {caminhao ? `${caminhao.placa} — ${caminhao.modelo}` : 'Caminhão'}
                             </Typography>
                         </Box>
-                        <Box sx={{ ml: 'auto' }}>
+                        <Box sx={{ ml: { xs: 0, sm: 'auto' } }}>
                             <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
                                 <Button
                                     variant="contained"
@@ -506,7 +512,7 @@ const ManutencaoCaminhao: React.FC = () => {
                         {/* Tipo */}
                         <Grid item xs={12}>
                             <Typography sx={{ fontSize: '0.75rem', color: expressoTheme.colors.textSecondary, mb: 1.25, fontWeight: 600, letterSpacing: '0.5px' }}>TIPO DE MANUTENÇÃO</Typography>
-                            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 1 }}>
+                            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(3, 1fr)', sm: 'repeat(6, 1fr)' }, gap: 1 }}>
                                 {TIPOS.map(t => (
                                     <Box key={t.value}
                                         className={`tipo-card ${form.tipo === t.value ? 'selected' : ''}`}

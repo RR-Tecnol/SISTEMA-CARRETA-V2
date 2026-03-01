@@ -101,9 +101,16 @@ const Caminhoes: React.FC = () => {
         <Box sx={{ minHeight: '100vh', background: expressoTheme.colors.background, py: 4 }}>
             <Container maxWidth="xl">
                 <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+                    <Box sx={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: { xs: 'flex-start', sm: 'center' },
+                        flexDirection: { xs: 'column', sm: 'row' },
+                        gap: { xs: 2, sm: 0 },
+                        mb: 4,
+                    }}>
                         <Box>
-                            <Typography variant="h4" sx={{ fontWeight: 700, color: expressoTheme.colors.primaryDark, mb: 0.5 }}>
+                            <Typography variant="h4" sx={{ fontWeight: 700, color: expressoTheme.colors.primaryDark, mb: 0.5, fontSize: { xs: '1.5rem', sm: '2rem' } }}>
                                 Gerenciar Frota de Caminhões
                             </Typography>
                             <Typography sx={{ color: expressoTheme.colors.textSecondary }}>
@@ -158,7 +165,7 @@ const Caminhoes: React.FC = () => {
                             const statusConfig = getStatusConfig(caminhao.status);
                             const StatusIcon = statusConfig.icon;
                             return (
-                                <Grid item xs={12} sm={6} md={3} key={caminhao.id}>
+                                <Grid item xs={12} sm={6} md={6} lg={4} xl={3} key={caminhao.id}>
                                     <motion.div
                                         initial={{ opacity: 0, y: 20 }}
                                         animate={{ opacity: 1, y: 0 }}
@@ -182,7 +189,7 @@ const Caminhoes: React.FC = () => {
                                                 },
                                             }}
                                         >
-                                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 1.5 }}>
+                                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.5, flexWrap: 'wrap', gap: 0.5 }}>
                                                 <motion.div
                                                     animate={{
                                                         scale: [1, 1.1, 1],
