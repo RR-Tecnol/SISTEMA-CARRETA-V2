@@ -71,7 +71,7 @@ const PublicLayout: React.FC = () => {
                                     alignItems: 'center',
                                     textDecoration: 'none',
                                     transition: 'all 0.3s ease',
-                                    ml: { xs: 0, md: -20 },
+                                    ml: 0,
                                     '&:hover': {
                                         transform: 'scale(1.05)',
                                     },
@@ -82,8 +82,10 @@ const PublicLayout: React.FC = () => {
                                     src={`${process.env.PUBLIC_URL}/images/logo-system-truck.png`}
                                     alt="System Truck Logo"
                                     sx={{
-                                        height: { xs: 60, sm: 80, md: 100 },
+                                        height: { xs: 52, sm: 68, md: 80, lg: 96 },
                                         width: 'auto',
+                                        maxWidth: { xs: 160, sm: 200, md: 240 },
+                                        objectFit: 'contain',
                                         my: -1,
                                         filter: 'drop-shadow(0 2px 8px rgba(93, 173, 226, 0.3))',
                                     }}

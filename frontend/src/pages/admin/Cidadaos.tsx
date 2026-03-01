@@ -259,9 +259,16 @@ const Cidadaos: React.FC = () => {
             <Container maxWidth="xl">
                 {/* Header */}
                 <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
-                    <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Box sx={{
+                        mb: 4,
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: { xs: 'flex-start', sm: 'center' },
+                        flexDirection: { xs: 'column', sm: 'row' },
+                        gap: { xs: 2, sm: 0 },
+                    }}>
                         <Box>
-                            <Typography variant="h4" sx={{ fontWeight: 700, color: systemTruckTheme.colors.primaryDark, mb: 0.5 }}>
+                            <Typography variant="h4" sx={{ fontWeight: 700, color: systemTruckTheme.colors.primaryDark, mb: 0.5, fontSize: { xs: '1.5rem', sm: '2rem' } }}>
                                 Gerenciar Cidadãos
                             </Typography>
                             <Typography sx={{ color: systemTruckTheme.colors.textSecondary }}>
@@ -281,6 +288,7 @@ const Cidadaos: React.FC = () => {
                                 px: 3,
                                 py: 1.5,
                                 boxShadow: systemTruckTheme.shadows.button,
+                                alignSelf: { xs: 'flex-start', sm: 'auto' },
                                 '&:hover': {
                                     boxShadow: '0 8px 24px rgba(0, 188, 212, 0.4)',
                                 },
@@ -355,7 +363,7 @@ const Cidadaos: React.FC = () => {
                                 const sequentialId = (page - 1) * 12 + index + 1;
 
                                 return (
-                                    <Grid item xs={12} sm={6} md={3} key={cidadao.id}>
+                                    <Grid item xs={12} sm={6} md={4} lg={3} key={cidadao.id}>
                                         <motion.div
                                             initial={{ opacity: 0, y: 20 }}
                                             animate={{ opacity: 1, y: 0 }}

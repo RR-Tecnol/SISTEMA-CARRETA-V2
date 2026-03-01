@@ -1162,3 +1162,56 @@
         font-size: 1rem;
     }
 }
+
+/* ─────────────────────────────────────────────────────────
+   TABLET  (769 – 1024px)
+   ───────────────────────────────────────────────────────── */
+@media screen and (min-width: 769px) and (max-width: 1024px) {
+    .pc-hero {
+        padding: 32px 32px 44px;
+    }
+
+    .pc-hero-title {
+        font-size: 1.65rem;
+    }
+
+    .pc-controls-wrapper {
+        padding: 0 24px;
+    }
+
+    .pc-controls-card {
+        padding: 20px 24px;
+        gap: 14px;
+    }
+
+    .pc-field-group {
+        min-width: 160px;
+        flex: 1;
+    }
+
+    .pc-kpi-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .pc-documento-wrapper {
+        padding: 20px 24px 36px;
+    }
+
+    .pc-doc-header {
+        padding: 28px 28px;
+    }
+
+    .pc-doc-body {
+        padding: 24px 28px;
+    }
+
+    /* Tabela responsiva com scroll em tablet estreito */
+    .pc-table-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .pc-table {
+        min-width: 640px;
+    }
+}

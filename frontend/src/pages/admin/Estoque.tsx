@@ -256,14 +256,21 @@ const Estoque: React.FC = () => {
 
     return (
         <>
-            <Box sx={{ p: 3, backgroundColor: '#f5f7fa', minHeight: '100vh' }}>
+            <Box sx={{ p: { xs: 1.5, sm: 2, md: 3 }, backgroundColor: '#f5f7fa', minHeight: '100vh' }}>
                 {/* Header */}
                 <motion.div
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5 }}
                 >
-                    <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Box sx={{
+                        mb: 4,
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: { xs: 'flex-start', sm: 'center' },
+                        flexDirection: { xs: 'column', sm: 'row' },
+                        gap: { xs: 2, sm: 0 },
+                    }}>
                         <Box>
                             <Typography
                                 variant="h4"
@@ -273,6 +280,7 @@ const Estoque: React.FC = () => {
                                     WebkitBackgroundClip: 'text',
                                     WebkitTextFillColor: 'transparent',
                                     mb: 1,
+                                    fontSize: { xs: '1.5rem', sm: '2rem' },
                                 }}
                             >
                                 📦 Controle de Estoque
@@ -281,7 +289,7 @@ const Estoque: React.FC = () => {
                                 Gestão completa de insumos e movimentações
                             </Typography>
                         </Box>
-                        <Box sx={{ display: 'flex', gap: 2 }}>
+                        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
                             <Button
                                 variant="contained"
                                 startIcon={<Plus size={20} />}
