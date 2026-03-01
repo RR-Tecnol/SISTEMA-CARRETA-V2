@@ -31,9 +31,16 @@ const createAcaoSchema = Joi.object({
     local_execucao: Joi.string().required(),
     vagas_disponiveis: Joi.number().integer().min(0).required(),
     campos_customizados: Joi.object().optional(),
-    distancia_km: Joi.number().optional().allow(null), // Permitir envio direto se o front mandar number
+    distancia_km: Joi.number().optional().allow(null),
     preco_combustivel_referencia: Joi.number().optional().allow(null),
     permitir_inscricao_previa: Joi.boolean().optional().default(true),
+    // Campos para Prestação de Contas
+    meta_mensal_total: Joi.number().integer().min(0).optional().allow(null),
+    numero_processo: Joi.string().optional().allow('').allow(null),
+    lote_regiao: Joi.string().optional().allow('').allow(null),
+    numero_cnes: Joi.string().optional().allow('').allow(null),
+    intercorrencias: Joi.string().optional().allow('').allow(null),
+    responsavel_tecnico_id: Joi.string().uuid().optional().allow(null),
     cursos_exames: Joi.array().items(
         Joi.object({
             curso_exame_id: Joi.string().uuid().required(),

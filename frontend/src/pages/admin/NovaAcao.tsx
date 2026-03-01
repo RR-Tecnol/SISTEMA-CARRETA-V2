@@ -73,6 +73,11 @@ const NovaAcao = () => {
         distancia_km: 0,
         preco_combustivel_referencia: 0,
         permitir_inscricao_previa: true,
+        // Campos para Prestação de Contas
+        meta_mensal_total: '' as string | number,
+        numero_processo: '',
+        lote_regiao: '',
+        numero_cnes: '',
     });
 
     const loadInstituicoes = useCallback(async () => {
@@ -118,7 +123,9 @@ const NovaAcao = () => {
         const { name, value } = e.target;
         setFormData({
             ...formData,
-            [name]: name === 'vagas_disponiveis' ? parseInt(value) || 0 : value,
+            [name]: (name === 'vagas_disponiveis' || name === 'meta_mensal_total')
+                ? (parseInt(value) || (value === '' ? '' : 0))
+                : value,
         });
     };
 
@@ -748,6 +755,101 @@ const NovaAcao = () => {
                                                 name="descricao"
                                                 value={formData.descricao}
                                                 onChange={handleChange}
+                                                sx={{
+                                                    '& .MuiOutlinedInput-root': {
+                                                        borderRadius: systemTruckTheme.borderRadius.medium,
+                                                    },
+                                                }}
+                                            />
+                                        </Grid>
+                                    </Grid>
+                                </Box>
+                            </motion.div>
+                        </Grid>
+
+                        {/* Card: Prestação de Contas */}
+                        <Grid item xs={12}>
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.35 }}
+                            >
+                                <Box
+                                    sx={{
+                                        background: systemTruckTheme.colors.cardBackground,
+                                        borderRadius: systemTruckTheme.borderRadius.large,
+                                        border: `2px solid #5DADE2`,
+                                        p: 4,
+                                        boxShadow: systemTruckTheme.shadows.card,
+                                    }}
+                                >
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                                        <Typography variant="h6" sx={{ fontWeight: 700, color: '#1B4F72' }}>
+                                            📋 Prestação de Contas (SUS)
+                                        </Typography>
+                                    </Box>
+                                    <Typography sx={{ color: systemTruckTheme.colors.textSecondary, fontSize: '0.82rem', mb: 3 }}>
+                                        Preencha os dados contratuais para gerar o relatório de Prestação de Contas corretamente.
+                                    </Typography>
+                                    <Grid container spacing={2}>
+                                        <Grid item xs={12} sm={4}>
+                                            <TextField
+                                                fullWidth
+                                                type="number"
+                                                label="Meta Mensal de Atendimentos"
+                                                name="meta_mensal_total"
+                                                value={formData.meta_mensal_total}
+                                                onChange={handleChange}
+                                                placeholder="Ex: 200"
+                                                helperText="Número contratual de atendimentos/mês"
+                                                inputProps={{ min: 0 }}
+                                                sx={{
+                                                    '& .MuiOutlinedInput-root': {
+                                                        borderRadius: systemTruckTheme.borderRadius.medium,
+                                                        borderColor: '#5DADE2',
+                                                    },
+                                                }}
+                                            />
+                                        </Grid>
+                                        <Grid item xs={12} sm={4}>
+                                            <TextField
+                                                fullWidth
+                                                label="Número do Processo"
+                                                name="numero_processo"
+                                                value={formData.numero_processo}
+                                                onChange={handleChange}
+                                                placeholder="Ex: AGS05.002888/2025-81"
+                                                sx={{
+                                                    '& .MuiOutlinedInput-root': {
+                                                        borderRadius: systemTruckTheme.borderRadius.medium,
+                                                    },
+                                                }}
+                                            />
+                                        </Grid>
+                                        <Grid item xs={12} sm={4}>
+                                            <TextField
+                                                fullWidth
+                                                label="CNES da Unidade Móvel"
+                                                name="numero_cnes"
+                                                value={formData.numero_cnes}
+                                                onChange={handleChange}
+                                                placeholder="Ex: 0000000"
+                                                inputProps={{ maxLength: 20 }}
+                                                sx={{
+                                                    '& .MuiOutlinedInput-root': {
+                                                        borderRadius: systemTruckTheme.borderRadius.medium,
+                                                    },
+                                                }}
+                                            />
+                                        </Grid>
+                                        <Grid item xs={12} sm={6}>
+                                            <TextField
+                                                fullWidth
+                                                label="Lote / Região"
+                                                name="lote_regiao"
+                                                value={formData.lote_regiao}
+                                                onChange={handleChange}
+                                                placeholder="Ex: Lote 01 – Região Norte"
                                                 sx={{
                                                     '& .MuiOutlinedInput-root': {
                                                         borderRadius: systemTruckTheme.borderRadius.medium,

@@ -75,7 +75,9 @@ router.get('/prestacao-contas', authenticate, async (req: Request, res: Response
         const metaMensal = acoes.reduce((sum, a) => sum + ((a as any).meta_mensal_total || 0), 0);
         const percentualMeta = metaMensal > 0 ? Math.round((totalExames / metaMensal) * 100) : 0;
 
-        // Dias operacionais: soma dos intervalos das ações no mês
+        // Dias operacionais: soma dos intervalos das ações DENTRO do mês consultado
+        // (usa datas reais do mês para o corte, não fixa 30 dias)
+        const diasReaisDoMes = new Date(ano, mes, 0).getDate(); // dias reais do mês (28, 29, 30 ou 31)
         let diasOperacionais = 0;
         for (const acao of acoes) {
             const ini = new Date(Math.max(new Date(acao.data_inicio).getTime(), dataInicio.getTime()));
@@ -83,7 +85,11 @@ router.get('/prestacao-contas', authenticate, async (req: Request, res: Response
             const diff = Math.ceil((fim.getTime() - ini.getTime()) / (1000 * 60 * 60 * 24)) + 1;
             if (diff > 0) diasOperacionais += diff;
         }
-        const disponibilidade = diasOperacionais > 0 ? Math.min(100, Math.round((diasOperacionais / 30) * 100)) : 0;
+        // Limita dias operacionais ao total de dias reais do mês
+        diasOperacionais = Math.min(diasOperacionais, diasReaisDoMes);
+        const disponibilidade = diasReaisDoMes > 0
+            ? Math.min(100, Math.round((diasOperacionais / diasReaisDoMes) * 100))
+            : 0;
 
         // 3. Produção por procedimento (SIGTAP)
         const mapProcedimento: Record<string, { codigo_sus: string; procedimento: string; quantidade: number; valor_unitario: number }> = {};

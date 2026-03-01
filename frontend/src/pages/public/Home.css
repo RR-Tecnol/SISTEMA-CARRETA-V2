@@ -544,15 +544,30 @@
 
 /* ===== FOOTER ===== */
 .footer {
-    padding: 60px 0 40px;
-    background: #1B4F72;
+    padding: 60px 0 0;
+    background: linear-gradient(160deg, #1B4F72 0%, #0d3350 100%);
     color: #ffffff;
+    position: relative;
+    overflow: hidden;
+}
+
+.footer::before {
+    content: '';
+    position: absolute;
+    top: -80px;
+    right: -80px;
+    width: 240px;
+    height: 240px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(93, 173, 226, 0.15) 0%, transparent 70%);
+    pointer-events: none;
 }
 
 .footer-content {
     display: grid;
     grid-template-columns: 2fr 1fr;
     gap: 48px;
+    padding-bottom: 40px;
 }
 
 .footer-logo {
@@ -560,25 +575,117 @@
     font-weight: 700;
     margin-bottom: 16px;
     color: #5DADE2;
+    letter-spacing: -0.5px;
 }
 
 .footer-description {
     font-size: 1rem;
     line-height: 1.6;
-    color: rgba(255, 255, 255, 0.8);
+    color: rgba(255, 255, 255, 0.7);
     max-width: 500px;
 }
 
 .footer-title {
-    font-size: 1.25rem;
-    font-weight: 600;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #5DADE2;
     margin-bottom: 16px;
 }
 
 .footer-text {
-    font-size: 0.95rem;
-    color: rgba(255, 255, 255, 0.7);
-    margin-bottom: 8px;
+    font-size: 0.92rem;
+    color: rgba(255, 255, 255, 0.65);
+    margin-bottom: 10px;
+    transition: color 0.2s ease;
+}
+
+.footer-text:hover {
+    color: rgba(255, 255, 255, 0.95);
+}
+
+/* ===== FOOTER BOTTOM BAR ===== */
+.footer-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 0;
+    border-top: 1px solid rgba(93, 173, 226, 0.2);
+    position: relative;
+}
+
+.footer-copyright {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.45);
+    letter-spacing: 0.02em;
+}
+
+.footer-dev {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.footer-dev-label {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 400;
+    font-style: italic;
+    color: rgba(255, 255, 255, 0.45);
+    letter-spacing: 0.04em;
+}
+
+.footer-dev-brand {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 2px;
+    transition: opacity 0.25s ease;
+    cursor: default;
+}
+
+.footer-dev-brand:hover {
+    opacity: 0.85;
+}
+
+.footer-dev-brand .rr {
+    color: #5DADE2;
+    font-weight: 800;
+}
+
+.footer-dev-brand .tecnol {
+    color: #ffffff;
+    font-weight: 700;
+    position: relative;
+    padding-bottom: 1px;
+}
+
+.footer-dev-brand .tecnol::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 1px;
+    right: 0;
+    height: 1.5px;
+    background: linear-gradient(90deg, #5DADE2, transparent);
+    border-radius: 2px;
+}
+
+/* Ponto decorativo laranja — marca RR TECNOL */
+.footer-dev-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #F39C12;
+    box-shadow: 0 0 0 2px rgba(243, 156, 18, 0.25);
+    flex-shrink: 0;
 }
 
 /* ===== ANIMATIONS ===== */
@@ -614,6 +721,13 @@
     .footer-content {
         grid-template-columns: 1fr;
         gap: 32px;
+    }
+
+    .footer-bottom {
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        text-align: center;
     }
 
     .section-title {

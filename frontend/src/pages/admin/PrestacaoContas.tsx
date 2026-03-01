@@ -106,15 +106,39 @@ export default function PrestacaoContas() {
     function gerarPDF() {
         if (!documentoRef.current) return;
 
-        // Coleta todo o CSS carregado na página (estilos inline e folhas de estilo)
+        // Clona o DOM e injeta os valores atuais dos inputs/textareas
+        // (outerHTML não preserva valores digitados pelo usuário)
+        const clone = documentoRef.current.cloneNode(true) as HTMLElement;
+
+        // Sincroniza inputs
+        const inputsOriginais = documentoRef.current.querySelectorAll('input');
+        const inputsClone = clone.querySelectorAll('input');
+        inputsOriginais.forEach((inp, i) => {
+            inputsClone[i]?.setAttribute('value', inp.value);
+        });
+
+        // Sincroniza textareas
+        const textareasOriginais = documentoRef.current.querySelectorAll('textarea');
+        const textareasClone = clone.querySelectorAll('textarea');
+        textareasOriginais.forEach((ta, i) => {
+            if (textareasClone[i]) {
+                textareasClone[i].textContent = ta.value;
+            }
+        });
+
+        // Coleta apenas CSS de folhas SAME-ORIGIN (evita erro de CORS com Google Fonts etc.)
         const cssTexts = Array.from(document.styleSheets)
             .flatMap(sheet => {
-                try { return Array.from(sheet.cssRules).map(r => r.cssText); }
+                try {
+                    // href nulo = <style> inline, sempre seguro; href same-origin também é seguro
+                    if (sheet.href && !sheet.href.startsWith(window.location.origin)) return [];
+                    return Array.from(sheet.cssRules).map(r => r.cssText);
+                }
                 catch { return []; }
             })
             .join('\n');
 
-        const docHtml = documentoRef.current.outerHTML;
+        const docHtml = clone.outerHTML;
         const titulo = `PrestaçãoDeContas_${String(mes).padStart(2, '0')}_${ano}`;
 
         const janela = window.open('', '_blank');
@@ -164,6 +188,31 @@ export default function PrestacaoContas() {
     .pc-kpi-grid {
       grid-template-columns: repeat(4, 1fr) !important;
     }
+
+    /* ── FIX CRÍTICO: gradient text não renderiza em PDF/print ──
+       Força cor sólida no lugar do -webkit-text-fill-color: transparent */
+    .pc-kpi-value {
+      background: none !important;
+      -webkit-background-clip: unset !important;
+      background-clip: unset !important;
+      -webkit-text-fill-color: #1B4F72 !important;
+      color: #1B4F72 !important;
+      font-weight: 900 !important;
+    }
+
+    /* Força texto visível em todos os elementos que usam CSS var ou gradient text */
+    .pc-section-title { color: #1B4F72 !important; }
+    .pc-section-num { color: #4A6FA5 !important; }
+    .pc-kpi-label { color: #4A6FA5 !important; }
+    .pc-kpi-icon { opacity: 0.15 !important; }
+    .pc-id-row { background: #FAFBFD !important; }
+    .pc-id-row strong { color: #4A6FA5 !important; }
+    .pc-id-row span, .pc-id-row input { color: #0D1B2A !important; }
+    .pc-formal-text { color: #374151 !important; }
+    .pc-formal-text strong { color: #1B4F72 !important; }
+    .pc-table tfoot td { color: #1B4F72 !important; }
+    .pc-meta-text { color: #4A6FA5 !important; }
+    .pc-doc-footer-text, .pc-page-num { color: #fff !important; }
 
     .pc-table { width: 100% !important; }
 

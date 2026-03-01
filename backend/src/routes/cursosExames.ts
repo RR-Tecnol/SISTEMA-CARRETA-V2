@@ -17,7 +17,7 @@ router.get('/', async (req: Request, res: Response) => {
 
         const cursosExames = await CursoExame.findAll({
             where,
-            attributes: ['id', 'nome', 'tipo', 'ativo'],
+            attributes: ['id', 'nome', 'tipo', 'codigo_sus', 'valor_unitario', 'descricao', 'carga_horaria', 'ativo'],
             order: [['nome', 'ASC']],
         });
 
@@ -55,7 +55,7 @@ router.get('/:id', async (req: Request, res: Response) => {
  */
 router.post('/', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
     try {
-        const { nome, tipo } = req.body;
+        const { nome, tipo, codigo_sus, valor_unitario, descricao, requisitos, certificadora, carga_horaria } = req.body;
 
         if (!nome || !tipo) {
             res.status(400).json({ error: 'Nome e tipo são obrigatórios' });
@@ -70,6 +70,12 @@ router.post('/', authenticate, authorizeAdminOrEstrada, async (req: Request, res
         const cursoExame = await CursoExame.create({
             nome,
             tipo,
+            codigo_sus: codigo_sus || null,
+            valor_unitario: valor_unitario !== undefined && valor_unitario !== '' ? parseFloat(valor_unitario) : null,
+            descricao: descricao || null,
+            requisitos: requisitos || null,
+            certificadora: certificadora || null,
+            carga_horaria: carga_horaria !== undefined && carga_horaria !== '' ? parseInt(carga_horaria) : null,
         } as any);
 
         res.status(201).json(cursoExame);
@@ -86,7 +92,7 @@ router.post('/', authenticate, authorizeAdminOrEstrada, async (req: Request, res
 router.put('/:id', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const { nome, tipo } = req.body;
+        const { nome, tipo, codigo_sus, valor_unitario, descricao, requisitos, certificadora, carga_horaria } = req.body;
 
         const cursoExame = await CursoExame.findByPk(id);
         if (!cursoExame) {
@@ -103,6 +109,12 @@ router.put('/:id', authenticate, authorizeAdminOrEstrada, async (req: Request, r
             nome: nome !== undefined ? nome : cursoExame.nome,
             tipo: tipo !== undefined ? tipo : cursoExame.tipo,
             ativo: req.body.ativo !== undefined ? req.body.ativo : cursoExame.ativo,
+            codigo_sus: codigo_sus !== undefined ? (codigo_sus || null) : cursoExame.codigo_sus,
+            valor_unitario: valor_unitario !== undefined ? (valor_unitario !== '' ? parseFloat(valor_unitario) : null) : cursoExame.valor_unitario,
+            descricao: descricao !== undefined ? (descricao || null) : cursoExame.descricao,
+            requisitos: requisitos !== undefined ? (requisitos || null) : cursoExame.requisitos,
+            certificadora: certificadora !== undefined ? (certificadora || null) : cursoExame.certificadora,
+            carga_horaria: carga_horaria !== undefined ? (carga_horaria !== '' ? parseInt(carga_horaria) : null) : cursoExame.carga_horaria,
         });
 
         res.json(cursoExame);

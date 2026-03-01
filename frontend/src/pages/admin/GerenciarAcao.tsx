@@ -75,7 +75,7 @@ const GerenciarAcao = () => {
     const [activeTab, setActiveTab] = useState(0);
 
     // Form state
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<any>({
         nome: '',
         instituicao_id: '',
         tipo: '',
@@ -90,6 +90,11 @@ const GerenciarAcao = () => {
         preco_combustivel_referencia: 0,
         descricao: '',
         permitir_inscricao_previa: true,
+        // Campos Prestação de Contas
+        meta_mensal_total: '',
+        numero_processo: '',
+        lote_regiao: '',
+        numero_cnes: '',
     });
 
     // Instituições
@@ -275,7 +280,7 @@ const GerenciarAcao = () => {
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
-        setFormData((prev) => ({
+        setFormData((prev: any) => ({
             ...prev,
             [name]: value,
         }));
@@ -1100,6 +1105,69 @@ const GerenciarAcao = () => {
                                         value={formData.descricao}
                                         onChange={handleChange}
                                     />
+                                </Grid>
+
+                                {/* Seção Prestação de Contas */}
+                                <Grid item xs={12}>
+                                    <Box sx={{
+                                        border: '2px solid #5DADE2',
+                                        borderRadius: '10px',
+                                        p: 2.5,
+                                        background: 'rgba(93, 173, 226, 0.04)',
+                                    }}>
+                                        <Typography sx={{ fontWeight: 700, color: '#1B4F72', mb: 0.5, fontSize: '1rem' }}>
+                                            📋 Prestação de Contas (SUS)
+                                        </Typography>
+                                        <Typography sx={{ color: '#6c757d', fontSize: '0.78rem', mb: 2 }}>
+                                            Dados contratuais para o relatório de Prestação de Contas.
+                                        </Typography>
+                                        <Grid container spacing={2}>
+                                            <Grid item xs={12} sm={4}>
+                                                <TextField
+                                                    fullWidth
+                                                    type="number"
+                                                    label="Meta Mensal de Atendimentos"
+                                                    name="meta_mensal_total"
+                                                    value={formData.meta_mensal_total ?? ''}
+                                                    onChange={handleChange}
+                                                    placeholder="Ex: 200"
+                                                    helperText="Número contratual/mês"
+                                                    inputProps={{ min: 0 }}
+                                                />
+                                            </Grid>
+                                            <Grid item xs={12} sm={4}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="Número do Processo"
+                                                    name="numero_processo"
+                                                    value={formData.numero_processo ?? ''}
+                                                    onChange={handleChange}
+                                                    placeholder="Ex: AGS05.002888/2025-81"
+                                                />
+                                            </Grid>
+                                            <Grid item xs={12} sm={4}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="CNES da Unidade Móvel"
+                                                    name="numero_cnes"
+                                                    value={formData.numero_cnes ?? ''}
+                                                    onChange={handleChange}
+                                                    placeholder="Ex: 0000000"
+                                                    inputProps={{ maxLength: 20 }}
+                                                />
+                                            </Grid>
+                                            <Grid item xs={12} sm={6}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="Lote / Região"
+                                                    name="lote_regiao"
+                                                    value={formData.lote_regiao ?? ''}
+                                                    onChange={handleChange}
+                                                    placeholder="Ex: Lote 01 – Região Norte"
+                                                />
+                                            </Grid>
+                                        </Grid>
+                                    </Box>
                                 </Grid>
 
                                 <Grid item xs={12}>

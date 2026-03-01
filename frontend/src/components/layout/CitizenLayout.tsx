@@ -388,20 +388,28 @@ const CitizenLayout: React.FC = () => {
                             Developed by
                         </Box>
                         <Box
-                            component="img"
-                            src="/assets/rr-tecnol-logo.png"
-                            alt="RR Tecnol"
-                            sx={{
-                                height: 40,
-                                width: 'auto',
-                                objectFit: 'contain',
-                                filter: 'brightness(0.9)',
-                                transition: 'filter 0.3s ease',
-                                '&:hover': {
-                                    filter: 'brightness(1.1)',
-                                },
-                            }}
-                        />
+                            component="a"
+                            href="https://rrtecnol.com.br"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            sx={{ display: 'inline-flex', lineHeight: 0 }}
+                        >
+                            <Box
+                                component="img"
+                                src="/assets/rr-tecnol-logo.png"
+                                alt="RR Tecnol"
+                                sx={{
+                                    height: 40,
+                                    width: 'auto',
+                                    objectFit: 'contain',
+                                    filter: 'brightness(0.9)',
+                                    transition: 'filter 0.3s ease',
+                                    '&:hover': {
+                                        filter: 'brightness(1.1)',
+                                    },
+                                }}
+                            />
+                        </Box>
                     </Box>
                 </Box>
             </motion.div>

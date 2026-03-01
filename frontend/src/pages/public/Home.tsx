@@ -348,9 +348,26 @@ const Home: React.FC = () => {
                         </div>
 
                         <div className="footer-info">
-                            <h4 className="footer-title">Contato</h4>
-                            <p className="footer-text">Sistema desenvolvido para gestão de saúde itinerante</p>
-                            <p className="footer-text">© 2026 System Truck. Todos os direitos reservados.</p>
+                            <h4 className="footer-title">Plataforma</h4>
+                            <p className="footer-text">Gestão de Ações de Saúde</p>
+                            <p className="footer-text">Controle de Inscrições</p>
+                            <p className="footer-text">Relatórios e BI</p>
+                        </div>
+                    </div>
+
+                    {/* Bottom Bar — Developed by RR TECNOL */}
+                    <div className="footer-bottom">
+                        <div className="footer-dev">
+                            <span className="footer-dev-label">Developed by</span>
+                            <a
+                                href="https://rrtecnol.com.br"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="footer-dev-brand"
+                            >
+                                <span className="rr">RR</span>
+                                <span className="tecnol"> TECNOL</span>
+                            </a>
                         </div>
                     </div>
                 </div>

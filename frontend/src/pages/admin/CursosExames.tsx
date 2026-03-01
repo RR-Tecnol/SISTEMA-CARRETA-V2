@@ -10,6 +10,8 @@ interface ExameSaude {
     id: string;
     nome: string;
     tipo: 'curso' | 'exame';
+    codigo_sus?: string;
+    valor_unitario?: number;
     ativo: boolean;
 }
 
@@ -19,7 +21,7 @@ const ExamesSaude: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [openDialog, setOpenDialog] = useState(false);
     const [editingExame, setEditingExame] = useState<ExameSaude | null>(null);
-    const [formData, setFormData] = useState({ nome: '' });
+    const [formData, setFormData] = useState({ nome: '', codigo_sus: '', valor_unitario: '' });
     const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
@@ -42,10 +44,14 @@ const ExamesSaude: React.FC = () => {
     const handleOpenDialog = (exame?: ExameSaude) => {
         if (exame) {
             setEditingExame(exame);
-            setFormData({ nome: exame.nome });
+            setFormData({
+                nome: exame.nome,
+                codigo_sus: exame.codigo_sus || '',
+                valor_unitario: exame.valor_unitario !== undefined && exame.valor_unitario !== null ? String(exame.valor_unitario) : '',
+            });
         } else {
             setEditingExame(null);
-            setFormData({ nome: '' });
+            setFormData({ nome: '', codigo_sus: '', valor_unitario: '' });
         }
         setOpenDialog(true);
     };
@@ -53,7 +59,7 @@ const ExamesSaude: React.FC = () => {
     const handleCloseDialog = () => {
         setOpenDialog(false);
         setEditingExame(null);
-        setFormData({ nome: '' });
+        setFormData({ nome: '', codigo_sus: '', valor_unitario: '' });
     };
 
     const handleSubmit = async () => {
@@ -326,13 +332,37 @@ const ExamesSaude: React.FC = () => {
                             fullWidth
                             label="Nome do Exame"
                             value={formData.nome}
-                            onChange={(e) => setFormData({ nome: e.target.value })}
+                            onChange={(e) => setFormData(prev => ({ ...prev, nome: e.target.value }))}
                             placeholder="Ex: Hemograma Completo, Raio-X de Tórax..."
                             autoFocus
                             sx={{ mb: 2 }}
                         />
+                        <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+                            <TextField
+                                fullWidth
+                                label="Código SUS (SIGTAP)"
+                                value={formData.codigo_sus}
+                                onChange={(e) => setFormData(prev => ({ ...prev, codigo_sus: e.target.value }))}
+                                placeholder="Ex: 0202010651"
+                                inputProps={{ maxLength: 20 }}
+                            />
+                            <TextField
+                                fullWidth
+                                label="Valor Unitário (R$)"
+                                value={formData.valor_unitario}
+                                onChange={(e) => {
+                                    const v = e.target.value.replace(',', '.');
+                                    if (v === '' || /^\d*\.?\d*$/.test(v)) {
+                                        setFormData(prev => ({ ...prev, valor_unitario: v }));
+                                    }
+                                }}
+                                placeholder="Ex: 12.50"
+                                type="text"
+                                inputProps={{ inputMode: 'decimal' }}
+                            />
+                        </Box>
                         <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 1 }}>
-                            💡 Digite o nome completo do exame de saúde que será oferecido nas ações.
+                            💡 Preencha o Código SUS e o Valor Unitário para que os dados apareçam corretamente no relatório de Prestação de Contas.
                         </Typography>
                     </DialogContent>
                     <DialogActions sx={{ p: 3 }}>

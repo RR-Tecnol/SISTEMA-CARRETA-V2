@@ -258,16 +258,102 @@ const PublicLayout: React.FC = () => {
             {/* Footer */}
             <Box
                 component="footer"
-                sx={{ bgcolor: '#f8f9fa', p: 3, mt: 'auto', borderTop: '1px solid rgba(0, 0, 0, 0.08)' }}
+                sx={{
+                    bgcolor: '#f8f9fa',
+                    mt: 'auto',
+                    borderTop: '1px solid rgba(0, 0, 0, 0.08)',
+                    py: 2.5,
+                    px: 2,
+                }}
             >
-                <Container>
-                    <Typography
-                        variant="body2"
-                        align="center"
-                        sx={{ color: systemTruckTheme.colors.textSecondary, fontWeight: 500 }}
+                <Container maxWidth="lg">
+                    <Box
+                        sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexWrap: 'wrap',
+                            gap: '10px',
+                        }}
                     >
-                        © {new Date().getFullYear()} System Truck. Todos os direitos reservados.
-                    </Typography>
+                        <Typography
+                            component="span"
+                            sx={{
+                                fontFamily: "'Montserrat', sans-serif",
+                                fontSize: '0.78rem',
+                                fontWeight: 400,
+                                fontStyle: 'italic',
+                                color: 'rgba(0,0,0,0.38)',
+                                letterSpacing: '0.04em',
+                            }}
+                        >
+                            Developed by
+                        </Typography>
+
+                        <Box
+                            component="a"
+                            href="https://rrtecnol.com.br"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            sx={{ display: 'inline-flex', alignItems: 'baseline', gap: '2px', textDecoration: 'none', cursor: 'pointer', '&:hover': { opacity: 0.8 } }}
+                        >
+                            <Typography
+                                component="span"
+                                sx={{
+                                    fontFamily: "'Montserrat', sans-serif",
+                                    fontSize: '0.9rem',
+                                    fontWeight: 800,
+                                    color: systemTruckTheme.colors.primary,
+                                    letterSpacing: '0.08em',
+                                }}
+                            >
+                                RR
+                            </Typography>
+                            <Typography
+                                component="span"
+                                sx={{
+                                    fontFamily: "'Montserrat', sans-serif",
+                                    fontSize: '0.9rem',
+                                    fontWeight: 700,
+                                    color: '#1B4F72',
+                                    letterSpacing: '0.08em',
+                                    position: 'relative',
+                                    pb: '1px',
+                                    '&::after': {
+                                        content: '""',
+                                        position: 'absolute',
+                                        bottom: -1,
+                                        left: 0,
+                                        right: 0,
+                                        height: '1.5px',
+                                        background: `linear-gradient(90deg, ${systemTruckTheme.colors.primary}, transparent)`,
+                                        borderRadius: '2px',
+                                    },
+                                }}
+                            >
+                                {' '}TECNOL
+                            </Typography>
+                        </Box>
+
+
+                        {/* Separador */}
+                        <Typography component="span" sx={{ color: 'rgba(0,0,0,0.18)', fontSize: '0.78rem' }}>
+                            —
+                        </Typography>
+
+                        {/* Todos os direitos */}
+                        <Typography
+                            component="span"
+                            sx={{
+                                fontFamily: "'Montserrat', sans-serif",
+                                fontSize: '0.75rem',
+                                color: 'rgba(0,0,0,0.32)',
+                                letterSpacing: '0.02em',
+                            }}
+                        >
+                            Todos os direitos reservados.
+                        </Typography>
+                    </Box>
                 </Container>
             </Box>
         </Box>
