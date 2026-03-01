@@ -480,7 +480,8 @@ const Estoque: React.FC = () => {
                             >
                                 <CardContent>
                                     <Grid container spacing={2} alignItems="center">
-                                        <Grid item xs={12} md={3}>
+                                        {/* Linha 1: Busca + Categoria */}
+                                        <Grid item xs={12} sm={6} md={3}>
                                             <TextField
                                                 fullWidth
                                                 placeholder="Buscar insumo..."
@@ -503,7 +504,7 @@ const Estoque: React.FC = () => {
                                                 }}
                                             />
                                         </Grid>
-                                        <Grid item xs={12} md={3}>
+                                        <Grid item xs={12} sm={6} md={3}>
                                             <FormControl fullWidth>
                                                 <InputLabel sx={{ color: '#64748b' }}>Categoria</InputLabel>
                                                 <Select
@@ -526,7 +527,8 @@ const Estoque: React.FC = () => {
                                                 </Select>
                                             </FormControl>
                                         </Grid>
-                                        <Grid item xs={12} md={2}>
+                                        {/* Linha 2: Status + Vencimento */}
+                                        <Grid item xs={12} sm={6} md={2}>
                                             <FormControl fullWidth>
                                                 <InputLabel sx={{ color: '#64748b' }}>Status</InputLabel>
                                                 <Select
@@ -547,7 +549,7 @@ const Estoque: React.FC = () => {
                                                 </Select>
                                             </FormControl>
                                         </Grid>
-                                        <Grid item xs={12} md={2}>
+                                        <Grid item xs={12} sm={6} md={2}>
                                             <FormControl fullWidth>
                                                 <InputLabel sx={{ color: '#64748b' }}>Vencimento</InputLabel>
                                                 <Select
@@ -568,8 +570,9 @@ const Estoque: React.FC = () => {
                                                 </Select>
                                             </FormControl>
                                         </Grid>
-                                        <Grid item xs={12} md={3}>
-                                            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', height: '56px' }}>
+                                        {/* Linha 3 (md inline): Botões de exportação — sempre ocupam linha inteira em xs/sm */}
+                                        <Grid item xs={12} md={2}>
+                                            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
                                                 <Button
                                                     size="small"
                                                     variant="outlined"
@@ -714,14 +717,20 @@ const Estoque: React.FC = () => {
                                     background: 'white',
                                     border: '1px solid #e2e8f0',
                                     borderRadius: 3,
+                                    overflow: 'visible',
                                 }}
                             >
-                                <CardContent>
+                                <CardContent sx={{ overflow: 'visible', p: { xs: 1.5, sm: 2, md: 2 } }}>
                                     <Typography variant="h6" sx={{ color: '#1e293b', mb: 2, fontWeight: 600 }}>
                                         Lista de Insumos
                                     </Typography>
-                                    <TableContainer>
-                                        <Table>
+                                    <TableContainer sx={{
+                                        overflowX: 'auto',
+                                        WebkitOverflowScrolling: 'touch',
+                                        borderRadius: 2,
+                                        border: '1px solid #f1f5f9',
+                                    }}>
+                                        <Table sx={{ minWidth: 750 }}>
                                             <TableHead>
                                                 <TableRow>
                                                     <TableCell sx={{ color: '#64748b', fontWeight: 600 }}>Nome</TableCell>

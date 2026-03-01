@@ -363,7 +363,7 @@ const Cidadaos: React.FC = () => {
                                 const sequentialId = (page - 1) * 12 + index + 1;
 
                                 return (
-                                    <Grid item xs={12} sm={6} md={4} lg={3} key={cidadao.id}>
+                                    <Grid item xs={12} sm={6} md={6} lg={4} xl={3} key={cidadao.id}>
                                         <motion.div
                                             initial={{ opacity: 0, y: 20 }}
                                             animate={{ opacity: 1, y: 0 }}
