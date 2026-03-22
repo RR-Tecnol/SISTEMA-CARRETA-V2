@@ -60,14 +60,16 @@ router.post('/', authenticate, authorizeAdmin, validate(funcionarioSchema), asyn
         // Hash da senha do médico
         if (data.is_medico && data.senha) {
             data.senha = await bcrypt.hash(data.senha, 10);
-        } else if (!data.is_medico) {
+        } else if (data.is_medico === false) {
+            // Só limpa se EXPLICITAMENTE desativado como médico
             data.senha = null;
             data.login_cpf = null;
         }
         // Hash da senha do admin estrada
         if (data.is_admin_estrada && data.admin_estrada_senha) {
             data.admin_estrada_senha = await bcrypt.hash(data.admin_estrada_senha, 10);
-        } else if (!data.is_admin_estrada) {
+        } else if (data.is_admin_estrada === false) {
+            // Só limpa se EXPLICITAMENTE desativado como admin_estrada
             data.admin_estrada_senha = null;
             data.admin_estrada_login_cpf = null;
         }
@@ -91,9 +93,10 @@ router.put('/:id', authenticate, authorizeAdmin, validate(updateFuncionarioSchem
         if (data.is_medico && data.senha && data.senha.length > 0) {
             data.senha = await bcrypt.hash(data.senha, 10);
         } else if (data.senha === '' || data.senha === null) {
-            delete data.senha;
+            delete data.senha; // não sobrescreve se não enviado
         }
-        if (!data.is_medico) {
+        // Só limpa credenciais se EXPLICITAMENTE removido o papel de médico
+        if (data.is_medico === false) {
             data.senha = null;
             data.login_cpf = null;
         }
@@ -101,9 +104,10 @@ router.put('/:id', authenticate, authorizeAdmin, validate(updateFuncionarioSchem
         if (data.is_admin_estrada && data.admin_estrada_senha && data.admin_estrada_senha.length > 0) {
             data.admin_estrada_senha = await bcrypt.hash(data.admin_estrada_senha, 10);
         } else if (data.admin_estrada_senha === '' || data.admin_estrada_senha === null) {
-            delete data.admin_estrada_senha;
+            delete data.admin_estrada_senha; // não sobrescreve se não enviado
         }
-        if (!data.is_admin_estrada) {
+        // Só limpa credenciais se EXPLICITAMENTE removido o papel de admin estrada
+        if (data.is_admin_estrada === false) {
             data.admin_estrada_senha = null;
             data.admin_estrada_login_cpf = null;
         }
