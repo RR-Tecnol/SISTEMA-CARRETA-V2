@@ -1,9 +1,10 @@
-import { Router, Request, Response } from 'express';
+﻿import { Router, Request, Response } from 'express';
 import { Op, fn, col, literal, where as seqWhere } from 'sequelize';
 
-// Condição reutilizável para identificar médicos (suporta acento ou sem acento)
+// Condicao para identificar medicos (is_medico=true OU cargo tipico)
 const cargoMedicoWhere = {
     [Op.or]: [
+        { is_medico: true },
         { cargo: { [Op.iLike]: '%medic%' } },
         { cargo: { [Op.iLike]: '%m\u00e9dic%' } },
         { cargo: { [Op.iLike]: '%doutor%' } },
@@ -23,20 +24,20 @@ import { CursoExame } from '../models/CursoExame';
 const router = Router();
 
 
-// Middleware que permite admin OU médico autenticado
+// Middleware que permite admin OU mÃ©dico autenticado
 const authorizeMedicoOrAdmin = (req: any, res: any, next: any) => {
-    if (!req.user) { res.status(401).json({ error: 'Não autenticado' }); return; }
+    if (!req.user) { res.status(401).json({ error: 'NÃ£o autenticado' }); return; }
     if (req.user.tipo === 'admin' || req.user.tipo === 'medico') { next(); return; }
     res.status(403).json({ error: 'Acesso negado' });
 };
 
-// ═══ GET /minhas-acoes ═══ Ações em que o médico está cadastrado
+// â•â•â• GET /minhas-acoes â•â•â• AÃ§Ãµes em que o mÃ©dico estÃ¡ cadastrado
 router.get('/minhas-acoes', authenticate, authorizeMedicoOrAdmin, async (req: any, res: Response) => {
     try {
         const funcionarioId = req.user.id;
         const hoje = new Date();
 
-        // Buscar vínculos ação-funcionário
+        // Buscar vÃ­nculos aÃ§Ã£o-funcionÃ¡rio
         const vinculos = await AcaoFuncionario.findAll({
             where: { funcionario_id: funcionarioId },
         });
@@ -47,7 +48,7 @@ router.get('/minhas-acoes', authenticate, authorizeMedicoOrAdmin, async (req: an
             return;
         }
 
-        // Buscar ações vinculadas (ativas ou planejadas — sem filtro de data)
+        // Buscar aÃ§Ãµes vinculadas (ativas ou planejadas â€” sem filtro de data)
         const acoes = await Acao.findAll({
             where: {
                 id: { [Op.in]: acaoIds },
@@ -56,7 +57,7 @@ router.get('/minhas-acoes', authenticate, authorizeMedicoOrAdmin, async (req: an
             order: [['data_inicio', 'ASC']],
         });
 
-        // Para cada ação, contar inscritos pendentes
+        // Para cada aÃ§Ã£o, contar inscritos pendentes
         const acoesCom = await Promise.all(acoes.map(async (acao) => {
             const totalInscritos = await Inscricao.count({
                 where: { acao_id: acao.id },
@@ -77,12 +78,12 @@ router.get('/minhas-acoes', authenticate, authorizeMedicoOrAdmin, async (req: an
 
         res.json(acoesCom);
     } catch (error) {
-        console.error('Erro ao buscar ações do médico:', error);
-        res.status(500).json({ error: 'Erro ao buscar ações' });
+        console.error('Erro ao buscar aÃ§Ãµes do mÃ©dico:', error);
+        res.status(500).json({ error: 'Erro ao buscar aÃ§Ãµes' });
     }
 });
 
-// ═══ GET /acao/:id/inscricoes ═══ Lista inscritos de uma ação para o médico atender
+// â•â•â• GET /acao/:id/inscricoes â•â•â• Lista inscritos de uma aÃ§Ã£o para o mÃ©dico atender
 router.get('/acao/:id/inscricoes', authenticate, authorizeMedicoOrAdmin, async (req: any, res: Response) => {
     try {
         const { id: acaoId } = req.params;
@@ -93,7 +94,7 @@ router.get('/acao/:id/inscricoes', authenticate, authorizeMedicoOrAdmin, async (
 
         // Verificar total sem filtro de status
         const totalSemFiltro = await Inscricao.count({ where: { acao_id: acaoId } });
-        console.log(`[inscricoes] Total de inscrições na ação (sem filtro de status): ${totalSemFiltro}`);
+        console.log(`[inscricoes] Total de inscriÃ§Ãµes na aÃ§Ã£o (sem filtro de status): ${totalSemFiltro}`);
 
         const whereClause: any = {
             acao_id: acaoId,
@@ -108,7 +109,7 @@ router.get('/acao/:id/inscricoes', authenticate, authorizeMedicoOrAdmin, async (
             offset,
         });
 
-        console.log(`[inscricoes] Encontrados: ${count} inscrições com filtro status=${status}`);
+        console.log(`[inscricoes] Encontrados: ${count} inscriÃ§Ãµes com filtro status=${status}`);
 
         res.json({ inscricoes, total: count, page: Number(page), pages: Math.ceil(count / Number(limit)) });
     } catch (error) {
@@ -118,7 +119,7 @@ router.get('/acao/:id/inscricoes', authenticate, authorizeMedicoOrAdmin, async (
 });
 
 
-// ═══ GET /me ═══ Dados do médico logado (para o painel médico) — aceita ?acao_id
+// â•â•â• GET /me â•â•â• Dados do mÃ©dico logado (para o painel mÃ©dico) â€” aceita ?acao_id
 router.get('/me', authenticate, authorizeMedicoOrAdmin, async (req: any, res: Response) => {
     try {
         const funcionarioId = req.user.id;
@@ -154,25 +155,25 @@ router.get('/me', authenticate, authorizeMedicoOrAdmin, async (req: any, res: Re
             serverTime: new Date().toISOString(),
         });
     } catch (error) {
-        console.error('Erro ao buscar dados do médico:', error);
+        console.error('Erro ao buscar dados do mÃ©dico:', error);
         res.status(500).json({ error: 'Erro ao buscar dados' });
     }
 });
 
 
 
-// ═══ POST /atendimento/iniciar ═══ Inicia consulta (médico ou admin)
+// â•â•â• POST /atendimento/iniciar â•â•â• Inicia consulta (mÃ©dico ou admin)
 router.post('/atendimento/iniciar', authenticate, authorizeMedicoOrAdmin, async (req: any, res: Response) => {
     try {
         const { funcionario_id, nome_paciente, cidadao_id, acao_id, ponto_id, observacoes } = req.body;
         const funcId = funcionario_id || req.user.id;
 
         if (!funcId) {
-            res.status(400).json({ error: 'funcionario_id é obrigatório' });
+            res.status(400).json({ error: 'funcionario_id Ã© obrigatÃ³rio' });
             return;
         }
 
-        // Verificar ponto ativo — abrir automaticamente se não tiver
+        // Verificar ponto ativo â€” abrir automaticamente se nÃ£o tiver
         let pontoAtivo = ponto_id;
         if (!pontoAtivo) {
             const ponto = await PontoMedico.findOne({ where: { funcionario_id: funcId, status: 'trabalhando' } });
@@ -207,17 +208,17 @@ router.post('/atendimento/iniciar', authenticate, authorizeMedicoOrAdmin, async 
     }
 });
 
-// ═══ PUT /atendimento/:id/finalizar ═══ (médico ou admin)
+// â•â•â• PUT /atendimento/:id/finalizar â•â•â• (mÃ©dico ou admin)
 router.put('/atendimento/:id/finalizar', authenticate, authorizeMedicoOrAdmin, async (req: any, res: Response) => {
     try {
         const atendimento = await AtendimentoMedico.findByPk(req.params.id);
-        if (!atendimento) { res.status(404).json({ error: 'Atendimento não encontrado' }); return; }
+        if (!atendimento) { res.status(404).json({ error: 'Atendimento nÃ£o encontrado' }); return; }
         const fim = new Date();
         const duracaoMs = fim.getTime() - atendimento.hora_inicio.getTime();
         const duracaoMinutos = Math.max(1, Math.round(duracaoMs / (1000 * 60)));
         await atendimento.update({ hora_fim: fim, duracao_minutos: duracaoMinutos, status: 'concluido', observacoes: req.body.observacoes || atendimento.observacoes });
 
-        // Atualizar status da inscrição para 'atendido' se existir
+        // Atualizar status da inscriÃ§Ã£o para 'atendido' se existir
         if (atendimento.cidadao_id && atendimento.acao_id) {
             await Inscricao.update(
                 { status: 'atendido' },
@@ -232,15 +233,15 @@ router.put('/atendimento/:id/finalizar', authenticate, authorizeMedicoOrAdmin, a
     }
 });
 
-// ═══ PUT /atendimento/:id/cancelar ═══ (médico ou admin)
+// â•â•â• PUT /atendimento/:id/cancelar â•â•â• (mÃ©dico ou admin)
 router.put('/atendimento/:id/cancelar', authenticate, authorizeMedicoOrAdmin, async (req: any, res: Response) => {
     try {
         const atendimento = await AtendimentoMedico.findByPk(req.params.id);
-        if (!atendimento) { res.status(404).json({ error: 'Atendimento não encontrado' }); return; }
+        if (!atendimento) { res.status(404).json({ error: 'Atendimento nÃ£o encontrado' }); return; }
         await atendimento.update({ status: 'cancelado', hora_fim: new Date() });
 
-        // Manter inscrição como pendente (não foi atendido, mas pode ser reagendado)
-        // Não altera o status da inscrição ao cancelar
+        // Manter inscriÃ§Ã£o como pendente (nÃ£o foi atendido, mas pode ser reagendado)
+        // NÃ£o altera o status da inscriÃ§Ã£o ao cancelar
 
         res.json(atendimento);
     } catch (error) {
@@ -251,8 +252,8 @@ router.put('/atendimento/:id/cancelar', authenticate, authorizeMedicoOrAdmin, as
 
 
 
-// �"?�"?�"? M�?DICOS �"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?
-// GET /medicos �?" lista apenas funcionários com cargo médico
+// ï¿½"?ï¿½"?ï¿½"? Mï¿½?DICOS ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?
+// GET /medicos ï¿½?" lista apenas funcionÃ¡rios com cargo mÃ©dico
 router.get('/medicos', authenticate, authorizeAdminOrEstrada, async (_req: Request, res: Response) => {
     try {
         const medicos = await Funcionario.findAll({
@@ -264,13 +265,13 @@ router.get('/medicos', authenticate, authorizeAdminOrEstrada, async (_req: Reque
         });
         res.json(medicos);
     } catch (error) {
-        console.error('Erro ao buscar médicos:', error);
-        res.status(500).json({ error: 'Erro ao buscar médicos' });
+        console.error('Erro ao buscar mÃ©dicos:', error);
+        res.status(500).json({ error: 'Erro ao buscar mÃ©dicos' });
     }
 });
 
-// �"?�"?�"? DASHBOARD �"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?
-// GET /dashboard �?" KPIs globais
+// ï¿½"?ï¿½"?ï¿½"? DASHBOARD ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?
+// GET /dashboard ï¿½?" KPIs globais
 router.get('/dashboard', authenticate, authorizeAdminOrEstrada, async (_req: Request, res: Response) => {
     try {
         const hoje = new Date();
@@ -278,7 +279,7 @@ router.get('/dashboard', authenticate, authorizeAdminOrEstrada, async (_req: Req
         const amanha = new Date(hoje);
         amanha.setDate(amanha.getDate() + 1);
 
-        // Médicos ativos agora (com ponto aberto)
+        // MÃ©dicos ativos agora (com ponto aberto)
         const medicosAtivos = await PontoMedico.count({
             where: { status: 'trabalhando' },
         });
@@ -291,7 +292,7 @@ router.get('/dashboard', authenticate, authorizeAdminOrEstrada, async (_req: Req
             },
         });
 
-        // Atendimentos concluídos hoje
+        // Atendimentos concluÃ­dos hoje
         const atendimentosConcluidos = await AtendimentoMedico.count({
             where: {
                 hora_inicio: { [Op.between]: [hoje, amanha] },
@@ -299,7 +300,7 @@ router.get('/dashboard', authenticate, authorizeAdminOrEstrada, async (_req: Req
             },
         });
 
-        // Tempo médio de atendimento (em minutos) �?" apenas concluídos hoje
+        // Tempo mÃ©dio de atendimento (em minutos) ï¿½?" apenas concluÃ­dos hoje
         const tempoMedioRaw = await AtendimentoMedico.findOne({
             attributes: [[fn('AVG', col('duracao_minutos')), 'media']],
             where: {
@@ -311,12 +312,12 @@ router.get('/dashboard', authenticate, authorizeAdminOrEstrada, async (_req: Req
         }) as any;
         const tempoMedio = tempoMedioRaw?.media ? Math.round(Number(tempoMedioRaw.media)) : 0;
 
-        // Total de médicos cadastrados (ativos)
+        // Total de mÃ©dicos cadastrados (ativos)
         const totalMedicos = await Funcionario.count({
             where: { ...cargoMedicoWhere, ativo: true },
         });
 
-        // Top médico do dia (mais atendimentos)
+        // Top mÃ©dico do dia (mais atendimentos)
         const topMedicoRaw = await AtendimentoMedico.findAll({
             attributes: [
                 'funcionario_id',
@@ -338,7 +339,7 @@ router.get('/dashboard', authenticate, authorizeAdminOrEstrada, async (_req: Req
             total: (topMedicoRaw[0] as any).dataValues.total,
         } : null;
 
-        // Alertas: médicos trabalhando sem atendimentos na última 1h
+        // Alertas: mÃ©dicos trabalhando sem atendimentos na Ãºltima 1h
         const umaHoraAtras = new Date(Date.now() - 60 * 60 * 1000);
         const pontosSemAtendimento = await PontoMedico.findAll({
             where: {
@@ -375,27 +376,27 @@ router.get('/dashboard', authenticate, authorizeAdminOrEstrada, async (_req: Req
             alertas,
         });
     } catch (error) {
-        console.error('Erro no dashboard médico:', error);
+        console.error('Erro no dashboard mÃ©dico:', error);
         res.status(500).json({ error: 'Erro ao gerar dashboard' });
     }
 });
 
-// �"?�"?�"? PONTO �"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?
+// ï¿½"?ï¿½"?ï¿½"? PONTO ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?
 // POST /ponto/entrada
 router.post('/ponto/entrada', authenticate, authorizeMedicoOrAdmin, async (req: Request, res: Response) => {
     try {
         const { funcionario_id, acao_id, observacoes } = req.body;
         if (!funcionario_id) {
-            res.status(400).json({ error: 'funcionario_id é obrigatório' });
+            res.status(400).json({ error: 'funcionario_id Ã© obrigatÃ³rio' });
             return;
         }
 
-        // Verificar se já tem ponto aberto
+        // Verificar se jÃ¡ tem ponto aberto
         const pontoAberto = await PontoMedico.findOne({
             where: { funcionario_id, status: 'trabalhando' },
         });
         if (pontoAberto) {
-            res.status(409).json({ error: 'Médico já possui ponto aberto', ponto: pontoAberto });
+            res.status(409).json({ error: 'MÃ©dico jÃ¡ possui ponto aberto', ponto: pontoAberto });
             return;
         }
 
@@ -419,11 +420,11 @@ router.put('/ponto/:id/saida', authenticate, authorizeMedicoOrAdmin, async (req:
     try {
         const ponto = await PontoMedico.findByPk(req.params.id);
         if (!ponto) {
-            res.status(404).json({ error: 'Ponto não encontrado' });
+            res.status(404).json({ error: 'Ponto nÃ£o encontrado' });
             return;
         }
         if (ponto.status === 'saiu') {
-            res.status(409).json({ error: 'Ponto já encerrado' });
+            res.status(409).json({ error: 'Ponto jÃ¡ encerrado' });
             return;
         }
 
@@ -446,12 +447,12 @@ router.put('/ponto/:id/saida', authenticate, authorizeMedicoOrAdmin, async (req:
 
         res.json(ponto);
     } catch (error) {
-        console.error('Erro ao registrar saída:', error);
-        res.status(500).json({ error: 'Erro ao registrar saída' });
+        console.error('Erro ao registrar saÃ­da:', error);
+        res.status(500).json({ error: 'Erro ao registrar saÃ­da' });
     }
 });
 
-// GET /ponto �?" listar pontos com filtros
+// GET /ponto ï¿½?" listar pontos com filtros
 router.get('/ponto', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
     try {
         const { funcionario_id, acao_id, data_inicio, data_fim, status } = req.query;
@@ -514,17 +515,17 @@ router.get('/ponto', authenticate, authorizeAdminOrEstrada, async (req: Request,
     }
 });
 
-// �"?�"?�"? ATENDIMENTOS �"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?
-// POST /atendimentos �?" iniciar atendimento
+// ï¿½"?ï¿½"?ï¿½"? ATENDIMENTOS ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?
+// POST /atendimentos ï¿½?" iniciar atendimento
 router.post('/atendimentos', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
     try {
         const { funcionario_id, acao_id, cidadao_id, ponto_id, observacoes, nome_paciente } = req.body;
         if (!funcionario_id) {
-            res.status(400).json({ error: 'funcionario_id é obrigatório' });
+            res.status(400).json({ error: 'funcionario_id Ã© obrigatÃ³rio' });
             return;
         }
 
-        // Buscar ponto ativo automaticamente se não informado
+        // Buscar ponto ativo automaticamente se nÃ£o informado
         let pontoAtivo = ponto_id;
         if (!pontoAtivo) {
             const ponto = await PontoMedico.findOne({
@@ -539,7 +540,7 @@ router.post('/atendimentos', authenticate, authorizeAdminOrEstrada, async (req: 
             cidadao_id: cidadao_id || undefined,
             ponto_id: pontoAtivo || undefined,
             hora_inicio: new Date(),
-            status: 'aguardando', // Admin adiciona à fila de espera; médico muda para em_andamento ao chamar
+            status: 'aguardando', // Admin adiciona Ã  fila de espera; mÃ©dico muda para em_andamento ao chamar
             observacoes,
             nome_paciente,
         });
@@ -563,7 +564,7 @@ router.put('/atendimentos/:id/finalizar', authenticate, authorizeAdminOrEstrada,
     try {
         const atendimento = await AtendimentoMedico.findByPk(req.params.id);
         if (!atendimento) {
-            res.status(404).json({ error: 'Atendimento não encontrado' });
+            res.status(404).json({ error: 'Atendimento nÃ£o encontrado' });
             return;
         }
 
@@ -590,7 +591,7 @@ router.put('/atendimentos/:id/cancelar', authenticate, authorizeAdminOrEstrada, 
     try {
         const atendimento = await AtendimentoMedico.findByPk(req.params.id);
         if (!atendimento) {
-            res.status(404).json({ error: 'Atendimento não encontrado' });
+            res.status(404).json({ error: 'Atendimento nÃ£o encontrado' });
             return;
         }
         await atendimento.update({ status: 'cancelado', observacoes: req.body.observacoes || atendimento.observacoes });
@@ -600,8 +601,8 @@ router.put('/atendimentos/:id/cancelar', authenticate, authorizeAdminOrEstrada, 
     }
 });
 
-// GET /debug-timestamps — endpoint temporário para diagnóstico de timezone
-// Remove este endpoint após diagnosticar o problema
+// GET /debug-timestamps â€” endpoint temporÃ¡rio para diagnÃ³stico de timezone
+// Remove este endpoint apÃ³s diagnosticar o problema
 router.get('/debug-timestamps', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
     try {
         const ultimos = await AtendimentoMedico.findAll({
@@ -620,7 +621,7 @@ router.get('/debug-timestamps', authenticate, authorizeAdminOrEstrada, async (re
         const inicioComAjuste = new Date(dataParam);
         inicioComAjuste.setHours(0 + 3, 0, 0, 0); // 03:00 UTC = 00:00 BRT
         const fimComAjuste = new Date(dataParam);
-        fimComAjuste.setHours(23 + 3, 59, 59, 999); // Próximo dia 02:59:59 UTC = 23:59 BRT
+        fimComAjuste.setHours(23 + 3, 59, 59, 999); // PrÃ³ximo dia 02:59:59 UTC = 23:59 BRT
 
         res.json({
             serverTime: new Date().toISOString(),
@@ -642,7 +643,7 @@ router.get('/debug-timestamps', authenticate, authorizeAdminOrEstrada, async (re
     }
 });
 
-// GET /atendimentos — listar com filtros
+// GET /atendimentos â€” listar com filtros
 router.get('/atendimentos', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
     try {
         const { funcionario_id, acao_id, data_inicio, data_fim, status, limit } = req.query;
@@ -655,13 +656,13 @@ router.get('/atendimentos', authenticate, authorizeAdminOrEstrada, async (req: R
             where.hora_inicio = {};
             if (data_inicio) {
                 // data_inicio = 'YYYY-MM-DD' (dia no fuso BRT = UTC-3)
-                // new Date('YYYY-MM-DD') = UTC midnight. Para cobrir BRT, precisamos de UTC+3h = início do dia BRT
+                // new Date('YYYY-MM-DD') = UTC midnight. Para cobrir BRT, precisamos de UTC+3h = inÃ­cio do dia BRT
                 const inicio = new Date(data_inicio as string);
                 inicio.setTime(inicio.getTime() + 3 * 60 * 60 * 1000); // 00:00 BRT = 03:00 UTC
                 where.hora_inicio[Op.gte] = inicio;
             }
             if (data_fim) {
-                // Fim do dia BRT (23:59:59) = próximo dia 02:59:59 UTC
+                // Fim do dia BRT (23:59:59) = prÃ³ximo dia 02:59:59 UTC
                 const fim = new Date(data_fim as string);
                 fim.setTime(fim.getTime() + 27 * 60 * 60 * 1000 - 1); // 23:59:59.999 BRT = 02:59:59.999 UTC do dia seguinte
                 where.hora_inicio[Op.lte] = fim;
@@ -673,7 +674,7 @@ router.get('/atendimentos', authenticate, authorizeAdminOrEstrada, async (req: R
             include: [
                 { model: Funcionario, as: 'funcionario', attributes: ['id', 'nome', 'cargo', 'especialidade'] },
                 { model: Acao, as: 'acao', attributes: ['id', 'numero_acao', 'nome'] },
-                // 'nome' é alias de 'nome_completo' para manter compatibilidade com o frontend
+                // 'nome' Ã© alias de 'nome_completo' para manter compatibilidade com o frontend
                 { model: Cidadao, as: 'cidadao', attributes: ['id', [literal('nome_completo'), 'nome']] },
             ],
             order: [['hora_inicio', 'DESC']],
@@ -688,8 +689,8 @@ router.get('/atendimentos', authenticate, authorizeAdminOrEstrada, async (req: R
 });
 
 
-// �"?�"?�"? RELAT�"RIO �"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?�"?
-// GET /relatorio/geral — DEVE vir ANTES de /relatorio/:funcionario_id
+// ï¿½"?ï¿½"?ï¿½"? RELATï¿½"RIO ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?ï¿½"?
+// GET /relatorio/geral â€” DEVE vir ANTES de /relatorio/:funcionario_id
 router.get('/relatorio/geral', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
     try {
         const { data_inicio, data_fim, acao_id } = req.query;
@@ -782,12 +783,12 @@ router.get('/relatorio/geral', authenticate, authorizeAdminOrEstrada, async (req
             gerado_em: new Date().toISOString(),
         });
     } catch (error) {
-        console.error('Erro ao gerar relatório geral:', error);
-        res.status(500).json({ error: 'Erro ao gerar relatório geral' });
+        console.error('Erro ao gerar relatÃ³rio geral:', error);
+        res.status(500).json({ error: 'Erro ao gerar relatÃ³rio geral' });
     }
 });
 
-// GET /relatorio/:funcionario_id — relatório individual (vem DEPOIS de /relatorio/geral)
+// GET /relatorio/:funcionario_id â€” relatÃ³rio individual (vem DEPOIS de /relatorio/geral)
 router.get('/relatorio/:funcionario_id', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
     try {
         const { funcionario_id } = req.params;
@@ -795,7 +796,7 @@ router.get('/relatorio/:funcionario_id', authenticate, authorizeAdminOrEstrada, 
 
         const funcionario = await Funcionario.findByPk(funcionario_id);
         if (!funcionario) {
-            res.status(404).json({ error: 'Funcionário não encontrado' });
+            res.status(404).json({ error: 'FuncionÃ¡rio nÃ£o encontrado' });
             return;
         }
 
@@ -835,7 +836,7 @@ router.get('/relatorio/:funcionario_id', authenticate, authorizeAdminOrEstrada, 
             order: [['hora_inicio', 'DESC']],
         });
 
-        // Calcular métricas
+        // Calcular mÃ©tricas
         const totalHorasTrabalhadas = pontos
             .filter((p) => p.status === 'saiu' && p.horas_trabalhadas)
             .reduce((acc, p) => acc + (Number(p.horas_trabalhadas) || 0), 0);
@@ -871,13 +872,13 @@ router.get('/relatorio/:funcionario_id', authenticate, authorizeAdminOrEstrada, 
             atendimentos,
         });
     } catch (error) {
-        console.error('Erro ao gerar relatório:', error);
-        res.status(500).json({ error: 'Erro ao gerar relatório' });
+        console.error('Erro ao gerar relatÃ³rio:', error);
+        res.status(500).json({ error: 'Erro ao gerar relatÃ³rio' });
     }
 });
 
 
-// ═══ GET /stats/tempo-real ═══ (admin) — atendimentos em andamento AGORA + resumo do dia por médico
+// â•â•â• GET /stats/tempo-real â•â•â• (admin) â€” atendimentos em andamento AGORA + resumo do dia por mÃ©dico
 router.get('/stats/tempo-real', authenticate, authorizeAdminOrEstrada, async (_req: Request, res: Response) => {
     try {
         const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
@@ -902,15 +903,15 @@ router.get('/stats/tempo-real', authenticate, authorizeAdminOrEstrada, async (_r
             return {
                 ...json,
                 tempo_decorrido_segundos: segundos,
-                nome_paciente_display: json.cidadao?.nome || json.nome_paciente || '—',
+                nome_paciente_display: json.cidadao?.nome || json.nome_paciente || 'â€”',
             };
         });
 
-        // Resumo do dia por médico (concluídos, em andamento, aguardando, cancelados)
+        // Resumo do dia por mÃ©dico (concluÃ­dos, em andamento, aguardando, cancelados)
         const todosHoje = await AtendimentoMedico.findAll({
             where: {
                 hora_inicio: { [Op.between]: [hoje, amanha] },
-                status: { [Op.ne]: 'aguardando' }, // Fila de espera não conta como atendimento
+                status: { [Op.ne]: 'aguardando' }, // Fila de espera nÃ£o conta como atendimento
             },
             attributes: ['funcionario_id', 'status'],
         });
@@ -944,7 +945,7 @@ router.get('/stats/tempo-real', authenticate, authorizeAdminOrEstrada, async (_r
 });
 
 
-// ═══ GET /cidadaos/buscar ═══ Busca cidadãos cadastrados (com filtro por ação)
+// â•â•â• GET /cidadaos/buscar â•â•â• Busca cidadÃ£os cadastrados (com filtro por aÃ§Ã£o)
 // Usado pelo autocomplete do modal "Novo Atendimento" no admin
 router.get('/cidadaos/buscar', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
     try {
@@ -952,7 +953,7 @@ router.get('/cidadaos/buscar', authenticate, authorizeAdminOrEstrada, async (req
         const termo = String(q).trim();
 
         if (acao_id) {
-            // Busca inscritos da ação que ainda não foram atendidos
+            // Busca inscritos da aÃ§Ã£o que ainda nÃ£o foram atendidos
             const inscricoes = await Inscricao.findAll({
                 where: { acao_id, status: { [Op.in]: ['pendente', 'atendido'] } },
                 include: [{
@@ -983,7 +984,7 @@ router.get('/cidadaos/buscar', authenticate, authorizeAdminOrEstrada, async (req
                 }));
             res.json(resultado);
         } else {
-            // Busca geral de cidadãos cadastrados
+            // Busca geral de cidadÃ£os cadastrados
             const where: any = termo
                 ? { [Op.or]: [{ nome_completo: { [Op.iLike]: `%${termo}%` } }, { cpf: { [Op.iLike]: `%${termo}%` } }] }
                 : {};
@@ -996,18 +997,18 @@ router.get('/cidadaos/buscar', authenticate, authorizeAdminOrEstrada, async (req
             res.json(cidadaos.map((c: any) => c.toJSON()));
         }
     } catch (error) {
-        console.error('Erro ao buscar cidadãos:', error);
-        res.status(500).json({ error: 'Erro ao buscar cidadãos' });
+        console.error('Erro ao buscar cidadÃ£os:', error);
+        res.status(500).json({ error: 'Erro ao buscar cidadÃ£os' });
     }
 });
 
-// ═══ GET /fila/:funcionario_id ═══ Fila de espera do médico (atendimentos aguardando hoje)
-// Usado pelo painel do médico via polling para notificações e lista de espera
+// â•â•â• GET /fila/:funcionario_id â•â•â• Fila de espera do mÃ©dico (atendimentos aguardando hoje)
+// Usado pelo painel do mÃ©dico via polling para notificaÃ§Ãµes e lista de espera
 router.get('/fila/:funcionario_id', authenticate, authorizeMedicoOrAdmin, async (req: any, res: Response) => {
     try {
         const { funcionario_id } = req.params;
 
-        // Apenas o próprio médico ou admin pode ver a fila
+        // Apenas o prÃ³prio mÃ©dico ou admin pode ver a fila
         if (req.user.tipo !== 'admin' && String(req.user.id) !== String(funcionario_id)) {
             res.status(403).json({ error: 'Acesso negado' });
             return;
@@ -1023,7 +1024,7 @@ router.get('/fila/:funcionario_id', authenticate, authorizeMedicoOrAdmin, async 
             status: 'aguardando',
             hora_inicio: { [Op.between]: [hoje, amanha] },
         };
-        // Filtra por ação se informada (paciente visto só na ação correta)
+        // Filtra por aÃ§Ã£o se informada (paciente visto sÃ³ na aÃ§Ã£o correta)
         if (acao_id) whereFila.acao_id = acao_id;
 
         const aguardando = await AtendimentoMedico.findAll({
