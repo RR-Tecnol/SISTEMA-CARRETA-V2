@@ -67,6 +67,14 @@ services:
 
       # CORS
       CORS_ORIGIN: ${CORS_ORIGIN:-https://gestaosobrerodas.com.br}
+
+      # Email (Brevo/SMTP) — configure no .env da VPS, nunca no código
+      SMTP_HOST: ${SMTP_HOST:-smtp-relay.brevo.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-contato@gestaosobrerodas.com.br}
+
     # ports:
     #   - "3001:3001" # Security: Exposed only via internal network to Nginx
     volumes:
