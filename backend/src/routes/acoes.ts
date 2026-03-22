@@ -786,4 +786,61 @@ router.put('/:id/funcionarios/:funcionarioId', authenticate, authorizeAdminOrEst
 });
 
 
+/**
+ * DELETE /api/acoes/:id
+ * Excluir ação (admin) — remove todos os vínculos antes de deletar
+ */
+router.delete('/:id', authenticate, authorizeAdmin, async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+
+        const acao = await Acao.findByPk(id);
+        if (!acao) {
+            res.status(404).json({ error: 'Ação não encontrada' });
+            return;
+        }
+
+        // 1. Liberar caminhões vinculados (voltar para disponível)
+        const vincCaminhoes = await AcaoCaminhao.findAll({ where: { acao_id: id } });
+        for (const v of vincCaminhoes) {
+            const outrasAcoes = await AcaoCaminhao.count({
+                where: { caminhao_id: (v as any).caminhao_id },
+                include: [{
+                    model: Acao,
+                    as: 'acao',
+                    where: { status: 'ativa', id: { [Op.ne]: id } },
+                    required: true,
+                }] as any,
+            });
+            if (outrasAcoes === 0) {
+                await Caminhao.update(
+                    { status: 'disponivel' },
+                    { where: { id: (v as any).caminhao_id, status: 'em_acao' } }
+                );
+            }
+        }
+
+        // 2. Remover vínculos
+        await AcaoCaminhao.destroy({ where: { acao_id: id } });
+        await AcaoFuncionario.destroy({ where: { acao_id: id } });
+        await AcaoCursoExame.destroy({ where: { acao_id: id } });
+        await Inscricao.destroy({ where: { acao_id: id } });
+
+        // 3. Remover contas a pagar vinculadas à ação
+        await ContaPagar.destroy({ where: { acao_id: id } });
+
+        // 4. Excluir a ação
+        await acao.destroy();
+
+        // 5. Limpar cache
+        await clearCache('cache:/api/acoes*');
+
+        res.json({ message: 'Ação excluída com sucesso' });
+    } catch (error) {
+        console.error('Erro ao excluir ação:', error);
+        res.status(500).json({ error: 'Erro ao excluir ação' });
+    }
+});
+
+
 export default router;
