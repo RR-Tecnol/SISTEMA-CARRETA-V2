@@ -58,18 +58,29 @@ router.post('/', authenticate, authorizeAdmin, validate(funcionarioSchema), asyn
     try {
         const data = { ...req.body };
         // Hash da senha do médico
-        if (data.is_medico && data.senha) {
+        if (data.is_medico && data.senha && data.senha.length > 0) {
             data.senha = await bcrypt.hash(data.senha, 10);
-        } else if (data.is_medico === false) {
-            // Só limpa se EXPLICITAMENTE desativado como médico
+        } else {
+            // String vazia ou ausente vira null (nunca salvar '' no banco)
+            if (!data.senha || data.senha === '') data.senha = null;
+        }
+        // login_cpf vazio vira null
+        if (!data.login_cpf || data.login_cpf === '') data.login_cpf = null;
+        // Só limpa se EXPLICITAMENTE desativado como médico
+        if (data.is_medico === false) {
             data.senha = null;
             data.login_cpf = null;
         }
         // Hash da senha do admin estrada
-        if (data.is_admin_estrada && data.admin_estrada_senha) {
+        if (data.is_admin_estrada && data.admin_estrada_senha && data.admin_estrada_senha.length > 0) {
             data.admin_estrada_senha = await bcrypt.hash(data.admin_estrada_senha, 10);
-        } else if (data.is_admin_estrada === false) {
-            // Só limpa se EXPLICITAMENTE desativado como admin_estrada
+        } else {
+            if (!data.admin_estrada_senha || data.admin_estrada_senha === '') data.admin_estrada_senha = null;
+        }
+        // admin_estrada_login_cpf vazio vira null
+        if (!data.admin_estrada_login_cpf || data.admin_estrada_login_cpf === '') data.admin_estrada_login_cpf = null;
+        // Só limpa se EXPLICITAMENTE desativado como admin_estrada
+        if (data.is_admin_estrada === false) {
             data.admin_estrada_senha = null;
             data.admin_estrada_login_cpf = null;
         }
@@ -95,6 +106,8 @@ router.put('/:id', authenticate, authorizeAdmin, validate(updateFuncionarioSchem
         } else if (data.senha === '' || data.senha === null) {
             delete data.senha; // não sobrescreve se não enviado
         }
+        // Se login_cpf vier vazio (string ''), não sobrescrever o valor existente no banco
+        if (data.login_cpf === '') delete data.login_cpf;
         // Só limpa credenciais se EXPLICITAMENTE removido o papel de médico
         if (data.is_medico === false) {
             data.senha = null;
@@ -106,6 +119,8 @@ router.put('/:id', authenticate, authorizeAdmin, validate(updateFuncionarioSchem
         } else if (data.admin_estrada_senha === '' || data.admin_estrada_senha === null) {
             delete data.admin_estrada_senha; // não sobrescreve se não enviado
         }
+        // Se admin_estrada_login_cpf vier vazio, não sobrescrever o valor existente
+        if (data.admin_estrada_login_cpf === '') delete data.admin_estrada_login_cpf;
         // Só limpa credenciais se EXPLICITAMENTE removido o papel de admin estrada
         if (data.is_admin_estrada === false) {
             data.admin_estrada_senha = null;
