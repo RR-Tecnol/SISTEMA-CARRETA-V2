@@ -77,7 +77,9 @@ router.post('/login', validate(loginSchema), async (req: Request, res: Response)
             },
         });
 
+        let medicoEncontrado = false;
         if (medico && medico.senha) {
+            medicoEncontrado = true;
             if (!(medico as any).ativo) {
                 res.status(403).json({ error: 'Acesso suspenso. Entre em contato com o administrador.' });
                 return;
@@ -92,6 +94,9 @@ router.post('/login', validate(loginSchema), async (req: Request, res: Response)
                 });
                 return;
             }
+            // Senha errada para médico encontrado → 401 (não cair no lookup de cidadão)
+            res.status(401).json({ error: 'CPF ou senha inválidos' });
+            return;
         }
 
         // ── 2. Verificar se é ADMIN ESTRADA (antes do validarCPF) ──
@@ -108,7 +113,9 @@ router.post('/login', validate(loginSchema), async (req: Request, res: Response)
             },
         });
 
+        let adminEstradaEncontrado = false;
         if (adminEstrada && (adminEstrada as any).admin_estrada_senha) {
+            adminEstradaEncontrado = true;
             if (!(adminEstrada as any).ativo) {
                 res.status(403).json({ error: 'Acesso suspenso. Entre em contato com o administrador.' });
                 return;
@@ -123,6 +130,16 @@ router.post('/login', validate(loginSchema), async (req: Request, res: Response)
                 });
                 return;
             }
+            // Senha errada para admin_estrada encontrado → 401
+            res.status(401).json({ error: 'CPF ou senha inválidos' });
+            return;
+        }
+
+        // Se chegou aqui, não é médico nem admin_estrada — prosseguir para cidadão
+        // (só chega aqui se NENHUM dos dois foi encontrado pelo login_cpf)
+        if (medicoEncontrado || adminEstradaEncontrado) {
+            res.status(401).json({ error: 'CPF ou senha inválidos' });
+            return;
         }
 
         // ── 3. Login como CIDADÃO ou ADMIN ──
