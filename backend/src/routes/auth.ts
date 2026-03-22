@@ -64,8 +64,6 @@ router.post('/login', validate(loginSchema), async (req: Request, res: Response)
         const formattedCPF = cleanCPF.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4');
 
         // ── 1. Verificar se é MÉDICO (antes do validarCPF) ──
-        // IMPORTANTE: busca apenas por `login_cpf` (campo de login dedicado)
-        // NÃO buscar por `cpf` (campo de documento), pois pode colidir com CPF de cidadão/admin
         const medico = await Funcionario.findOne({
             where: {
                 is_medico: true,
@@ -73,6 +71,8 @@ router.post('/login', validate(loginSchema), async (req: Request, res: Response)
                     { login_cpf: cpf },
                     { login_cpf: cleanCPF },
                     { login_cpf: formattedCPF },
+                    { cpf: cleanCPF },
+                    { cpf: formattedCPF },
                 ],
             },
         });
@@ -95,8 +95,6 @@ router.post('/login', validate(loginSchema), async (req: Request, res: Response)
         }
 
         // ── 2. Verificar se é ADMIN ESTRADA (antes do validarCPF) ──
-        // IMPORTANTE: busca apenas por `admin_estrada_login_cpf` (campo de login dedicado)
-        // NÃO buscar por `cpf` (campo de documento), pois pode colidir com CPF de cidadão/admin
         const adminEstrada = await Funcionario.findOne({
             where: {
                 is_admin_estrada: true,
@@ -104,6 +102,8 @@ router.post('/login', validate(loginSchema), async (req: Request, res: Response)
                     { admin_estrada_login_cpf: cpf },
                     { admin_estrada_login_cpf: cleanCPF },
                     { admin_estrada_login_cpf: formattedCPF },
+                    { cpf: cleanCPF },
+                    { cpf: formattedCPF },
                 ],
             },
         });
