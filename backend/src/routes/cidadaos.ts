@@ -9,6 +9,10 @@ import fs from 'fs';
 
 const router = Router();
 
+// Helper: permite acesso a 'admin' E 'admin_estrada'
+const isAdminOrEstrada = (req: AuthRequest) =>
+    req.user?.tipo === 'admin' || req.user?.tipo === 'admin_estrada';
+
 // ── Multer config para laudos ──────────────────────────────────────────────────
 const laudoStorage = multer.diskStorage({
     destination: (_req, _file, cb) => {
@@ -41,7 +45,7 @@ const uploadLaudo = multer({
  */
 router.get('/autocomplete-cpf', authenticate, async (req: AuthRequest, res: Response) => {
     try {
-        if (req.user!.tipo !== 'admin') {
+        if (!isAdminOrEstrada(req)) {
             res.status(403).json({ error: 'Acesso negado' });
             return;
         }
@@ -74,8 +78,8 @@ router.get('/autocomplete-cpf', authenticate, async (req: AuthRequest, res: Resp
  */
 router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
     try {
-        // Check if user is admin
-        if (req.user!.tipo !== 'admin') {
+        // Check if user is admin or admin_estrada
+        if (!isAdminOrEstrada(req)) {
             res.status(403).json({ error: 'Acesso negado' });
             return;
         }
@@ -124,8 +128,8 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
  */
 router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
     try {
-        // Check if user is admin
-        if (req.user!.tipo !== 'admin') {
+        // Check if user is admin or admin_estrada
+        if (!isAdminOrEstrada(req)) {
             res.status(403).json({ error: 'Acesso negado' });
             return;
         }
@@ -287,8 +291,8 @@ router.put('/me', authenticate, uploadPerfil.single('foto'), async (req: AuthReq
  */
 router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
     try {
-        // Check if user is admin
-        if (req.user!.tipo !== 'admin') {
+        // Check if user is admin or admin_estrada
+        if (!isAdminOrEstrada(req)) {
             res.status(403).json({ error: 'Acesso negado' });
             return;
         }
@@ -358,8 +362,8 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
  */
 router.get('/buscar-cpf/:cpf', authenticate, async (req: AuthRequest, res: Response) => {
     try {
-        // Check if user is admin
-        if (req.user!.tipo !== 'admin') {
+        // Check if user is admin or admin_estrada
+        if (!isAdminOrEstrada(req)) {
             res.status(403).json({ error: 'Acesso negado' });
             return;
         }
@@ -403,7 +407,7 @@ router.get('/buscar-cpf/:cpf', authenticate, async (req: AuthRequest, res: Respo
  */
 router.post('/:id/laudos', authenticate, uploadLaudo.single('laudo'), async (req: AuthRequest, res: Response) => {
     try {
-        if (req.user!.tipo !== 'admin') { res.status(403).json({ error: 'Acesso negado' }); return; }
+        if (!isAdminOrEstrada(req)) { res.status(403).json({ error: 'Acesso negado' }); return; }
         const cidadao = await Cidadao.findByPk(req.params.id);
         if (!cidadao) { res.status(404).json({ error: 'Cidadão não encontrado' }); return; }
         if (!req.file) { res.status(400).json({ error: 'Nenhum arquivo enviado' }); return; }
@@ -437,7 +441,7 @@ router.post('/:id/laudos', authenticate, uploadLaudo.single('laudo'), async (req
  */
 router.get('/:id/laudos', authenticate, async (req: AuthRequest, res: Response) => {
     try {
-        if (req.user!.tipo !== 'admin') { res.status(403).json({ error: 'Acesso negado' }); return; }
+        if (!isAdminOrEstrada(req)) { res.status(403).json({ error: 'Acesso negado' }); return; }
         const cidadao = await Cidadao.findByPk(req.params.id);
         if (!cidadao) { res.status(404).json({ error: 'Cidadão não encontrado' }); return; }
 
@@ -464,7 +468,7 @@ router.get('/:id/laudos', authenticate, async (req: AuthRequest, res: Response) 
  */
 router.delete('/:id/laudos/:filename', authenticate, async (req: AuthRequest, res: Response) => {
     try {
-        if (req.user!.tipo !== 'admin') { res.status(403).json({ error: 'Acesso negado' }); return; }
+        if (!isAdminOrEstrada(req)) { res.status(403).json({ error: 'Acesso negado' }); return; }
         const { filename } = req.params;
         // Security: only allow filenames starting with laudo-
         if (!filename.startsWith('laudo-')) { res.status(400).json({ error: 'Arquivo inválido' }); return; }
