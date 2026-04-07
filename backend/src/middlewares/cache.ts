@@ -23,13 +23,17 @@ export const cacheMiddleware = (duration: number) => {
 
             console.log(`❌ Cache MISS: ${req.originalUrl}`);
 
-            // Override res.json to cache the response
+        // Override res.json to cache ONLY successful responses (2xx)
             const originalJson = res.json.bind(res);
             res.json = function (data: any) {
-                // Cache the response
-                redisClient.setEx(key, duration, JSON.stringify(data)).catch(err => {
-                    console.error('Redis cache error:', err);
-                });
+                // IMPORTANT: Only cache 2xx responses — never cache errors!
+                if (res.statusCode >= 200 && res.statusCode < 300) {
+                    redisClient.setEx(key, duration, JSON.stringify(data)).catch(err => {
+                        console.error('Redis cache error:', err);
+                    });
+                } else {
+                    console.warn(`⚠️  Not caching error response (${res.statusCode}) for: ${req.originalUrl}`);
+                }
                 return originalJson(data);
             };
 

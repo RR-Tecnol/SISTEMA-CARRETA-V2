@@ -40,6 +40,9 @@ import PrestacaoContas from './pages/admin/PrestacaoContas';
 import Noticias from './pages/admin/Noticias';
 import MedicoPanel from './pages/medico/MedicoPanel';
 import MedicoAcoes from './pages/medico/MedicoAcoes';
+import GerenciarFila from './pages/admin/GerenciarFila';
+import PainelChamada from './pages/public/PainelChamada';
+
 
 // Layout
 import PublicLayout from './components/layout/PublicLayout';
@@ -97,7 +100,12 @@ function App() {
                     <Route path="medicos" element={<MedicoMonitoring />} />
                     <Route path="prestacao-contas" element={<PrestacaoContas />} />
                     <Route path="noticias" element={<Noticias />} />
+                    <Route path="fila" element={<GerenciarFila />} />
+                    <Route path="acoes/:id/fila" element={<GerenciarFila />} />
                 </Route>
+
+                {/* Painel de TV — público, sem auth, tela cheia */}
+                <Route path="/painel/:acao_id" element={<PainelChamada />} />
 
                 {/* Medico panel */}
                 <Route path="/medico" element={<MedicoLayout />}>

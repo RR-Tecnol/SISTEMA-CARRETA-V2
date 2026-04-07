@@ -20,7 +20,11 @@ import {
     HeartPulse,
     FileCheck,
     Newspaper,
+    ClipboardList,
+    MapPin,
 } from 'lucide-react';
+
+
 import { systemTruckTheme } from '../../theme/systemTruckTheme';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../store';
@@ -36,6 +40,7 @@ const menuItems: MenuItem[] = [
     { title: 'Relatórios e BI', icon: BarChart3, path: '/admin/relatorios' },
     { title: 'Prestação de Contas', icon: FileCheck, path: '/admin/prestacao-contas' },
     { title: 'Ações', icon: Activity, path: '/admin/acoes' },
+    { title: 'Fila de Atendimento', icon: ClipboardList, path: '/admin/fila' },
     { title: 'Contas a Pagar', icon: DollarSign, path: '/admin/contas-pagar' },
     { title: 'Estoque', icon: Package, path: '/admin/estoque' },
     { title: 'Instituições', icon: Building2, path: '/admin/instituicoes' },
@@ -47,6 +52,20 @@ const menuItems: MenuItem[] = [
     { title: 'Cidadãos', icon: UserCheck, path: '/admin/cidadaos' },
     { title: 'Notícias', icon: Newspaper, path: '/admin/noticias' },
 ];
+
+// Menu exclusivo para admin_estrada — focado em operações de campo
+const menuItemsEstrada: MenuItem[] = [
+    { title: 'Dashboard', icon: LayoutDashboard, path: '/admin' },
+    { title: 'Ações em Andamento', icon: MapPin, path: '/admin/acoes' },
+    { title: 'Fila de Atendimento', icon: ClipboardList, path: '/admin/fila' },
+    { title: 'Cidadãos', icon: UserCheck, path: '/admin/cidadaos' },
+    { title: 'Exames', icon: Stethoscope, path: '/admin/cursos-exames' },
+    { title: 'Monit. Médicos', icon: HeartPulse, path: '/admin/medicos' },
+    { title: 'Central de Alertas', icon: Bell, path: '/admin/alertas' },
+    { title: 'Estoque', icon: Package, path: '/admin/estoque' },
+    { title: 'Notícias', icon: Newspaper, path: '/admin/noticias' },
+];
+
 
 const sidebarVariants = {
     open: {
@@ -80,14 +99,6 @@ const itemVariants = {
     }),
 };
 
-// Paths ocultos para o admin_estrada
-const ESTRADA_HIDDEN = new Set([
-    '/admin/relatorios',
-    '/admin/prestacao-contas',
-    '/admin/contas-pagar',
-    '/admin/funcionarios',
-]);
-
 export const AdminSidebar: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
@@ -96,10 +107,8 @@ export const AdminSidebar: React.FC = () => {
     const [isOpen, setIsOpen] = useState(!isMobile);
     const userTipo = useSelector((state: RootState) => state.auth.user?.tipo);
 
-    // Filtra itens escondidos para admin_estrada
-    const visibleItems = userTipo === 'admin_estrada'
-        ? menuItems.filter(item => !ESTRADA_HIDDEN.has(item.path))
-        : menuItems;
+    // admin_estrada usa menu específico de campo; admin vê tudo
+    const visibleItems = userTipo === 'admin_estrada' ? menuItemsEstrada : menuItems;
 
     const isActive = (path: string) => {
         // Dashboard deve ser ativo apenas em /admin exato

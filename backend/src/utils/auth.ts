@@ -16,6 +16,9 @@ export interface JWTPayload {
     id: string;
     tipo: 'cidadao' | 'admin' | 'medico' | 'admin_estrada';
     email?: string;
+    // #12 — roles[] adicionado para suporte multi-role (retrocompatível)
+    // Tokens antigos (sem roles) continuam funcionando via: roles ?? [tipo]
+    roles?: string[];
 }
 
 export function generateToken(payload: JWTPayload): string {

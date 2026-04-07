@@ -307,6 +307,7 @@ const MedicoMonitoring: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [filtroMedicoId, setFiltroMedicoId] = useState<string>(''); // #9 — filtro por médico nos atendimentos
     const [alertasOpen, setAlertasOpen] = useState(true);
 
     // Atendimentos de hoje (direto, sem depender de pontos)
@@ -347,6 +348,38 @@ const MedicoMonitoring: React.FC = () => {
     const [medicoDetalhe, setMedicoDetalhe] = useState<Ponto[]>([]);
     const [medicoDetalheAtendimentos, setMedicoDetalheAtendimentos] = useState<Atendimento[]>([]);
     const [loadingDetalhe, setLoadingDetalhe] = useState(false);
+
+    // F5 — Enviar resultado de exame por e-mail
+    const [resultadoModal, setResultadoModal] = useState<{ open: boolean; atendimento?: any }>({ open: false });
+    const [resultadoForm, setResultadoForm] = useState({ resultado: '', observacoes: '' });
+    const [loadingResultado, setLoadingResultado] = useState(false);
+
+    const handleEnviarResultado = async () => {
+        if (!resultadoModal.atendimento) return;
+        if (!resultadoForm.resultado.trim()) {
+            enqueueSnackbar('Preencha o resultado do exame', { variant: 'warning' });
+            return;
+        }
+        setLoadingResultado(true);
+        try {
+            const res = await api.post(
+                `/medico-monitoring/atendimento/${resultadoModal.atendimento.id}/enviar-resultado`,
+                resultadoForm
+            );
+            enqueueSnackbar(
+                res.data.sucesso
+                    ? `✅ Resultado enviado para ${res.data.cidadao}`
+                    : res.data.motivo || 'Resultado registrado (sem e-mail)',
+                { variant: res.data.sucesso ? 'success' : 'warning', autoHideDuration: 5000 }
+            );
+            setResultadoModal({ open: false });
+            setResultadoForm({ resultado: '', observacoes: '' });
+        } catch (error: any) {
+            enqueueSnackbar(error.response?.data?.error || 'Erro ao enviar resultado', { variant: 'error' });
+        } finally {
+            setLoadingResultado(false);
+        }
+    };
 
     const hoje = new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0];
 
@@ -556,6 +589,11 @@ const MedicoMonitoring: React.FC = () => {
 
     const filteredMedicos = medicos.filter(m => m.nome.toLowerCase().includes(searchTerm.toLowerCase()) || (m.especialidade || '').toLowerCase().includes(searchTerm.toLowerCase()));
 
+    // #9 — atendimentos filtrados pelo médico selecionado
+    const atendimentosHojeFiltrados = filtroMedicoId
+        ? atendimentosHoje.filter((a: any) => String(a.funcionario_id ?? a.funcionario?.id ?? '') === filtroMedicoId)
+        : atendimentosHoje;
+
     if (loading) return (
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: expressoTheme.colors.background, flexDirection: 'column', gap: 2 }}>
             <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}>
@@ -711,6 +749,21 @@ const MedicoMonitoring: React.FC = () => {
                             <Search size={18} color={expressoTheme.colors.textSecondary} style={{ marginRight: 8 }} />
                             <input value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="Buscar médico..." style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: '0.95rem', width: '100%', color: expressoTheme.colors.text }} />
                         </Box>
+                        {/* #9 — Filtro de atendimentos por médico */}
+                        <FormControl size="small" sx={{ minWidth: 200 }}>
+                            <InputLabel>Atendimentos — Filtrar por Médico</InputLabel>
+                            <Select
+                                value={filtroMedicoId}
+                                label="Atendimentos — Filtrar por Médico"
+                                onChange={e => setFiltroMedicoId(e.target.value)}
+                                sx={{ borderRadius: expressoTheme.borderRadius.medium }}
+                            >
+                                <MenuItem value="">Todos os médicos</MenuItem>
+                                {medicos.map(m => (
+                                    <MenuItem key={m.id} value={m.id}>{m.nome}</MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
                         <Typography sx={{ color: expressoTheme.colors.textSecondary, fontSize: '0.9rem', whiteSpace: 'nowrap' }}>
                             {filteredMedicos.length} médico(s)
                         </Typography>
@@ -731,8 +784,8 @@ const MedicoMonitoring: React.FC = () => {
                                 // Helper para normalizar funcionario_id
                                 const getFid = (a: any) => String(a.funcionario_id ?? a.funcionario?.id ?? '');
 
-                                // atendimentos de hoje (histórico)
-                                const atdsMedico = atendimentosHoje.filter((a: any) => getFid(a) === String(medico.id));
+                                // atendimentos de hoje (histórico) — respeita filtro #9
+                                const atdsMedico = atendimentosHojeFiltrados.filter((a: any) => getFid(a) === String(medico.id));
 
                                 // atendimentos ao vivo deste médico (mais confiável para em_andamento)
                                 const liveDoMedico = liveAtendimentos.filter(a => getFid(a) === String(medico.id));
@@ -861,6 +914,34 @@ const MedicoMonitoring: React.FC = () => {
                                                         </IconButton>
                                                     </Tooltip>
                                                 </Box>
+                                                {/* F5 — Enviar resultado (exibe para atendimentos concluídos do dia) */}
+                                                {atdsMedico.filter((a: any) => a.status === 'concluido').length > 0 && (
+                                                    <Box sx={{ mt: 1.5, borderTop: `1px dashed ${expressoTheme.colors.border}`, pt: 1.5 }}>
+                                                        <Typography sx={{ fontSize: '0.7rem', color: expressoTheme.colors.textSecondary, mb: 1 }}>
+                                                            Enviar resultado de exame:
+                                                        </Typography>
+                                                        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                                                            {atdsMedico.filter((a: any) => a.status === 'concluido').slice(0, 3).map((atd: any) => (
+                                                                <Button
+                                                                    key={atd.id}
+                                                                    size="small"
+                                                                    variant="outlined"
+                                                                    onClick={() => { setResultadoModal({ open: true, atendimento: atd }); setResultadoForm({ resultado: '', observacoes: '' }); }}
+                                                                    sx={{
+                                                                        fontSize: '0.7rem',
+                                                                        borderColor: '#0097a7',
+                                                                        color: '#0097a7',
+                                                                        textTransform: 'none',
+                                                                        py: 0.3,
+                                                                        '&:hover': { background: 'rgba(0,151,167,0.06)' }
+                                                                    }}
+                                                                >
+                                                                    🩺 {atd.cidadao?.nome_completo?.split(' ')[0] || atd.nome_paciente?.split(' ')[0] || 'Paciente'}
+                                                                </Button>
+                                                            ))}
+                                                        </Box>
+                                                    </Box>
+                                                )}
                                             </Box>
                                         </motion.div>
                                     </Grid>
@@ -1437,10 +1518,89 @@ const MedicoMonitoring: React.FC = () => {
                     )}
                 </DialogActions>
             </Dialog>
+
+            {/* F5 — Dialog: Enviar Resultado de Exame por E-mail */}
+            <Dialog
+                open={resultadoModal.open}
+                onClose={() => !loadingResultado && setResultadoModal({ open: false })}
+                maxWidth="sm"
+                fullWidth
+                PaperProps={{ sx: { borderRadius: '20px', overflow: 'hidden' } }}
+            >
+                <DialogTitle sx={{
+                    background: 'linear-gradient(135deg, #0097a7 0%, #006064 100%)',
+                    color: '#fff',
+                    fontWeight: 800,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1.5,
+                    py: 2.5,
+                }}>
+                    🩺 Enviar Resultado de Exame
+                </DialogTitle>
+                <DialogContent sx={{ pt: '24px !important', pb: 2, px: 3 }}>
+                    {resultadoModal.atendimento && (
+                        <Alert severity="info" sx={{ mb: 2, borderRadius: '10px' }}>
+                            Paciente: <strong>{resultadoModal.atendimento.cidadao?.nome_completo || resultadoModal.atendimento.nome_paciente || '—'}</strong>
+                            {resultadoModal.atendimento.cidadao?.email && (
+                                <> · Será enviado para: <strong>{resultadoModal.atendimento.cidadao.email}</strong></>
+                            )}
+                            {!resultadoModal.atendimento.cidadao?.email && (
+                                <> · <strong style={{ color: '#f59e0b' }}>⚠️ Sem e-mail cadastrado — apenas registrará nas observações</strong></>
+                            )}
+                        </Alert>
+                    )}
+                    <TextField
+                        fullWidth
+                        multiline
+                        rows={4}
+                        label="Resultado do Exame *"
+                        value={resultadoForm.resultado}
+                        onChange={(e) => setResultadoForm(prev => ({ ...prev, resultado: e.target.value }))}
+                        placeholder="Ex: Hemoglobina: 14,2 g/dL. Leucócitos: 7.200/mm³. Resultado dentro dos parâmetros normais."
+                        disabled={loadingResultado}
+                        sx={{ mb: 2 }}
+                    />
+                    <TextField
+                        fullWidth
+                        multiline
+                        rows={2}
+                        label="Observações (opcional)"
+                        value={resultadoForm.observacoes}
+                        onChange={(e) => setResultadoForm(prev => ({ ...prev, observacoes: e.target.value }))}
+                        placeholder="Ex: Recomendo retorno em 6 meses para reavaliação."
+                        disabled={loadingResultado}
+                    />
+                </DialogContent>
+                <DialogActions sx={{ p: 3, gap: 1 }}>
+                    <Button
+                        onClick={() => { setResultadoModal({ open: false }); setResultadoForm({ resultado: '', observacoes: '' }); }}
+                        disabled={loadingResultado}
+                        sx={{ color: '#64748b' }}
+                    >
+                        Cancelar
+                    </Button>
+                    <Button
+                        variant="contained"
+                        onClick={handleEnviarResultado}
+                        disabled={loadingResultado || !resultadoForm.resultado.trim()}
+                        startIcon={loadingResultado ? <CircularProgress size={16} color="inherit" /> : undefined}
+                        sx={{
+                            background: 'linear-gradient(135deg, #0097a7 0%, #006064 100%)',
+                            color: '#fff',
+                            fontWeight: 700,
+                            px: 3,
+                            textTransform: 'none',
+                            borderRadius: '12px',
+                            '&:hover': { background: 'linear-gradient(135deg, #006064 0%, #0097a7 100%)' },
+                        }}
+                    >
+                        {loadingResultado ? 'Enviando...' : 'Enviar Resultado'}
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </Box>
     );
 };
 
 export default MedicoMonitoring;
-
-

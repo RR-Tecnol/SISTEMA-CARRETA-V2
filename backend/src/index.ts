@@ -1,4 +1,6 @@
 import express, { Application, Request, Response } from 'express';
+import http from 'http';
+import { Server as SocketIOServer } from 'socket.io';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
@@ -9,6 +11,7 @@ import { Op } from 'sequelize';
 import { connectRedis } from './config/redis';
 import { setupAssociations } from './models';
 import { errorHandler } from './middlewares/errorHandler';
+
 
 // Import routes (will be created)
 import authRoutes from './routes/auth';
@@ -34,6 +37,14 @@ import estoqueRoutes from './routes/estoque';
 import utilsRoutes from './routes/utils';
 import alertasRoutes from './routes/alertas';
 import medicoMonitoringRoutes from './routes/medicoMonitoring';
+import fichasRoutes from './routes/fichas';
+import estacoesRoutes from './routes/estacoes';
+import configuracaoFilaRoutes from './routes/configuracaoFila';
+import equipamentosRoutes from './routes/equipamentos';
+
+import { FichaAtendimento } from './models/FichaAtendimento';
+import { getFila } from './routes/fichas';
+
 import { ManutencaoCaminhao } from './models/ManutencaoCaminhao';
 import { Caminhao } from './models/Caminhao';
 import { AcaoCaminhao } from './models/AcaoCaminhao';
@@ -84,6 +95,49 @@ async function liberarManutencoesvencidas() {
 }
 
 const app: Application = express();
+const httpServer = http.createServer(app);
+
+// ─── Socket.IO ───────────────────────────────────────────────────────────────
+const io = new SocketIOServer(httpServer, {
+    cors: {
+        origin: config.frontend.url,
+        methods: ['GET', 'POST', 'PATCH'],
+        credentials: true,
+    },
+    transports: ['websocket', 'polling'],
+});
+
+// Armazena a instância do io no app para que as rotas possam acessar via req.app.get('io')
+app.set('io', io);
+
+io.on('connection', (socket) => {
+    console.log(`🔌 Socket conectado: ${socket.id}`);
+
+    // Entrar na sala de uma ação específica (recepção, médico e painel TV todos entram)
+    socket.on('join_acao', async (acao_id: string) => {
+        socket.join(`acao:${acao_id}`);
+        console.log(`📡 Socket ${socket.id} entrou em acao:${acao_id}`);
+
+        // Enviar fila atual ao conectar
+        try {
+            const fila = await getFila(acao_id);
+            socket.emit('fila_atualizada', { acao_id, fila });
+        } catch (err) {
+            console.error('Erro ao buscar fila inicial:', err);
+        }
+    });
+
+    // Cliente saiu da sala
+    socket.on('leave_acao', (acao_id: string) => {
+        socket.leave(`acao:${acao_id}`);
+        console.log(`📡 Socket ${socket.id} saiu de acao:${acao_id}`);
+    });
+
+    socket.on('disconnect', () => {
+        console.log(`🔌 Socket desconectado: ${socket.id}`);
+    });
+});
+
 
 console.log('✅ SISTEMA CARRETAS v2.0 — 23/02/2026 — Produção');
 
@@ -143,6 +197,12 @@ app.use('/api/estoque', estoqueRoutes);
 app.use('/api/utils', utilsRoutes);
 app.use('/api/alertas', alertasRoutes);
 app.use('/api/medico-monitoring', medicoMonitoringRoutes);
+app.use('/api/fichas', fichasRoutes);
+app.use('/api/estacoes', estacoesRoutes);
+app.use('/api/configuracao-fila', configuracaoFilaRoutes);
+// F9 — Equipamentos eletrônicos por carreta (sub-rota de caminhoes)
+app.use('/api/caminhoes/:id/equipamentos', equipamentosRoutes);
+
 // IMPORTANTE: cidadaoExamesRoutes deve vir ANTES de cidadaosRoutes
 // porque define rotas mais específicas (/:cidadaoId/exames)
 app.use('/api/cidadaos', cidadaoExamesRoutes);
@@ -200,19 +260,134 @@ async function startServer(): Promise<void> {
             console.warn('⚠️ Migration prestação de contas (ignorar se ja existir):', migErr);
         }
 
+        // Migration: tabela de fichas de atendimento (Sistema de Fila)
+        try {
+            await sequelize.query(`
+                CREATE TABLE IF NOT EXISTS fichas_atendimento (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    numero_ficha INTEGER NOT NULL,
+                    cidadao_id UUID NOT NULL REFERENCES cidadaos(id) ON DELETE CASCADE,
+                    inscricao_id UUID REFERENCES inscricoes(id) ON DELETE SET NULL,
+                    acao_id UUID NOT NULL REFERENCES acoes(id) ON DELETE CASCADE,
+                    status VARCHAR(20) NOT NULL DEFAULT 'aguardando',
+                    hora_entrada TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                    hora_chamada TIMESTAMPTZ,
+                    hora_atendimento TIMESTAMPTZ,
+                    hora_conclusao TIMESTAMPTZ,
+                    guiche VARCHAR(20),
+                    observacoes TEXT,
+                    created_at TIMESTAMPTZ DEFAULT NOW(),
+                    updated_at TIMESTAMPTZ DEFAULT NOW()
+                );
+            `);
+            console.log('✅ Migration fichas_atendimento: tabela verificada/criada');
+        } catch (migErr) {
+            console.warn('⚠️ Migration fichas_atendimento (ignorar se ja existir):', migErr);
+        }
+
+        // Migration: adicionar colunas faltantes em acao_funcionarios
+        try {
+            await sequelize.query(`ALTER TABLE acao_funcionarios ADD COLUMN IF NOT EXISTS valor_diaria DECIMAL(10,2) DEFAULT NULL`);
+            await sequelize.query(`ALTER TABLE acao_funcionarios ADD COLUMN IF NOT EXISTS dias_trabalhados INTEGER DEFAULT 1`);
+            console.log('✅ Migration acao_funcionarios: colunas verificadas/adicionadas');
+        } catch (migErr) {
+            console.warn('⚠️ Migration acao_funcionarios:', migErr);
+        }
+
+        // Migration: tabela de equipamentos eletrônicos por carreta (F9)
+        try {
+            await sequelize.query(`
+                CREATE TABLE IF NOT EXISTS equipamentos_caminhao (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    caminhao_id UUID NOT NULL REFERENCES caminhoes(id) ON DELETE CASCADE,
+                    nome VARCHAR(100) NOT NULL,
+                    tipo VARCHAR(50) NOT NULL DEFAULT 'outro',
+                    modelo VARCHAR(100),
+                    fabricante VARCHAR(100),
+                    numero_serie VARCHAR(100),
+                    numero_patrimonio VARCHAR(50),
+                    data_aquisicao DATE,
+                    data_ultima_manutencao DATE,
+                    data_proxima_manutencao DATE,
+                    valor_aquisicao DECIMAL(12,2),
+                    status VARCHAR(20) NOT NULL DEFAULT 'ativo',
+                    observacoes TEXT,
+                    created_at TIMESTAMPTZ DEFAULT NOW(),
+                    updated_at TIMESTAMPTZ DEFAULT NOW()
+                );
+            `);
+            console.log('✅ Migration equipamentos_caminhao: tabela verificada/criada');
+        } catch (migErr) {
+            console.warn('⚠️ Migration equipamentos_caminhao (ignorar se ja existir):', migErr);
+        }
+
+        // ─── Migration: estações de exame (salas/equipamentos por ação) ────────────
+        try {
+            await sequelize.query(`
+                CREATE TABLE IF NOT EXISTS estacoes_exame (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    acao_id UUID NOT NULL REFERENCES acoes(id) ON DELETE CASCADE,
+                    curso_exame_id UUID REFERENCES cursos_exames(id) ON DELETE SET NULL,
+                    nome VARCHAR(100) NOT NULL,
+                    status VARCHAR(20) NOT NULL DEFAULT 'ativa',
+                    motivo_pausa TEXT,
+                    ordem INTEGER DEFAULT 1,
+                    created_at TIMESTAMPTZ DEFAULT NOW(),
+                    updated_at TIMESTAMPTZ DEFAULT NOW()
+                );
+            `);
+            console.log('✅ Migration estacoes_exame: tabela verificada/criada');
+        } catch (migErr) {
+            console.warn('⚠️ Migration estacoes_exame:', migErr);
+        }
+
+        // ─── Migration: configurações de fila por ação ──────────────────────────────
+        try {
+            await sequelize.query(`
+                CREATE TABLE IF NOT EXISTS configuracoes_fila_acao (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    acao_id UUID NOT NULL UNIQUE REFERENCES acoes(id) ON DELETE CASCADE,
+                    notif_email BOOLEAN NOT NULL DEFAULT FALSE,
+                    notif_sms BOOLEAN NOT NULL DEFAULT FALSE,
+                    notif_whatsapp BOOLEAN NOT NULL DEFAULT TRUE,
+                    notif_ficha_gerada BOOLEAN NOT NULL DEFAULT TRUE,
+                    notif_chegando BOOLEAN NOT NULL DEFAULT TRUE,
+                    notif_chamado BOOLEAN NOT NULL DEFAULT TRUE,
+                    fichas_antes_aviso INTEGER NOT NULL DEFAULT 3,
+                    created_at TIMESTAMPTZ DEFAULT NOW(),
+                    updated_at TIMESTAMPTZ DEFAULT NOW()
+                );
+            `);
+            console.log('✅ Migration configuracoes_fila_acao: tabela verificada/criada');
+        } catch (migErr) {
+            console.warn('⚠️ Migration configuracoes_fila_acao:', migErr);
+        }
+
+        // ─── Migration: adicionar estacao_id em fichas_atendimento ─────────────────
+        try {
+            await sequelize.query(`ALTER TABLE fichas_atendimento ADD COLUMN IF NOT EXISTS estacao_id UUID REFERENCES estacoes_exame(id) ON DELETE SET NULL`);
+            await sequelize.query(`ALTER TABLE fichas_atendimento ADD COLUMN IF NOT EXISTS hora_atendimento TIMESTAMPTZ`);
+            await sequelize.query(`ALTER TABLE fichas_atendimento ADD COLUMN IF NOT EXISTS hora_conclusao TIMESTAMPTZ`);
+            console.log('✅ Migration fichas_atendimento extra cols: verificadas/adicionadas');
+        } catch (migErr) {
+            console.warn('⚠️ Migration fichas_atendimento extra cols:', migErr);
+        }
+
         // Connect to Redis
         await connectRedis();
 
-        // Start server
-        app.listen(config.port, () => {
+
+        // Start server using httpServer (required for Socket.IO)
+        httpServer.listen(config.port, () => {
             console.log(`🚀 Server running on port ${config.port}`);
             console.log(`📝 Environment: ${config.env}`);
             console.log(`🔗 API: http://localhost:${config.port}/api`);
+            console.log(`⚡ Socket.IO: ws://localhost:${config.port}`);
         });
 
         // Job: liberar caminhões com manutenção vencida (roda na inicialização e a cada hora)
         liberarManutencoesvencidas();
-        setInterval(liberarManutencoesvencidas, 60 * 60 * 1000); // a cada 1 hora
+        setInterval(liberarManutencoesvencidas, 60 * 60 * 1000);
         console.log('⏰ Job de manutenção agendado (1h)');
     } catch (error) {
         console.error('❌ Failed to start server:', error);

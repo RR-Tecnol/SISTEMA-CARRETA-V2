@@ -25,26 +25,45 @@ const BI: React.FC = () => {
 
     const COLORS = ['#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444', '#06B6D4', '#EC4899'];
 
+    // B3 — gerar datas de início/fim a partir de mes/ano para passar a todos os gráficos
+    const getFiltrosDatas = () => {
+        const inicio = new Date(filtros.ano, filtros.mes - 1, 1).toISOString().split('T')[0];
+        const fim = new Date(filtros.ano, filtros.mes, 0).toISOString().split('T')[0];
+        return { data_inicio: inicio, data_fim: fim };
+    };
+
+    // B2 — normalizar labels de gênero nulo/indefinido
+    const normalizarGenero = (dados: any[]) =>
+        dados.map(d => ({ ...d, genero: d.genero || 'Não declarado' }));
+
     useEffect(() => {
         carregarDados();
+    }, [filtros]);
+
+    // F8 — auto-refresh a cada 60s
+    useEffect(() => {
+        const interval = setInterval(carregarDados, 60 * 1000);
+        return () => clearInterval(interval);
     }, [filtros]);
 
     const carregarDados = async () => {
         setLoading(true);
         try {
+            // B3 — filtrosDatas passado para TODOS os gráficos, não só dashboard
+            const filtrosDatas = getFiltrosDatas();
             const [dashboard, porTipo, porCidade, porGenero, porRaca, porIdade] = await Promise.all([
                 analyticsService.dashboard(filtros.mes, filtros.ano),
-                analyticsService.examesPorTipo(),
-                analyticsService.examesPorCidade(),
-                analyticsService.examesPorGenero(),
-                analyticsService.examesPorRaca(),
-                analyticsService.examesPorIdade(),
+                analyticsService.examesPorTipo(filtrosDatas),
+                analyticsService.examesPorCidade(filtrosDatas),
+                analyticsService.examesPorGenero(filtrosDatas),
+                analyticsService.examesPorRaca(filtrosDatas),
+                analyticsService.examesPorIdade(filtrosDatas),
             ]);
 
             setMetrics(dashboard);
             setExamesPorTipo(porTipo);
             setExamesPorCidade(porCidade);
-            setExamesPorGenero(porGenero);
+            setExamesPorGenero(normalizarGenero(porGenero)); // B2 — label null → 'Não declarado'
             setExamesPorRaca(porRaca);
             setExamesPorIdade(porIdade);
         } catch (error) {

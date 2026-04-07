@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { formatCPF, formatPhone } from '../../utils/formatters';
+import { useNavigate } from 'react-router-dom';
+import { formatCPF, formatPhone, formatCNS, formatCEP, validateCPF, toTitleCase } from '../../utils/formatters';
+import { buscarCEP } from '../../utils/cep';
 import {
     Container,
     Typography,
@@ -17,6 +19,7 @@ import {
     DialogActions,
     Button,
     MenuItem,
+    Autocomplete,
 } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -35,6 +38,7 @@ import {
     Trash2,
     ExternalLink,
     FileText,
+    Send,
 } from 'lucide-react';
 import { useSnackbar } from 'notistack';
 import api, { BASE_URL } from '../../services/api';
@@ -68,8 +72,11 @@ interface CidadaosResponse {
     totalPages: number;
 }
 
+const EMAIL_DOMAINS = ['@gmail.com', '@hotmail.com', '@outlook.com', '@yahoo.com.br', '@icloud.com'];
+
 const Cidadaos: React.FC = () => {
     const { enqueueSnackbar } = useSnackbar();
+    const navigate = useNavigate();
     const [cidadaos, setCidadaos] = useState<Cidadao[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -83,8 +90,15 @@ const Cidadaos: React.FC = () => {
     const [editData, setEditData] = useState<Cidadao | null>(null);
     const [createOpen, setCreateOpen] = useState(false);
     const [submitting, setSubmitting] = useState(false);
+    const [emailSuggestions, setEmailSuggestions] = useState<string[]>([]);
 
-    // ─── Laudos ────────────────────────────────────────────────────────────────
+    // ─── Enviar Resultado de Exame ──────────────────────────────────────────────
+    const [envioResultadoOpen, setEnvioResultadoOpen] = useState(false);
+    const [envioResultadoCidadao, setEnvioResultadoCidadao] = useState<Cidadao | null>(null);
+    const [arquivoResultado, setArquivoResultado] = useState<File | null>(null);
+    const [descricaoResultado, setDescricaoResultado] = useState('');
+    const [enviandoResultado, setEnviandoResultado] = useState(false);
+
     const [laudosOpen, setLaudosOpen] = useState(false);
     const [laudosCidadao, setLaudosCidadao] = useState<Cidadao | null>(null);
     const [laudos, setLaudos] = useState<any[]>([]);
@@ -172,22 +186,78 @@ const Cidadaos: React.FC = () => {
         });
     };
 
+    const TITLE_CASE_FIELDS = ['nome_completo', 'nome_mae', 'bairro', 'rua', 'municipio', 'complemento'];
+
     const handleChange = (field: string, value: string) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
+        const formatted = TITLE_CASE_FIELDS.includes(field) ? toTitleCase(value) : value;
+        setFormData(prev => ({ ...prev, [field]: formatted }));
+    };
+
+    const handleEmailChange = (value: string) => {
+        setFormData(prev => ({ ...prev, email: value }));
+        if (!value || value.includes('@')) {
+            setEmailSuggestions([]);
+            return;
+        }
+        if (value.length > 2) {
+            setEmailSuggestions(EMAIL_DOMAINS.map(d => `${value}${d}`));
+        }
+    };
+
+    const handleCEPBlur = async (cep: string) => {
+        const endereco = await buscarCEP(cep);
+        if (endereco) {
+            setFormData(prev => ({
+                ...prev,
+                rua: endereco.rua,
+                bairro: endereco.bairro,
+                municipio: endereco.municipio,
+                estado: endereco.estado,
+                complemento: endereco.complemento || prev.complemento,
+            }));
+            enqueueSnackbar('Endereço preenchido automaticamente!', { variant: 'success' });
+        }
+    };
+
+    const handleCPFBlur = async (cpf: string) => {
+        const cpfLimpo = cpf.replace(/\D/g, '');
+        if (cpfLimpo.length !== 11) return;
+        try {
+            const { data } = await api.get(`/cidadaos/buscar-cpf/${cpfLimpo}`);
+            setFormData(prev => ({ ...prev, ...data }));
+            enqueueSnackbar('Dados do cidadão carregados automaticamente!', { variant: 'info' });
+        } catch {
+            // CPF não encontrado — continuar preenchimento normal
+        }
     };
 
     const handleSubmit = async () => {
-        if (!formData.nome_completo || !formData.cpf || !formData.email || !formData.telefone) {
-            enqueueSnackbar('Preencha todos os campos obrigatórios', { variant: 'warning' });
+        // Email agora é opcional — apenas nome, CPF e telefone são obrigatórios
+        if (!formData.nome_completo || !formData.cpf || !formData.telefone) {
+            enqueueSnackbar('Preencha os campos obrigatórios: Nome, CPF e Telefone', { variant: 'warning' });
             return;
         }
 
         try {
             setSubmitting(true);
-            await api.post('/cidadaos', formData);
-            enqueueSnackbar('Cidadão cadastrado com sucesso!', { variant: 'success' });
+            const response = await api.post('/cidadaos', formData);
             handleCloseCreate();
-            fetchCidadaos(); // Recarregar lista
+            fetchCidadaos();
+            // #2 — Redirect pós-cadastro: snackbar com botão de ação por 8s
+            enqueueSnackbar('Cidadão cadastrado com sucesso!', {
+                variant: 'success',
+                autoHideDuration: 8000,
+                action: (
+                    <Button
+                        size="small"
+                        color="inherit"
+                        sx={{ fontWeight: 700 }}
+                        onClick={() => navigate(`/admin/inscricoes?cidadao_id=${response.data.id}`)}
+                    >
+                        Inscrever em Exame →
+                    </Button>
+                ),
+            });
         } catch (error: any) {
             enqueueSnackbar(error.response?.data?.error || 'Erro ao cadastrar cidadão', { variant: 'error' });
         } finally {
@@ -243,6 +313,40 @@ const Cidadaos: React.FC = () => {
             enqueueSnackbar('Laudo removido', { variant: 'success' });
         } catch {
             enqueueSnackbar('Erro ao remover laudo', { variant: 'error' });
+        }
+    };
+
+    // ─── Enviar Resultado ──────────────────────────────────────────────────────
+    const openEnvioResultado = (cidadao: Cidadao) => {
+        setEnvioResultadoCidadao(cidadao);
+        setArquivoResultado(null);
+        setDescricaoResultado('');
+        setEnvioResultadoOpen(true);
+    };
+
+    const handleEnviarResultado = async () => {
+        if (!envioResultadoCidadao || !arquivoResultado) {
+            enqueueSnackbar('Selecione um arquivo para enviar', { variant: 'warning' });
+            return;
+        }
+        if (!envioResultadoCidadao.email) {
+            enqueueSnackbar('Este cidadão não possui e-mail cadastrado', { variant: 'error' });
+            return;
+        }
+        setEnviandoResultado(true);
+        try {
+            const form = new FormData();
+            form.append('arquivo', arquivoResultado);
+            form.append('descricao', descricaoResultado);
+            await api.post(`/cidadaos/${envioResultadoCidadao.id}/enviar-resultado`, form, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            });
+            enqueueSnackbar(`Resultado enviado para ${envioResultadoCidadao.email}! ✅`, { variant: 'success' });
+            setEnvioResultadoOpen(false);
+        } catch (err: any) {
+            enqueueSnackbar(err.response?.data?.error || 'Erro ao enviar resultado', { variant: 'error' });
+        } finally {
+            setEnviandoResultado(false);
         }
     };
 
@@ -514,6 +618,22 @@ const Cidadaos: React.FC = () => {
                                                     >
                                                         <Paperclip size={18} />
                                                     </IconButton>
+                                                    {/* Enviar Resultado */}
+                                                    <IconButton
+                                                        onClick={() => openEnvioResultado(cidadao)}
+                                                        size="small"
+                                                        title="Enviar Resultado de Exame"
+                                                        sx={{
+                                                            border: `1px solid ${cidadao.email ? '#0097a7' : systemTruckTheme.colors.border}`,
+                                                            borderRadius: systemTruckTheme.borderRadius.medium,
+                                                            color: cidadao.email ? '#0097a7' : systemTruckTheme.colors.textLight,
+                                                            p: 1,
+                                                            flexShrink: 0,
+                                                            '&:hover': { background: cidadao.email ? 'rgba(0,151,167,0.08)' : systemTruckTheme.colors.cardHover },
+                                                        }}
+                                                    >
+                                                        <Send size={18} />
+                                                    </IconButton>
                                                 </Box>
                                             </Box>
                                         </motion.div>
@@ -544,9 +664,160 @@ const Cidadaos: React.FC = () => {
                 )}
             </Container>
 
+            {/* ── Enviar Resultado de Exame Dialog ────────────────────────────── */}
+            <Dialog
+                open={envioResultadoOpen}
+                onClose={() => !enviandoResultado && setEnvioResultadoOpen(false)}
+                maxWidth="sm"
+                fullWidth
+                PaperProps={{
+                    sx: {
+                        borderRadius: systemTruckTheme.borderRadius.large,
+                        background: systemTruckTheme.colors.cardBackground,
+                        overflow: 'hidden',
+                    },
+                }}
+            >
+                {/* Header com gradiente */}
+                <Box sx={{ background: 'linear-gradient(135deg, #0097a7 0%, #006064 100%)', p: 3 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        <Box sx={{ background: 'rgba(255,255,255,0.2)', borderRadius: 2, p: 1 }}>
+                            <Send size={22} color="white" />
+                        </Box>
+                        <Box>
+                            <Typography variant="h6" sx={{ fontWeight: 700, color: 'white', lineHeight: 1.2 }}>
+                                Enviar Resultado de Exame
+                            </Typography>
+                            <Typography sx={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.8)' }}>
+                                {envioResultadoCidadao?.nome_completo}
+                            </Typography>
+                        </Box>
+                    </Box>
+                </Box>
+
+                <DialogContent sx={{ pt: 3 }}>
+                    {/* Info e-mail */}
+                    <Box sx={{
+                        display: 'flex', alignItems: 'center', gap: 1.5, p: 2, mb: 3,
+                        borderRadius: systemTruckTheme.borderRadius.medium,
+                        background: envioResultadoCidadao?.email ? 'rgba(0,151,167,0.06)' : '#FFF3E0',
+                        border: `1px solid ${envioResultadoCidadao?.email ? '#00ACC1' : '#FFB74D'}`,
+                    }}>
+                        <Mail size={20} color={envioResultadoCidadao?.email ? '#0097a7' : '#FF8F00'} />
+                        <Box>
+                            <Typography sx={{ fontWeight: 700, fontSize: '0.82rem', color: envioResultadoCidadao?.email ? '#006064' : '#E65100' }}>
+                                {envioResultadoCidadao?.email
+                                    ? `Será enviado para: ${envioResultadoCidadao.email}`
+                                    : 'Cidadão sem e-mail cadastrado'}
+                            </Typography>
+                            {!envioResultadoCidadao?.email && (
+                                <Typography sx={{ fontSize: '0.75rem', color: '#E65100' }}>
+                                    Cadastre um e-mail no perfil do cidadão antes de enviar.
+                                </Typography>
+                            )}
+                        </Box>
+                    </Box>
+
+                    {/* Upload zone */}
+                    <Box
+                        component="label"
+                        htmlFor="resultado-file-input"
+                        sx={{
+                            display: 'flex', flexDirection: 'column', alignItems: 'center',
+                            justifyContent: 'center', gap: 1.5, p: 4, mb: 2.5,
+                            border: `2px dashed ${arquivoResultado ? '#0097a7' : systemTruckTheme.colors.primary}`,
+                            borderRadius: systemTruckTheme.borderRadius.large,
+                            background: arquivoResultado ? 'rgba(0,151,167,0.07)' : 'rgba(0,188,212,0.04)',
+                            cursor: enviandoResultado ? 'wait' : 'pointer',
+                            transition: 'all 0.2s',
+                            '&:hover': { background: 'rgba(0,151,167,0.1)' },
+                        }}
+                    >
+                        <input
+                            id="resultado-file-input"
+                            type="file"
+                            accept=".pdf,.jpg,.jpeg,.png,.dcm,.tiff,.tif,.bmp,.doc,.docx"
+                            style={{ display: 'none' }}
+                            onChange={(e) => setArquivoResultado(e.target.files?.[0] || null)}
+                            disabled={enviandoResultado}
+                        />
+                        {arquivoResultado ? (
+                            <>
+                                <FileText size={32} color="#0097a7" />
+                                <Typography sx={{ fontWeight: 700, color: '#006064', fontSize: '0.92rem', textAlign: 'center' }}>
+                                    {arquivoResultado.name}
+                                </Typography>
+                                <Typography sx={{ fontSize: '0.75rem', color: systemTruckTheme.colors.textSecondary }}>
+                                    {Math.round(arquivoResultado.size / 1024)} KB · Clique para trocar
+                                </Typography>
+                            </>
+                        ) : (
+                            <>
+                                <Send size={32} color={systemTruckTheme.colors.primary} />
+                                <Typography sx={{ fontWeight: 700, color: systemTruckTheme.colors.primary, fontSize: '0.92rem' }}>
+                                    Clique para selecionar o arquivo do exame
+                                </Typography>
+                                <Typography sx={{ fontSize: '0.75rem', color: systemTruckTheme.colors.textSecondary, textAlign: 'center' }}>
+                                    PDF, JPG, PNG, DICOM, TIFF, BMP, DOC, DOCX · máx. 20 MB
+                                </Typography>
+                            </>
+                        )}
+                    </Box>
+
+                    {/* Descrição */}
+                    <TextField
+                        fullWidth
+                        multiline
+                        rows={3}
+                        label="Observações (opcional)"
+                        placeholder="Ex: Resultado do exame de vista realizado em 07/04/2025..."
+                        value={descricaoResultado}
+                        onChange={(e) => setDescricaoResultado(e.target.value)}
+                        disabled={enviandoResultado}
+                        sx={{
+                            '& .MuiOutlinedInput-root': {
+                                borderRadius: systemTruckTheme.borderRadius.medium,
+                                '&:hover fieldset': { borderColor: '#0097a7' },
+                                '&.Mui-focused fieldset': { borderColor: '#0097a7' },
+                            },
+                        }}
+                    />
+                </DialogContent>
+
+                <DialogActions sx={{ borderTop: `1px solid ${systemTruckTheme.colors.border}`, p: 2.5, gap: 1 }}>
+                    <Button
+                        onClick={() => setEnvioResultadoOpen(false)}
+                        disabled={enviandoResultado}
+                        sx={{ textTransform: 'none', fontWeight: 600, color: systemTruckTheme.colors.textSecondary }}
+                    >
+                        Cancelar
+                    </Button>
+                    <Button
+                        variant="contained"
+                        onClick={handleEnviarResultado}
+                        disabled={!arquivoResultado || !envioResultadoCidadao?.email || enviandoResultado}
+                        startIcon={enviandoResultado ? <CircularProgress size={16} sx={{ color: 'white' }} /> : <Send size={18} />}
+                        sx={{
+                            background: 'linear-gradient(135deg, #0097a7 0%, #006064 100%)',
+                            color: 'white',
+                            borderRadius: systemTruckTheme.borderRadius.medium,
+                            textTransform: 'none',
+                            fontWeight: 700,
+                            px: 3,
+                            boxShadow: '0 4px 16px rgba(0,151,167,0.35)',
+                            '&:hover': { boxShadow: '0 6px 20px rgba(0,151,167,0.5)' },
+                            '&.Mui-disabled': { background: '#B0BEC5', color: 'white' },
+                        }}
+                    >
+                        {enviandoResultado ? 'Enviando...' : 'Enviar por E-mail'}
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
             {/* ── Laudos Dialog ──────────────────────────────────────────────── */}
             <Dialog
                 open={laudosOpen}
+
                 onClose={() => setLaudosOpen(false)}
                 maxWidth="sm"
                 fullWidth
@@ -988,9 +1259,10 @@ const Cidadaos: React.FC = () => {
                                         fullWidth
                                         label="Cartão SUS (CNS)"
                                         placeholder="000 0000 0000 0000"
-                                        helperText="Opcional"
+                                        helperText={`${(editData as any).cartao_sus?.replace(/\D/g,'')?.length || 0}/15 dígitos`}
                                         value={(editData as any).cartao_sus || ''}
-                                        onChange={(e) => setEditData({ ...editData, cartao_sus: e.target.value } as any)}
+                                        onChange={(e) => setEditData({ ...editData, cartao_sus: formatCNS(e.target.value) } as any)}
+                                        inputProps={{ maxLength: 19 }}
                                         sx={{
                                             '& .MuiOutlinedInput-root': {
                                                 borderRadius: systemTruckTheme.borderRadius.medium,
@@ -1183,6 +1455,7 @@ const Cidadaos: React.FC = () => {
                                 label="Nome Completo *"
                                 value={formData.nome_completo}
                                 onChange={(e) => handleChange('nome_completo', e.target.value)}
+                                helperText="Obrigatório"
                                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: systemTruckTheme.borderRadius.medium } }}
                             />
                         </Grid>
@@ -1190,7 +1463,7 @@ const Cidadaos: React.FC = () => {
                         <Grid item xs={12} sm={6}>
                             <TextField
                                 fullWidth
-                                label="Nome da Mãe"
+                                label="Nome da Mãe (opcional)"
                                 value={formData.nome_mae}
                                 onChange={(e) => handleChange('nome_mae', e.target.value)}
                                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: systemTruckTheme.borderRadius.medium } }}
@@ -1203,8 +1476,17 @@ const Cidadaos: React.FC = () => {
                                 label="CPF *"
                                 value={formData.cpf}
                                 onChange={(e) => handleChange('cpf', formatCPF(e.target.value))}
+                                onBlur={(e) => handleCPFBlur(e.target.value)}
                                 placeholder="000.000.000-00"
                                 inputProps={{ maxLength: 14 }}
+                                error={formData.cpf.replace(/\D/g, '').length === 11 && !validateCPF(formData.cpf)}
+                                helperText={
+                                    formData.cpf.replace(/\D/g, '').length === 11 && !validateCPF(formData.cpf)
+                                        ? '⚠️ CPF inválido — verifique os números'
+                                        : formData.cpf.replace(/\D/g, '').length === 11
+                                            ? '✅ CPF válido — preenche dados automaticamente ao sair do campo'
+                                            : 'Obrigatório · Formato: 000.000.000-00'
+                                }
                                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: systemTruckTheme.borderRadius.medium } }}
                             />
                         </Grid>
@@ -1213,7 +1495,7 @@ const Cidadaos: React.FC = () => {
                             <TextField
                                 fullWidth
                                 type="date"
-                                label="Data de Nascimento"
+                                label="Data de Nascimento (opcional)"
                                 value={formData.data_nascimento}
                                 onChange={(e) => handleChange('data_nascimento', e.target.value)}
                                 InputLabelProps={{ shrink: true }}
@@ -1256,11 +1538,12 @@ const Cidadaos: React.FC = () => {
                         <Grid item xs={12} sm={6}>
                             <TextField
                                 fullWidth
-                                label="Cartão SUS (CNS)"
+                                label="Cartão SUS — CNS (opcional)"
                                 placeholder="000 0000 0000 0000"
-                                helperText="Opcional"
+                                helperText={formData.cartao_sus.replace(/\D/g, '').length > 0 && formData.cartao_sus.replace(/\D/g, '').length < 15 ? `${15 - formData.cartao_sus.replace(/\D/g,'').length} dígitos restantes` : 'Deixe em branco se não souber — 15 dígitos'}
                                 value={formData.cartao_sus}
-                                onChange={(e) => handleChange('cartao_sus', e.target.value)}
+                                onChange={(e) => handleChange('cartao_sus', formatCNS(e.target.value))}
+                                inputProps={{ maxLength: 19 }}
                                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: systemTruckTheme.borderRadius.medium } }}
                             />
                         </Grid>
@@ -1280,18 +1563,28 @@ const Cidadaos: React.FC = () => {
                                 onChange={(e) => handleChange('telefone', formatPhone(e.target.value))}
                                 placeholder="(00) 00000-0000"
                                 inputProps={{ maxLength: 15 }}
+                                helperText="Obrigatório"
                                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: systemTruckTheme.borderRadius.medium } }}
                             />
                         </Grid>
 
+                        {/* #7 — Email com sugestão de domínio + F4 — email opcional */}
                         <Grid item xs={12} sm={6}>
-                            <TextField
-                                fullWidth
-                                type="email"
-                                label="E-mail *"
+                            <Autocomplete
+                                freeSolo
+                                options={emailSuggestions}
                                 value={formData.email}
-                                onChange={(e) => handleChange('email', e.target.value)}
-                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: systemTruckTheme.borderRadius.medium } }}
+                                onInputChange={(_, value) => handleEmailChange(value)}
+                                renderInput={(params) => (
+                                    <TextField
+                                        {...params}
+                                        fullWidth
+                                        type="email"
+                                        label="E-mail (opcional)"
+                                        helperText="Sugestões de domínio aparecem automaticamente"
+                                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: systemTruckTheme.borderRadius.medium } }}
+                                    />
+                                )}
                             />
                         </Grid>
 
@@ -1302,13 +1595,17 @@ const Cidadaos: React.FC = () => {
                             </Typography>
                         </Grid>
 
+                        {/* #5 — CEP com preenchimento automático via ViaCEP */}
                         <Grid item xs={12} sm={4}>
                             <TextField
                                 fullWidth
-                                label="CEP"
+                                label="CEP (opcional)"
                                 value={formData.cep}
-                                onChange={(e) => handleChange('cep', e.target.value)}
+                                onChange={(e) => handleChange('cep', formatCEP(e.target.value))}
+                                onBlur={(e) => handleCEPBlur(e.target.value)}
                                 placeholder="00000-000"
+                                inputProps={{ maxLength: 9 }}
+                                helperText="Preenche endereço automaticamente ao sair do campo"
                                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: systemTruckTheme.borderRadius.medium } }}
                             />
                         </Grid>

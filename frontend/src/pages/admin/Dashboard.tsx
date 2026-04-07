@@ -74,10 +74,17 @@ const Dashboard: React.FC = () => {
         : menuItems;
     const [totalAlertas, setTotalAlertas] = useState<number | null>(null);
 
-    useEffect(() => {
+    const carregarAlertas = () => {
         api.get('/alertas/admin/dashboard')
             .then(res => setTotalAlertas(res.data?.resumo?.total_geral || 0))
             .catch(() => setTotalAlertas(null));
+    };
+
+    // F8 — carregar alertas na montagem e atualizar a cada 60s
+    useEffect(() => {
+        carregarAlertas();
+        const interval = setInterval(carregarAlertas, 60 * 1000);
+        return () => clearInterval(interval);
     }, []);
 
     return (

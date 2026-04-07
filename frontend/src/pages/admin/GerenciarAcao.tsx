@@ -151,7 +151,11 @@ const GerenciarAcao = () => {
     const [cidadaoBuscaOpts, setCidadaoBuscaOpts] = useState<any[]>([]);
     const [cidadaoBuscaLoading, setCidadaoBuscaLoading] = useState(false);
     const cidadaoBuscaRef = useRef<NodeJS.Timeout | null>(null);
-    const [selectedAcaoCursoId, setSelectedAcaoCursoId] = useState('');
+    const [selectedAcaoCursoIds, setSelectedAcaoCursoIds] = useState<Set<string>>(new Set());
+    const [savingInscricao, setSavingInscricao] = useState(false);
+    // IDs de curso_exame nos quais o cidadão JA está inscrito NESTA ação (para desabilitar na UI)
+    const [cidadaoInscritoNaAcao, setCidadaoInscritoNaAcao] = useState<Set<string>>(new Set());
+    const [loadingInscricoesCidadao, setLoadingInscricoesCidadao] = useState(false);
     // Popup de bloqueio de periodicidade
     const [blockedInfo, setBlockedInfo] = useState<{ message: string; ultima_data?: string; proxima_data?: string; code?: string; ultimo_exame_nome?: string } | null>(null);
 
@@ -159,6 +163,37 @@ const GerenciarAcao = () => {
     const [openEditStatusDialog, setOpenEditStatusDialog] = useState(false);
     const [inscricaoSelecionada, setInscricaoSelecionada] = useState<any>(null);
     const [novoStatus, setNovoStatus] = useState('pendente');
+    // Delete inscrição
+    const [openDeleteInscricaoDialog, setOpenDeleteInscricaoDialog] = useState(false);
+    const [inscricaoParaApagar, setInscricaoParaApagar] = useState<any>(null);
+    const [deletingInscricao, setDeletingInscricao] = useState(false);
+
+    // F3 — Aviso de imprevisto em massa
+    const [openAvisoDialog, setOpenAvisoDialog] = useState(false);
+    const [loadingAviso, setLoadingAviso] = useState(false);
+    const [avisoForm, setAvisoForm] = useState({ assunto: '', mensagem: '' });
+
+    const handleEnviarAviso = async () => {
+        if (!avisoForm.assunto.trim() || !avisoForm.mensagem.trim()) {
+            enqueueSnackbar('Preencha o assunto e a mensagem', { variant: 'warning' });
+            return;
+        }
+        setLoadingAviso(true);
+        try {
+            const response = await api.post(`/acoes/${id}/avisar-inscritos`, avisoForm);
+            const { enviados, sem_email, total_inscritos } = response.data;
+            enqueueSnackbar(
+                `✅ Aviso enviado! ${enviados} e-mails enviados de ${total_inscritos} inscritos (${sem_email} sem e-mail).`,
+                { variant: 'success', autoHideDuration: 6000 }
+            );
+            setOpenAvisoDialog(false);
+            setAvisoForm({ assunto: '', mensagem: '' });
+        } catch (error: any) {
+            enqueueSnackbar(error.response?.data?.error || 'Erro ao enviar aviso', { variant: 'error' });
+        } finally {
+            setLoadingAviso(false);
+        }
+    };
 
     const loadData = useCallback(async () => {
         try {
@@ -590,48 +625,81 @@ const GerenciarAcao = () => {
         }, 350);
     };
 
+    const handleCloseInscricaoDialog = () => {
+        setOpenInscricaoDialog(false);
+        setCpfBusca('');
+        setCidadaoEncontrado(null);
+        setCidadaoBuscaOpts([]);
+        setSelectedAcaoCursoIds(new Set());
+        setCidadaoInscritoNaAcao(new Set());
+    };
+
+    const handleToggleExame = (acaoCursoId: string) => {
+        setSelectedAcaoCursoIds(prev => {
+            const next = new Set(prev);
+            if (next.has(acaoCursoId)) {
+                next.delete(acaoCursoId);
+            } else {
+                next.add(acaoCursoId);
+            }
+            return next;
+        });
+    };
+
     const handleInscreverCidadao = async () => {
+        if (!cidadaoEncontrado) {
+            enqueueSnackbar('Busque e selecione um cidadão primeiro', { variant: 'warning' });
+            return;
+        }
+        if (selectedAcaoCursoIds.size === 0) {
+            enqueueSnackbar('Selecione ao menos um exame', { variant: 'warning' });
+            return;
+        }
+
+        setSavingInscricao(true);
         try {
-            if (!cidadaoEncontrado) {
-                enqueueSnackbar('Busque um cidadão primeiro', { variant: 'warning' });
-                return;
-            }
-
-            if (!selectedAcaoCursoId) {
-                enqueueSnackbar('Selecione um curso/exame', { variant: 'warning' });
-                return;
-            }
-
-            await api.post(`/inscricoes/acoes/${id}/inscricoes`, {
+            const response = await api.post('/inscricoes/bulk', {
                 cidadao_id: cidadaoEncontrado.id,
-                acao_curso_id: selectedAcaoCursoId,
+                acaoId: id,
+                acao_curso_ids: [...selectedAcaoCursoIds],
             });
 
-            enqueueSnackbar('Cidadão inscrito com sucesso!', { variant: 'success' });
-            setOpenInscricaoDialog(false);
-            setCpfBusca('');
-            setCidadaoEncontrado(null);
-            setSelectedAcaoCursoId('');
-            loadInscricoes();
-        } catch (error: any) {
-            const data = error.response?.data;
-            const isBloqueio = data?.code === 'BLOQUEADO_PERIODICIDADE' || data?.code === 'BLOQUEADO_SEM_REPETICAO' || data?.code === 'BLOQUEADO_JA_INSCRITO';
-            if (isBloqueio) {
-                // Fecha o dialog de inscrição e abre o popup de bloqueio
-                setOpenInscricaoDialog(false);
-                setBlockedInfo({
-                    message: data.message || data.error,
-                    ultima_data: data.ultima_data,
-                    proxima_data: data.proxima_data,
-                    code: data.code,
-                    ultimo_exame_nome: data.ultimo_exame_nome,
-                });
-            } else {
+            const { criados, bloqueados, resultados } = response.data;
+
+            if (criados > 0 && bloqueados === 0) {
                 enqueueSnackbar(
-                    data?.error || 'Erro ao inscrever cidadão',
-                    { variant: 'error' }
+                    `✅ Cidadão inscrito em ${criados} exame(s) com sucesso!`,
+                    { variant: 'success' }
+                );
+            } else if (criados > 0 && bloqueados > 0) {
+                const motivosBloqueios = resultados
+                    .filter((r: any) => r.status === 'bloqueado')
+                    .map((r: any) => r.motivo)
+                    .join('; ');
+                enqueueSnackbar(
+                    `⚠️ ${criados} inscrito(s), ${bloqueados} bloqueado(s): ${motivosBloqueios}`,
+                    { variant: 'warning', autoHideDuration: 7000 }
+                );
+            } else {
+                const motivosBloqueios = resultados
+                    .filter((r: any) => r.status === 'bloqueado')
+                    .map((r: any) => r.motivo)
+                    .join('; ');
+                enqueueSnackbar(
+                    `❌ Nenhuma inscrição criada: ${motivosBloqueios}`,
+                    { variant: 'error', autoHideDuration: 7000 }
                 );
             }
+
+            handleCloseInscricaoDialog();
+            loadInscricoes();
+        } catch (error: any) {
+            enqueueSnackbar(
+                error.response?.data?.error || 'Erro ao inscrever cidadão',
+                { variant: 'error' }
+            );
+        } finally {
+            setSavingInscricao(false);
         }
     };
 
@@ -673,6 +741,30 @@ const GerenciarAcao = () => {
         setInscricaoSelecionada(inscricao);
         setNovoStatus(getStatusDisplay(inscricao));
         setOpenEditStatusDialog(true);
+    };
+
+    const handleOpenDeleteInscricao = (inscricao: any) => {
+        setInscricaoParaApagar(inscricao);
+        setOpenDeleteInscricaoDialog(true);
+    };
+
+    const handleDeleteInscricao = async () => {
+        if (!inscricaoParaApagar) return;
+        setDeletingInscricao(true);
+        try {
+            await api.delete(`/inscricoes/${inscricaoParaApagar.id}`);
+            enqueueSnackbar('Inscrição removida com sucesso!', { variant: 'success' });
+            setOpenDeleteInscricaoDialog(false);
+            setInscricaoParaApagar(null);
+            await loadInscricoes();
+        } catch (error: any) {
+            enqueueSnackbar(
+                error.response?.data?.error || 'Erro ao remover inscrição',
+                { variant: 'error' }
+            );
+        } finally {
+            setDeletingInscricao(false);
+        }
     };
 
     const handleExportarCSV = async () => {
@@ -1677,6 +1769,28 @@ const GerenciarAcao = () => {
                                 >
                                     Inscrever Cidadão
                                 </Button>
+                                {/* F3 — Avisar Inscritos */}
+                                <Button
+                                    variant="outlined"
+                                    size="small"
+                                    startIcon={<CheckCircle size={16} />}
+                                    onClick={() => setOpenAvisoDialog(true)}
+                                    disabled={inscricoes.length === 0}
+                                    sx={{
+                                        borderColor: '#f59e0b',
+                                        color: '#f59e0b',
+                                        fontWeight: 600,
+                                        textTransform: 'none',
+                                        '&:hover': {
+                                            borderColor: '#d97706',
+                                            background: 'rgba(245, 158, 11, 0.06)',
+                                            transform: 'translateY(-1px)',
+                                        },
+                                        transition: 'all 0.2s ease'
+                                    }}
+                                >
+                                    📢 Avisar Inscritos
+                                </Button>
                             </Box>
                         </Box>
 
@@ -1749,19 +1863,30 @@ const GerenciarAcao = () => {
                                                     />
                                                 </TableCell>
                                                 <TableCell>
-                                                    <IconButton
-                                                        size="small"
-                                                        onClick={() => handleOpenEditStatus(inscricao)}
-                                                        title="Editar Status"
-                                                        sx={{
-                                                            color: '#4682b4',
-                                                            '&:hover': {
-                                                                background: 'rgba(70, 130, 180, 0.1)'
-                                                            }
-                                                        }}
-                                                    >
-                                                        <Edit size={16} />
-                                                    </IconButton>
+                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                                        <IconButton
+                                                            size="small"
+                                                            onClick={() => handleOpenEditStatus(inscricao)}
+                                                            title="Editar Status"
+                                                            sx={{
+                                                                color: '#4682b4',
+                                                                '&:hover': { background: 'rgba(70, 130, 180, 0.12)' }
+                                                            }}
+                                                        >
+                                                            <Edit size={16} />
+                                                        </IconButton>
+                                                        <IconButton
+                                                            size="small"
+                                                            onClick={() => handleOpenDeleteInscricao(inscricao)}
+                                                            title="Remover Inscrição"
+                                                            sx={{
+                                                                color: '#e53935',
+                                                                '&:hover': { background: 'rgba(229,57,53,0.1)' }
+                                                            }}
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </IconButton>
+                                                    </Box>
                                                 </TableCell>
                                             </TableRow>
                                         ))}
@@ -1770,25 +1895,46 @@ const GerenciarAcao = () => {
                             </TableContainer>
                         )}
 
-                        <Dialog open={openInscricaoDialog} onClose={() => setOpenInscricaoDialog(false)} maxWidth="sm" fullWidth>
-                            <DialogTitle>Inscrever Cidadão</DialogTitle>
-                            <DialogContent>
-                                <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                    <TextField
-                                        required
-                                        select
-                                        fullWidth
-                                        label="Exame"
-                                        value={selectedAcaoCursoId}
-                                        onChange={(e) => setSelectedAcaoCursoId(e.target.value)}
-                                    >
-                                        {cursosExamesVinculados.map((acaoCurso: AcaoCursoExame) => (
-                                            <MenuItem key={acaoCurso.id} value={acaoCurso.id}>
-                                                {acaoCurso.curso_exame?.nome || '-'} ({acaoCurso.vagas} vagas)
-                                            </MenuItem>
-                                        ))}
-                                    </TextField>
+                        <Dialog open={openInscricaoDialog} onClose={handleCloseInscricaoDialog} maxWidth="sm" fullWidth
+                            PaperProps={{ sx: { borderRadius: 3, overflow: 'hidden' } }}
+                        >
+                            {/* ── Header com gradiente ── */}
+                            <Box sx={{
+                                background: 'linear-gradient(135deg, #1565C0 0%, #1976D2 100%)',
+                                px: 3, py: 2.5,
+                                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                    <Box sx={{
+                                        width: 36, height: 36, borderRadius: '10px',
+                                        background: 'rgba(255,255,255,0.15)',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    }}>
+                                        <UserPlus size={18} color="white" />
+                                    </Box>
+                                    <Box>
+                                        <Typography sx={{ color: 'white', fontWeight: 700, fontSize: '1rem', lineHeight: 1.2 }}>
+                                            Inscrever Cidadão
+                                        </Typography>
+                                        <Typography sx={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.72rem' }}>
+                                            Selecione o cidadão e os exames desejados
+                                        </Typography>
+                                    </Box>
+                                </Box>
+                                <IconButton size="small" onClick={handleCloseInscricaoDialog}
+                                    sx={{ color: 'rgba(255,255,255,0.8)', '&:hover': { background: 'rgba(255,255,255,0.15)' } }}>
+                                    <Box component="span" sx={{ fontSize: '1.1rem', lineHeight: 1 }}>✕</Box>
+                                </IconButton>
+                            </Box>
 
+                            <DialogContent sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+
+                                {/* ── Step 1: Busca CPF ── */}
+                                <Box>
+                                    <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: 'text.secondary', letterSpacing: '0.8px', textTransform: 'uppercase', mb: 1, display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                                        <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 18, height: 18, borderRadius: '50%', background: '#1976D2', color: 'white', fontSize: '0.65rem', fontWeight: 800, flexShrink: 0 }}>1</Box>
+                                        Identificar Cidadão
+                                    </Typography>
                                     <Autocomplete
                                         fullWidth
                                         freeSolo
@@ -1797,7 +1943,7 @@ const GerenciarAcao = () => {
                                         loading={cidadaoBuscaLoading}
                                         inputValue={cpfBusca}
                                         onInputChange={(_, nv) => handleBuscaAutocomplete(nv)}
-                                        onChange={(_, nVal: any) => {
+                                        onChange={async (_, nVal: any) => {
                                             if (nVal && typeof nVal !== 'string') {
                                                 setCidadaoEncontrado({
                                                     id: nVal.id,
@@ -1806,66 +1952,291 @@ const GerenciarAcao = () => {
                                                     email: nVal.email
                                                 });
                                                 setCpfBusca(formatCPF(nVal.cpf || ''));
+
+                                                // Buscar inscrições JA existentes deste cidadão NESTA ação
+                                                setLoadingInscricoesCidadao(true);
+                                                let jaInscritos = new Set<string>();
+                                                try {
+                                                    const resp = await api.get(`/inscricoes/acoes/${id}/inscricoes`, {
+                                                        params: { limit: 1000 }
+                                                    });
+                                                    const todasInscricoes: any[] = Array.isArray(resp.data)
+                                                        ? resp.data
+                                                        : (resp.data.inscricoes || resp.data.data || []);
+
+                                                    todasInscricoes.forEach((insc: any) => {
+                                                        // A API retorna cidadao como objeto aninhado: insc.cidadao.id
+                                                        const inscCidadaoId = insc.cidadao?.id ?? insc.cidadao_id;
+                                                        const isActivoStatus = insc.status === 'pendente' || insc.status === 'atendido';
+
+                                                        if (inscCidadaoId === nVal.id && isActivoStatus) {
+                                                            // Pegar o curso_exame_id (pode vir direto ou como objeto aninhado)
+                                                            const cursoExameId = insc.curso_exame_id ?? insc.curso_exame?.id;
+                                                            if (cursoExameId) {
+                                                                jaInscritos.add(cursoExameId);
+                                                                // Mapear para o acao_curso_exame.id (chave dos cards)
+                                                                const matching = cursosExamesVinculados.find(
+                                                                    (ace: AcaoCursoExame) => ace.curso_exame_id === cursoExameId
+                                                                );
+                                                                if (matching) jaInscritos.add(matching.id);
+                                                            }
+                                                        }
+                                                    });
+                                                } catch {
+                                                    // Se falhar, não bloqueia — backend tratará na submissão
+                                                } finally {
+                                                    setLoadingInscricoesCidadao(false);
+                                                }
+                                                setCidadaoInscritoNaAcao(jaInscritos);
+
+                                                // Pré-selecionar apenas exames COM VAGAS e que o cidadão NÃO está inscrito
+                                                setSelectedAcaoCursoIds(new Set(
+                                                    cursosExamesVinculados
+                                                        .filter((ace: AcaoCursoExame) => ace.vagas > 0 && !jaInscritos.has(ace.id))
+                                                        .map((ace: AcaoCursoExame) => ace.id)
+                                                ));
                                             } else {
                                                 setCidadaoEncontrado(null);
+                                                setSelectedAcaoCursoIds(new Set());
+                                                setCidadaoInscritoNaAcao(new Set());
                                             }
                                         }}
                                         renderInput={(params) => (
                                             <TextField
                                                 {...params}
-                                                label="Buscar CPF do Cidadão"
+                                                label="Buscar por CPF ou nome"
                                                 placeholder="000.000.000-00"
-                                                inputProps={{
-                                                    ...params.inputProps,
-                                                    maxLength: 14,
-                                                }}
+                                                inputProps={{ ...params.inputProps, maxLength: 14 }}
                                                 InputProps={{
                                                     ...params.InputProps,
                                                     endAdornment: (
                                                         <>
-                                                            {cidadaoBuscaLoading ? <CircularProgress color="inherit" size={20} /> : null}
+                                                            {cidadaoBuscaLoading ? <CircularProgress color="inherit" size={18} /> : null}
                                                             {params.InputProps.endAdornment}
                                                         </>
                                                     )
                                                 }}
+                                                sx={{
+                                                    '& .MuiOutlinedInput-root': {
+                                                        borderRadius: 2,
+                                                        '&.Mui-focused fieldset': { borderColor: '#1976D2', borderWidth: 2 },
+                                                    },
+                                                }}
                                             />
                                         )}
                                         renderOption={(props, opt: any) => (
-                                            <li {...props} key={opt.id}>
-                                                <Box>
-                                                    <Typography sx={{ fontWeight: 600 }}>{opt.nome || opt.nome_completo}</Typography>
-                                                    <Typography sx={{ fontSize: '0.8rem', color: 'gray' }}>CPF: {formatCPF(opt.cpf || '')}</Typography>
+                                            <li {...props} key={opt.id} style={{ padding: '10px 16px' }}>
+                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                                    <Box sx={{
+                                                        width: 34, height: 34, borderRadius: '50%',
+                                                        background: '#E3F2FD',
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                        fontWeight: 700, fontSize: '0.8rem', color: '#1565C0', flexShrink: 0,
+                                                    }}>
+                                                        {(opt.nome || opt.nome_completo || '?').charAt(0).toUpperCase()}
+                                                    </Box>
+                                                    <Box>
+                                                        <Typography sx={{ fontWeight: 600, fontSize: '0.88rem' }}>{opt.nome || opt.nome_completo}</Typography>
+                                                        <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>CPF: {formatCPF(opt.cpf || '')}</Typography>
+                                                    </Box>
                                                 </Box>
                                             </li>
                                         )}
                                     />
-
-                                    {cidadaoEncontrado && (
-                                        <Alert severity="success">
-                                            <strong>{cidadaoEncontrado.nome_completo}</strong><br />
-                                            CPF: {cidadaoEncontrado.cpf}<br />
-                                            Email: {cidadaoEncontrado.email || '-'}
-                                        </Alert>
-                                    )}
                                 </Box>
+
+                                {/* ── Card Cidadão Confirmado ── */}
+                                {cidadaoEncontrado && (
+                                    <Box sx={{
+                                        display: 'flex', alignItems: 'center', gap: 1.5, p: 1.5,
+                                        borderRadius: 2,
+                                        background: 'linear-gradient(135deg, #E8F5E9 0%, #F1F8E9 100%)',
+                                        border: '1.5px solid #A5D6A7',
+                                    }}>
+                                        <Box sx={{
+                                            width: 42, height: 42, borderRadius: '12px', flexShrink: 0,
+                                            background: 'linear-gradient(135deg, #43A047, #2E7D32)',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            color: 'white', fontWeight: 800, fontSize: '1rem',
+                                            boxShadow: '0 2px 8px rgba(46,125,50,0.3)',
+                                        }}>
+                                            {cidadaoEncontrado.nome_completo.charAt(0).toUpperCase()}
+                                        </Box>
+                                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                                            <Typography sx={{ fontWeight: 700, fontSize: '0.9rem', color: '#1B5E20', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                {cidadaoEncontrado.nome_completo}
+                                            </Typography>
+                                            <Typography sx={{ fontSize: '0.74rem', color: '#388E3C', mt: 0.25 }}>
+                                                {cidadaoEncontrado.cpf} · {cidadaoEncontrado.email || 'Sem e-mail'}
+                                            </Typography>
+                                        </Box>
+                                        <Box sx={{
+                                            px: 1.25, py: 0.5, borderRadius: '20px', flexShrink: 0,
+                                            background: selectedAcaoCursoIds.size > 0 ? '#2E7D32' : '#9E9E9E',
+                                            display: 'flex', alignItems: 'center', gap: 0.5,
+                                            transition: 'background 0.2s',
+                                        }}>
+                                            <Typography sx={{ color: 'white', fontWeight: 800, fontSize: '0.82rem', lineHeight: 1 }}>{selectedAcaoCursoIds.size}</Typography>
+                                            <Typography sx={{ color: 'rgba(255,255,255,0.82)', fontSize: '0.68rem', lineHeight: 1, whiteSpace: 'nowrap' }}>
+                                                exame{selectedAcaoCursoIds.size !== 1 ? 's' : ''}
+                                            </Typography>
+                                        </Box>
+                                    </Box>
+                                )}
+
+                                {/* ── Passo 2: Cards-toggle de Exames ── */}
+                                {cidadaoEncontrado && (
+                                    <Box>
+                                        <Typography sx={{
+                                            fontSize: '0.68rem', fontWeight: 700, color: 'text.secondary',
+                                            letterSpacing: '0.8px', textTransform: 'uppercase', mb: 1.25,
+                                            display: 'flex', alignItems: 'center', gap: 0.75,
+                                        }}>
+                                            <Box component="span" sx={{
+                                                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                                                width: 18, height: 18, borderRadius: '50%',
+                                                background: '#1976D2', color: 'white', fontSize: '0.63rem', fontWeight: 800, flexShrink: 0,
+                                            }}>2</Box>
+                                            Selecionar Exames
+                                        </Typography>
+
+                                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                            {loadingInscricoesCidadao && (
+                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 1 }}>
+                                                    <CircularProgress size={16} />
+                                                    <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary' }}>Verificando inscrições existentes...</Typography>
+                                                </Box>
+                                            )}
+                                            {!loadingInscricoesCidadao && cursosExamesVinculados.map((acaoCurso: AcaoCursoExame) => {
+                                                const semVagas = acaoCurso.vagas <= 0;
+                                                const jaInscrito = cidadaoInscritoNaAcao.has(acaoCurso.id);
+                                                const bloqueado = semVagas || jaInscrito;
+                                                const selecionado = selectedAcaoCursoIds.has(acaoCurso.id);
+                                                const maxVagas = Math.max(...cursosExamesVinculados.map((a: AcaoCursoExame) => a.vagas), 1);
+                                                const vagasPct = Math.min(100, (acaoCurso.vagas / maxVagas) * 100);
+                                                return (
+                                                    <Box
+                                                        key={acaoCurso.id}
+                                                        onClick={() => !bloqueado && handleToggleExame(acaoCurso.id)}
+                                                        sx={{
+                                                            display: 'flex', alignItems: 'center', gap: 1.5,
+                                                            p: '12px 14px', borderRadius: 2,
+                                                            border: '2px solid',
+                                                            borderColor: jaInscrito ? '#FFB74D' : semVagas ? '#E0E0E0' : selecionado ? '#1976D2' : '#EBEBEB',
+                                                            background: jaInscrito ? 'linear-gradient(135deg,#FFF8E1,#FFF3E0)' : semVagas ? '#FAFAFA' : selecionado ? 'linear-gradient(135deg,#E3F2FD 0%,#EDE7F6 100%)' : 'white',
+                                                            cursor: bloqueado ? 'not-allowed' : 'pointer',
+                                                            opacity: semVagas ? 0.5 : 1,
+                                                            transition: 'all 0.18s',
+                                                            boxShadow: selecionado && !bloqueado ? '0 2px 12px rgba(25,118,210,0.14)' : 'none',
+                                                            '&:hover': bloqueado ? {} : { borderColor: selecionado ? '#1565C0' : '#C0C0C0', boxShadow: '0 2px 8px rgba(0,0,0,0.07)' },
+                                                        }}
+                                                    >
+                                                        {/* Ícone */}
+                                                        <Box sx={{
+                                                            width: 40, height: 40, borderRadius: '10px', flexShrink: 0,
+                                                            background: jaInscrito ? '#FF9800' : semVagas ? '#F5F5F5' : selecionado ? '#1976D2' : '#F0F4FF',
+                                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                            transition: 'background 0.18s', fontSize: '1.1rem',
+                                                        }}>
+                                                            {jaInscrito ? <CheckCircle size={20} color="white" /> : semVagas ? '⛔' : selecionado ? <CheckCircle size={20} color="white" /> : '🩺'}
+                                                        </Box>
+
+                                                        {/* Texto + barra de vagas */}
+                                                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.5, flexWrap: 'wrap' }}>
+                                                                <Typography sx={{
+                                                                    fontWeight: selecionado || jaInscrito ? 700 : 500, fontSize: '0.88rem',
+                                                                    color: jaInscrito ? '#E65100' : semVagas ? 'text.disabled' : selecionado ? '#1565C0' : 'text.primary',
+                                                                    lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                                                                }}>
+                                                                    {acaoCurso.curso_exame?.nome || '—'}
+                                                                </Typography>
+                                                                {jaInscrito && (
+                                                                    <Chip
+                                                                        label="Já inscrito"
+                                                                        size="small"
+                                                                        sx={{
+                                                                            height: 18, fontSize: '0.63rem', fontWeight: 700,
+                                                                            background: '#FF9800', color: 'white',
+                                                                            '& .MuiChip-label': { px: 0.75 },
+                                                                        }}
+                                                                    />
+                                                                )}
+                                                            </Box>
+                                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                                                                <Box sx={{ height: 4, flex: 1, borderRadius: 2, background: '#E0E0E0', overflow: 'hidden' }}>
+                                                                    <Box sx={{
+                                                                        height: '100%', borderRadius: 2, width: `${vagasPct}%`,
+                                                                        background: jaInscrito ? '#FFB74D' : semVagas ? '#BDBDBD' : selecionado ? '#1976D2' : '#90CAF9',
+                                                                        transition: 'width 0.35s ease, background 0.2s',
+                                                                    }} />
+                                                                </Box>
+                                                                <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                                                                    {semVagas ? 'Esgotado' : `${acaoCurso.vagas} vagas`}
+                                                                </Typography>
+                                                            </Box>
+                                                        </Box>
+
+                                                        {/* Bolinha toggle / lock */}
+                                                        <Box sx={{
+                                                            width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
+                                                            border: '2px solid',
+                                                            borderColor: jaInscrito ? '#FF9800' : semVagas ? '#E0E0E0' : selecionado ? '#1976D2' : '#BDBDBD',
+                                                            background: jaInscrito ? '#FF9800' : selecionado && !semVagas ? '#1976D2' : 'white',
+                                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                            transition: 'all 0.18s',
+                                                        }}>
+                                                            {jaInscrito ? (
+                                                                <Box component="span" sx={{ color: 'white', fontSize: '0.65rem', fontWeight: 800, lineHeight: 1 }}>✓</Box>
+                                                            ) : selecionado && !semVagas ? (
+                                                                <Box component="span" sx={{ color: 'white', fontSize: '0.68rem', fontWeight: 800, lineHeight: 1 }}>✓</Box>
+                                                            ) : null}
+                                                        </Box>
+                                                    </Box>
+                                                );
+                                            })}
+                                        </Box>
+
+                                        {cursosExamesVinculados.every((ace: AcaoCursoExame) => ace.vagas <= 0) && (
+                                            <Alert severity="error" sx={{ mt: 1.5, borderRadius: 2, fontSize: '0.82rem' }}>
+                                                Todos os exames desta ação estão sem vagas disponíveis.
+                                            </Alert>
+                                        )}
+                                    </Box>
+                                )}
                             </DialogContent>
-                            <DialogActions>
-                                <Button onClick={() => {
-                                    setOpenInscricaoDialog(false);
-                                    setCpfBusca('');
-                                    setCidadaoEncontrado(null);
-                                    setSelectedAcaoCursoId('');
-                                }}>
+
+                            {/* ── Rodapé ── */}
+                            <Box sx={{
+                                px: 3, py: 2, borderTop: '1px solid #F0F0F0', background: '#FAFAFA',
+                                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            }}>
+                                <Button onClick={handleCloseInscricaoDialog} disabled={savingInscricao}
+                                    sx={{ color: 'text.secondary', textTransform: 'none', fontWeight: 500 }}>
                                     Cancelar
                                 </Button>
                                 <Button
                                     variant="contained"
                                     onClick={handleInscreverCidadao}
-                                    disabled={!cidadaoEncontrado || !selectedAcaoCursoId}
+                                    disabled={!cidadaoEncontrado || selectedAcaoCursoIds.size === 0 || savingInscricao}
+                                    startIcon={savingInscricao ? <CircularProgress size={15} color="inherit" /> : <UserPlus size={16} />}
+                                    sx={{
+                                        textTransform: 'none', fontWeight: 700, borderRadius: 2,
+                                        px: 2.5, py: 1, minWidth: 180,
+                                        background: 'linear-gradient(135deg, #1565C0, #1976D2)',
+                                        boxShadow: '0 2px 12px rgba(21,101,192,0.3)',
+                                        '&:hover': { background: 'linear-gradient(135deg, #0D47A1, #1565C0)' },
+                                        '&:disabled': { background: '#E0E0E0', boxShadow: 'none' },
+                                        transition: 'all 0.2s',
+                                    }}
                                 >
-                                    Inscrever
+                                    {savingInscricao
+                                        ? 'Inscrevendo...'
+                                        : selectedAcaoCursoIds.size > 0
+                                            ? `Inscrever em ${selectedAcaoCursoIds.size} exame${selectedAcaoCursoIds.size !== 1 ? 's' : ''}`
+                                            : 'Selecione exames'}
                                 </Button>
-                            </DialogActions>
+                            </Box>
                         </Dialog>
 
                         {/* ── Dialog bloqueio de periodicidade ── */}
@@ -2769,6 +3140,98 @@ const GerenciarAcao = () => {
                 )}
             </Paper>
 
+            {/* ── Dialog: Confirmar Exclusão de Inscrição ── */}
+            <Dialog
+                open={openDeleteInscricaoDialog}
+                onClose={() => !deletingInscricao && setOpenDeleteInscricaoDialog(false)}
+                maxWidth="xs"
+                fullWidth
+                PaperProps={{ sx: { borderRadius: 3, overflow: 'hidden' } }}
+            >
+                {/* Header vermelho */}
+                <Box sx={{
+                    background: 'linear-gradient(135deg, #C62828, #E53935)',
+                    px: 3, py: 2.5,
+                    display: 'flex', alignItems: 'center', gap: 1.5,
+                }}>
+                    <Box sx={{
+                        width: 36, height: 36, borderRadius: '10px',
+                        background: 'rgba(255,255,255,0.18)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                    }}>
+                        <Trash2 size={18} color="white" />
+                    </Box>
+                    <Box>
+                        <Typography sx={{ color: 'white', fontWeight: 700, fontSize: '1rem', lineHeight: 1.2 }}>
+                            Remover Inscrição
+                        </Typography>
+                        <Typography sx={{ color: 'rgba(255,255,255,0.75)', fontSize: '0.72rem' }}>
+                            Esta ação não pode ser desfeita
+                        </Typography>
+                    </Box>
+                </Box>
+
+                <DialogContent sx={{ p: 3 }}>
+                    <Typography sx={{ fontSize: '0.9rem', color: 'text.secondary', mb: 2 }}>
+                        Tem certeza que deseja remover a inscrição abaixo?
+                    </Typography>
+
+                    {inscricaoParaApagar && (
+                        <Box sx={{
+                            p: 2, borderRadius: 2,
+                            border: '1.5px solid #FFCDD2',
+                            background: 'linear-gradient(135deg, #FFEBEE, #FFF3F3)',
+                        }}>
+                            <Typography sx={{ fontWeight: 700, fontSize: '0.92rem', color: '#B71C1C', mb: 0.5 }}>
+                                {inscricaoParaApagar.cidadao?.nome_completo || '—'}
+                            </Typography>
+                            <Typography sx={{ fontSize: '0.78rem', color: '#C62828', mb: 0.5 }}>
+                                CPF: {inscricaoParaApagar.cidadao?.cpf || '—'}
+                            </Typography>
+                            <Box sx={{
+                                display: 'inline-flex', alignItems: 'center',
+                                px: 1.25, py: 0.4, borderRadius: '20px',
+                                background: '#FFCDD2', mt: 0.5,
+                            }}>
+                                <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: '#C62828' }}>
+                                    {inscricaoParaApagar.curso_exame?.nome || '—'}
+                                </Typography>
+                            </Box>
+                        </Box>
+                    )}
+                </DialogContent>
+
+                <Box sx={{
+                    px: 3, py: 2, borderTop: '1px solid #FFF0F0', background: '#FAFAFA',
+                    display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 1.5,
+                }}>
+                    <Button
+                        onClick={() => setOpenDeleteInscricaoDialog(false)}
+                        disabled={deletingInscricao}
+                        sx={{ color: 'text.secondary', textTransform: 'none', fontWeight: 500 }}
+                    >
+                        Cancelar
+                    </Button>
+                    <Button
+                        variant="contained"
+                        onClick={handleDeleteInscricao}
+                        disabled={deletingInscricao}
+                        startIcon={deletingInscricao ? <CircularProgress size={15} color="inherit" /> : <Trash2 size={15} />}
+                        sx={{
+                            textTransform: 'none', fontWeight: 700, borderRadius: 2,
+                            px: 2.5, py: 1,
+                            background: 'linear-gradient(135deg, #C62828, #E53935)',
+                            boxShadow: '0 2px 10px rgba(229,57,53,0.35)',
+                            '&:hover': { background: 'linear-gradient(135deg, #B71C1C, #C62828)' },
+                            '&:disabled': { background: '#E0E0E0', boxShadow: 'none' },
+                            transition: 'all 0.2s',
+                        }}
+                    >
+                        {deletingInscricao ? 'Removendo...' : 'Sim, remover'}
+                    </Button>
+                </Box>
+            </Dialog>
+
             {/* Dialog: Editar Status da Inscrição */}
             <Dialog
                 open={openEditStatusDialog}
@@ -2822,6 +3285,70 @@ const GerenciarAcao = () => {
                         onClick={handleAtualizarStatus}
                     >
                         Salvar
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* F3 — Dialog: Aviso de Imprevisto em Massa */}
+            <Dialog
+                open={openAvisoDialog}
+                onClose={() => !loadingAviso && setOpenAvisoDialog(false)}
+                maxWidth="sm"
+                fullWidth
+            >
+                <DialogTitle sx={{
+                    background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                    color: '#fff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    fontWeight: 700,
+                }}>
+                    📢 Aviso de Imprevisto para Inscritos
+                </DialogTitle>
+                <DialogContent sx={{ pt: 3 }}>
+                    <Alert severity="warning" sx={{ mb: 2 }}>
+                        Este e-mail será enviado para <strong>todos os inscritos</strong> desta ação que possuam e-mail cadastrado ({inscricoes.length} inscritos no total).
+                    </Alert>
+                    <TextField
+                        fullWidth
+                        label="Assunto do E-mail"
+                        value={avisoForm.assunto}
+                        onChange={(e) => setAvisoForm(prev => ({ ...prev, assunto: e.target.value }))}
+                        placeholder="Ex: Mudança de local da ação"
+                        sx={{ mb: 2 }}
+                        disabled={loadingAviso}
+                    />
+                    <TextField
+                        fullWidth
+                        multiline
+                        rows={5}
+                        label="Mensagem"
+                        value={avisoForm.mensagem}
+                        onChange={(e) => setAvisoForm(prev => ({ ...prev, mensagem: e.target.value }))}
+                        placeholder="Ex: Informamos que a ação agendada para o dia X foi transferida para o local Y..."
+                        disabled={loadingAviso}
+                        helperText="A mensagem será enviada com o cabeçalho e rodapé padrão do sistema."
+                    />
+                </DialogContent>
+                <DialogActions>
+                    <Button
+                        onClick={() => { setOpenAvisoDialog(false); setAvisoForm({ assunto: '', mensagem: '' }); }}
+                        disabled={loadingAviso}
+                    >
+                        Cancelar
+                    </Button>
+                    <Button
+                        variant="contained"
+                        onClick={handleEnviarAviso}
+                        disabled={loadingAviso || !avisoForm.assunto.trim() || !avisoForm.mensagem.trim()}
+                        startIcon={loadingAviso ? <CircularProgress size={16} color="inherit" /> : <CheckCircle size={16} />}
+                        sx={{
+                            background: loadingAviso ? undefined : 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                            color: '#fff',
+                        }}
+                    >
+                        {loadingAviso ? 'Enviando...' : 'Enviar Aviso'}
                     </Button>
                 </DialogActions>
             </Dialog>

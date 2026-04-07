@@ -25,6 +25,9 @@ import { ManutencaoCaminhao } from './ManutencaoCaminhao';
 import { PontoMedico } from './PontoMedico';
 import { AtendimentoMedico } from './AtendimentoMedico';
 import { FuncionarioAnotacao } from './FuncionarioAnotacao';
+import { FichaAtendimento } from './FichaAtendimento';
+import { EstacaoExame } from './EstacaoExame';
+import { ConfiguracaoFilaAcao } from './ConfiguracaoFilaAcao';
 
 // Define associations
 export function setupAssociations(): void {
@@ -317,7 +320,36 @@ export function setupAssociations(): void {
         foreignKey: 'funcionario_id',
         as: 'funcionario',
     });
+
+    // Acao <-> EstacaoExame (1:N)
+    Acao.hasMany(EstacaoExame, { foreignKey: 'acao_id', as: 'estacoes' });
+    EstacaoExame.belongsTo(Acao, { foreignKey: 'acao_id', as: 'acao' });
+
+    // CursoExame <-> EstacaoExame (1:N)
+    CursoExame.hasMany(EstacaoExame, { foreignKey: 'curso_exame_id', as: 'estacoes' });
+    EstacaoExame.belongsTo(CursoExame, { foreignKey: 'curso_exame_id', as: 'curso_exame' });
+
+    // Acao <-> FichaAtendimento (1:N)
+    Acao.hasMany(FichaAtendimento, { foreignKey: 'acao_id', as: 'fichas' });
+    FichaAtendimento.belongsTo(Acao, { foreignKey: 'acao_id', as: 'acao' });
+
+    // Cidadao <-> FichaAtendimento (1:N)
+    Cidadao.hasMany(FichaAtendimento, { foreignKey: 'cidadao_id', as: 'fichas' });
+    FichaAtendimento.belongsTo(Cidadao, { foreignKey: 'cidadao_id', as: 'cidadao' });
+
+    // Inscricao <-> FichaAtendimento (1:N)
+    Inscricao.hasMany(FichaAtendimento, { foreignKey: 'inscricao_id', as: 'fichas' });
+    FichaAtendimento.belongsTo(Inscricao, { foreignKey: 'inscricao_id', as: 'inscricao' });
+
+    // EstacaoExame <-> FichaAtendimento (1:N)
+    EstacaoExame.hasMany(FichaAtendimento, { foreignKey: 'estacao_id', as: 'fichas' });
+    FichaAtendimento.belongsTo(EstacaoExame, { foreignKey: 'estacao_id', as: 'estacao' });
+
+    // Acao <-> ConfiguracaoFilaAcao (1:1)
+    Acao.hasOne(ConfiguracaoFilaAcao, { foreignKey: 'acao_id', as: 'configuracao_fila' });
+    ConfiguracaoFilaAcao.belongsTo(Acao, { foreignKey: 'acao_id', as: 'acao' });
 }
+
 
 // Export all models
 export {
@@ -347,5 +379,9 @@ export {
     PontoMedico,
     AtendimentoMedico,
     FuncionarioAnotacao,
+    FichaAtendimento,
+    EstacaoExame,
+    ConfiguracaoFilaAcao,
 };
+
 

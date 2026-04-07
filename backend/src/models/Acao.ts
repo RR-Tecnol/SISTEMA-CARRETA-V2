@@ -186,12 +186,23 @@ Acao.init(
         underscored: true,
         hooks: {
             beforeCreate: async (acao: Acao) => {
-                // Garante que numero_acao seja sempre gerado via sequence PostgreSQL
+                // Garantir que numero_acao seja gerado
                 if (!acao.numero_acao) {
-                    const [result] = await sequelize.query(
-                        "SELECT nextval('acoes_numero_acao_seq') as numero"
-                    );
-                    acao.numero_acao = (result[0] as any).numero;
+                    try {
+                        // Tenta usar a sequence PostgreSQL (modo normal)
+                        const [result] = await sequelize.query(
+                            "SELECT nextval('acoes_numero_acao_seq') as numero"
+                        );
+                        acao.numero_acao = (result[0] as any).numero;
+                    } catch (_seqError) {
+                        // Fallback: se a sequence não existir, usa MAX+1
+                        // Isso evita falha de criação caso a migration não tenha rodado
+                        console.warn('⚠️  Sequence acoes_numero_acao_seq não encontrada — usando MAX+1 como fallback');
+                        const [maxResult] = await sequelize.query(
+                            "SELECT COALESCE(MAX(numero_acao), 0) + 1 as numero FROM acoes"
+                        );
+                        acao.numero_acao = (maxResult[0] as any).numero;
+                    }
                 }
             },
         },

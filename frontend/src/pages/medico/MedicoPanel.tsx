@@ -33,6 +33,7 @@ interface Atendimento {
 interface Inscrito {
     id: string;
     cidadao: { id: string; nome: string; cpf: string; data_nascimento?: string; telefone?: string; genero?: string };
+    curso_exame?: { id: string; nome: string; tipo?: string };
     status: 'pendente' | 'atendido' | 'faltou';
 }
 
@@ -60,6 +61,7 @@ const MedicoPanel: React.FC = () => {
     const [timerSecs, setTimerSecs] = useState(0);
     const [nomePaciente, setNomePaciente] = useState('');
     const [cidadaoSelecionado, setCidadaoSelecionado] = useState<Inscrito | null>(null);
+    const [inscricaoAtual, setInscricaoAtual] = useState<Inscrito | null>(null); // inscrição específica em atendimento
     const [observacoes, setObservacoes] = useState('');
     const [observacoesEmAndamento, setObservacoesEmAndamento] = useState('');
     const [iniciando, setIniciando] = useState(false);
@@ -230,7 +232,9 @@ const MedicoPanel: React.FC = () => {
                 acao_id: acaoId,
                 observacoes,
                 ponto_id: pontoId,
+                inscricao_id: inscrito?.id ?? null, // 🔗 vincula à ficha do exame específico
             });
+            if (inscrito) setInscricaoAtual(inscrito);
             setNomePaciente(''); setObservacoes(''); setCidadaoSelecionado(null);
             enqueueSnackbar('Consulta iniciada!', { variant: 'success' });
             await fetchData(); await fetchInscritos();
@@ -239,12 +243,17 @@ const MedicoPanel: React.FC = () => {
         } finally { setIniciando(false); }
     };
 
+
     const handleFinalizarConsulta = async () => {
         if (!emAndamento) return;
         setFinalizando(true);
         try {
-            await api.put(`/medico-monitoring/atendimento/${emAndamento.id}/finalizar`, { observacoes: observacoesEmAndamento });
+            await api.put(`/medico-monitoring/atendimento/${emAndamento.id}/finalizar`, {
+                observacoes: observacoesEmAndamento,
+                inscricao_id: inscricaoAtual?.id ?? null, // passar ID específico da inscrição
+            });
             enqueueSnackbar('Consulta finalizada!', { variant: 'success' });
+            setInscricaoAtual(null);
             await fetchData(); await fetchInscritos();
         } catch { enqueueSnackbar('Erro ao finalizar', { variant: 'error' }); }
         finally { setFinalizando(false); }
@@ -594,7 +603,28 @@ const MedicoPanel: React.FC = () => {
                                                             </Avatar>
                                                         </ListItemAvatar>
                                                         <ListItemText
-                                                            primary={<Typography sx={{ fontWeight: 600, fontSize: '0.88rem', color: expressoTheme.colors.text }}>{inscrito.cidadao.nome}</Typography>}
+                                                            primary={
+                                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
+                                                                    <Typography sx={{ fontWeight: 600, fontSize: '0.88rem', color: expressoTheme.colors.text }}>
+                                                                        {inscrito.cidadao.nome}
+                                                                    </Typography>
+                                                                    {inscrito.curso_exame && (
+                                                                        <Chip
+                                                                            label={inscrito.curso_exame.nome}
+                                                                            size="small"
+                                                                            icon={<Stethoscope size={11} />}
+                                                                            sx={{
+                                                                                height: 20, fontSize: '0.68rem', fontWeight: 700,
+                                                                                background: inscrito.status === 'atendido' ? '#D4EDDA' : 'linear-gradient(135deg,#E3F2FD,#EDE7F6)',
+                                                                                color: inscrito.status === 'atendido' ? expressoTheme.colors.success : expressoTheme.colors.primary,
+                                                                                border: `1px solid ${inscrito.status === 'atendido' ? '#C3E6CB' : '#BBDEFB'}`,
+                                                                                '& .MuiChip-icon': { color: 'inherit', ml: 0.5 },
+                                                                                '& .MuiChip-label': { px: 0.75 },
+                                                                            }}
+                                                                        />
+                                                                    )}
+                                                                </Box>
+                                                            }
                                                             secondary={<Typography sx={{ fontSize: '0.75rem', color: expressoTheme.colors.textSecondary }}>{inscrito.cidadao.cpf} {inscrito.cidadao.telefone ? `· ${inscrito.cidadao.telefone}` : ''}</Typography>}
                                                         />
                                                         <Chip

@@ -10,6 +10,8 @@ import { AcaoFuncionario } from '../models/AcaoFuncionario';
 import { Inscricao } from '../models/Inscricao';
 import { ContaPagar } from '../models/ContaPagar';
 import { ManutencaoCaminhao } from '../models/ManutencaoCaminhao';
+import { Cidadao } from '../models/Cidadao'; // F3
+import { sendGenericEmail } from '../utils/email'; // F3
 import { authenticate, authorizeAdmin, authorizeAdminOrEstrada } from '../middlewares/auth';
 import { cacheMiddleware, clearCache } from '../middlewares/cache';
 import Joi from 'joi';
@@ -842,5 +844,74 @@ router.delete('/:id', authenticate, authorizeAdmin, async (req: Request, res: Re
     }
 });
 
+
+/**
+ * F3 — POST /api/acoes/:id/avisar-inscritos
+ * Envia e-mail de aviso de imprevisto para todos os inscritos de uma ação que têm e-mail
+ */
+router.post('/:id/avisar-inscritos', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { assunto, mensagem } = req.body;
+
+        if (!assunto || !mensagem) {
+            res.status(400).json({ error: 'assunto e mensagem são obrigatórios' });
+            return;
+        }
+
+        const acao = await Acao.findByPk(id, { attributes: ['id', 'numero_acao', 'nome'] });
+        if (!acao) {
+            res.status(404).json({ error: 'Ação não encontrada' });
+            return;
+        }
+
+        // Buscar todos os inscritos desta ação que têm e-mail
+        const inscricoes = await Inscricao.findAll({
+            where: { acao_id: id },
+            include: [{
+                model: Cidadao,
+                as: 'cidadao',
+                attributes: ['id', 'nome_completo', 'email'],
+                where: { email: { [Op.ne]: null } },
+                required: false,
+            }],
+        });
+
+        let enviados = 0;
+        let semEmail = 0;
+        const erros: string[] = [];
+
+        for (const ins of inscricoes) {
+            const cidadao = (ins as any).cidadao;
+            if (cidadao?.email) {
+                const resultado = await sendGenericEmail(
+                    cidadao.email,
+                    `[Ação ${(acao as any).numero_acao}] ${assunto}`,
+                    `${mensagem}\n\n---\nEssa mensagem é referente à ação: ${(acao as any).nome || `#${(acao as any).numero_acao}`}`
+                );
+                if (resultado) {
+                    enviados++;
+                } else {
+                    erros.push(cidadao.email);
+                }
+            } else {
+                semEmail++;
+            }
+        }
+
+        console.log(`📧 Aviso enviado — Ação ${(acao as any).numero_acao}: ${enviados} enviados, ${semEmail} sem e-mail, ${erros.length} erros`);
+
+        res.json({
+            message: `Aviso enviado com sucesso`,
+            enviados,
+            sem_email: semEmail,
+            erros: erros.length,
+            total_inscritos: inscricoes.length,
+        });
+    } catch (error) {
+        console.error('Erro ao avisar inscritos:', error);
+        res.status(500).json({ error: 'Erro ao enviar avisos' });
+    }
+});
 
 export default router;

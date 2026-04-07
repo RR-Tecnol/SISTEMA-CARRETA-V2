@@ -4,13 +4,15 @@ import {
     Box, Typography, Grid, CircularProgress, IconButton, Button,
     Dialog, DialogTitle, DialogContent, DialogActions, TextField,
     Select, MenuItem, FormControl, InputLabel, InputAdornment, Tooltip,
-    Chip, Divider, Container, ToggleButtonGroup, ToggleButton
+    Chip, Divider, Container, ToggleButtonGroup, ToggleButton,
+    Tabs, Tab, Table, TableBody, TableCell, TableHead, TableRow,
+    TableContainer, Paper,
 } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     ArrowLeft, Plus, Wrench, CheckCircle2, Clock, TrendingUp,
     Pencil, Trash2, Calendar, DollarSign, Gauge,
-    Building2, X, Search
+    Building2, X, Search, Package, Save, AlertTriangle,
 } from 'lucide-react';
 import { useSnackbar } from 'notistack';
 import {
@@ -62,11 +64,59 @@ interface Stats {
     custosPorMes: { mes: string; custo: number }[];
 }
 
-const emptyForm = {
-    tipo: 'preventiva', titulo: '', descricao: '', status: 'agendada', prioridade: 'media',
-    km_atual: '', km_proximo: '', data_agendada: '', data_conclusao: '',
-    custo_real: '', status_pagamento: 'pendente', fornecedor: '', responsavel: '', observacoes: '',
+// ─── Equipamentos ───────────────────────────────────────────────────────────
+
+interface Equipamento {
+    id: string;
+    caminhao_id: string;
+    nome: string;
+    tipo: string;
+    modelo?: string;
+    fabricante?: string;
+    numero_serie?: string;
+    numero_patrimonio?: string;
+    data_aquisicao?: string;
+    data_ultima_manutencao?: string;
+    data_proxima_manutencao?: string;
+    valor_aquisicao?: number;
+    status: 'ativo' | 'em_manutencao' | 'inativo' | 'descartado';
+    observacoes?: string;
+}
+
+const EQUIP_TIPOS = [
+    { value: 'ecografo', label: 'Ecógrafo', icon: '🔬' },
+    { value: 'eletrocardiografo', label: 'Eletrocardiógrafo', icon: '❤️' },
+    { value: 'computador', label: 'Computador', icon: '💻' },
+    { value: 'monitor', label: 'Monitor', icon: '🖥️' },
+    { value: 'impressora', label: 'Impressora', icon: '🖨️' },
+    { value: 'gerador', label: 'Gerador', icon: '⚡' },
+    { value: 'ar_condicionado', label: 'Ar-Condicionado', icon: '❄️' },
+    { value: 'outro', label: 'Outro', icon: '📦' },
+];
+
+const EQUIP_STATUS: Record<string, { label: string; color: 'success' | 'warning' | 'default' | 'error' }> = {
+    ativo:         { label: '✅ Ativo', color: 'success' },
+    em_manutencao: { label: '🔧 Em Manutenção', color: 'warning' },
+    inativo:       { label: '⏸ Inativo', color: 'default' },
+    descartado:    { label: '🗑️ Descartado', color: 'error' },
 };
+
+const emptyForm = {
+    tipo: 'preventiva', titulo: '', descricao: '',
+    status: 'agendada', prioridade: 'media',
+    km_atual: '', km_proximo: '',
+    data_agendada: '', data_conclusao: '',
+    custo_real: '', status_pagamento: 'pendente',
+    fornecedor: '', responsavel: '', observacoes: '',
+};
+
+const emptyEquipForm = {
+    nome: '', tipo: 'ecografo', modelo: '', fabricante: '',
+    numero_serie: '', numero_patrimonio: '',
+    data_aquisicao: '', data_ultima_manutencao: '', data_proxima_manutencao: '',
+    valor_aquisicao: '', status: 'ativo', observacoes: '',
+};
+
 
 // ─── Config Maps ─────────────────────────────────────────────────────────────
 
@@ -115,6 +165,16 @@ const ManutencaoCaminhao: React.FC = () => {
     const [filterTipo, setFilterTipo] = useState('');
     const [filterPrioridade, setFilterPrioridade] = useState('');
 
+    // ─── Abas ────────────────────────────────────────────────────────────────
+    const [abaAtiva, setAbaAtiva] = useState(0);
+
+    // ─── Equipamentos ─────────────────────────────────────────────────────────
+    const [equipamentos, setEquipamentos] = useState<Equipamento[]>([]);
+    const [equipDialog, setEquipDialog] = useState(false);
+    const [editingEquip, setEditingEquip] = useState<Equipamento | null>(null);
+    const [equipForm, setEquipForm] = useState<typeof emptyEquipForm>(emptyEquipForm);
+    const [savingEquip, setSavingEquip] = useState(false);
+
     const fetchData = useCallback(async () => {
         if (!id) return;
         try {
@@ -135,6 +195,73 @@ const ManutencaoCaminhao: React.FC = () => {
     }, [id, enqueueSnackbar]);
 
     useEffect(() => { fetchData(); }, [fetchData]);
+
+    // ─── Equipamentos Handlers ────────────────────────────────────────────────
+    const fetchEquipamentos = useCallback(async () => {
+        if (!id) return;
+        try {
+            const r = await api.get(`/caminhoes/${id}/equipamentos`);
+            setEquipamentos(Array.isArray(r.data) ? r.data : []);
+        } catch { /* silencioso */ }
+    }, [id]);
+
+    useEffect(() => { fetchEquipamentos(); }, [fetchEquipamentos]);
+
+    const handleOpenEquip = (e?: Equipamento) => {
+        if (e) {
+            setEditingEquip(e);
+            setEquipForm({
+                nome: e.nome, tipo: e.tipo, modelo: e.modelo || '',
+                fabricante: e.fabricante || '', numero_serie: e.numero_serie || '',
+                numero_patrimonio: e.numero_patrimonio || '',
+                data_aquisicao: e.data_aquisicao || '',
+                data_ultima_manutencao: e.data_ultima_manutencao || '',
+                data_proxima_manutencao: e.data_proxima_manutencao || '',
+                valor_aquisicao: e.valor_aquisicao?.toString() || '',
+                status: e.status, observacoes: e.observacoes || '',
+            });
+        } else {
+            setEditingEquip(null);
+            setEquipForm(emptyEquipForm);
+        }
+        setEquipDialog(true);
+    };
+
+    const handleSaveEquip = async () => {
+        if (!equipForm.nome.trim()) { enqueueSnackbar('Nome é obrigatório', { variant: 'warning' }); return; }
+        setSavingEquip(true);
+        try {
+            const payload = {
+                ...equipForm,
+                valor_aquisicao: equipForm.valor_aquisicao ? Number(equipForm.valor_aquisicao) : null,
+                data_aquisicao: equipForm.data_aquisicao || null,
+                data_ultima_manutencao: equipForm.data_ultima_manutencao || null,
+                data_proxima_manutencao: equipForm.data_proxima_manutencao || null,
+            };
+            if (editingEquip) {
+                await api.put(`/caminhoes/${id}/equipamentos/${editingEquip.id}`, payload);
+                enqueueSnackbar('Equipamento atualizado!', { variant: 'success' });
+            } else {
+                await api.post(`/caminhoes/${id}/equipamentos`, payload);
+                enqueueSnackbar('Equipamento cadastrado!', { variant: 'success' });
+            }
+            setEquipDialog(false);
+            fetchEquipamentos();
+        } catch (e: any) {
+            enqueueSnackbar(e.response?.data?.error || 'Erro ao salvar equipamento', { variant: 'error' });
+        } finally {
+            setSavingEquip(false);
+        }
+    };
+
+    const handleDeleteEquip = async (e: Equipamento) => {
+        if (!window.confirm(`Remover "${e.nome}"?`)) return;
+        try {
+            await api.delete(`/caminhoes/${id}/equipamentos/${e.id}`);
+            enqueueSnackbar('Equipamento removido!', { variant: 'success' });
+            fetchEquipamentos();
+        } catch { enqueueSnackbar('Erro ao remover', { variant: 'error' }); }
+    };
 
     const handleOpen = (m?: Manutencao) => {
         if (m) {
@@ -295,8 +422,28 @@ const ManutencaoCaminhao: React.FC = () => {
                     })}
                 </Grid>
 
+                {/* ─── ABAS ──────────────────────────────────────────────── */}
+                <Grid item xs={12}>
+                    <Tabs
+                        value={abaAtiva}
+                        onChange={(_, v) => setAbaAtiva(v)}
+                        sx={{
+                            borderBottom: `1px solid ${expressoTheme.colors.border}`,
+                            mb: 2,
+                            '& .MuiTab-root': { textTransform: 'none', fontWeight: 600 },
+                            '& .Mui-selected': { color: expressoTheme.colors.primary },
+                            '& .MuiTabs-indicator': { background: expressoTheme.colors.primary },
+                        }}
+                    >
+                        <Tab label={`🔧 Manutenções (${manutencoes.length})`} />
+                        <Tab label={`📦 Equipamentos (${equipamentos.length})`} />
+                    </Tabs>
+                </Grid>
+
+
+                {abaAtiva === 0 && (
                 <Grid container spacing={3}>
-                    {/* Timeline */}
+                    {/* Timeline Manutenções */}
                     <Grid item xs={12} md={8}>
                         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}>
                             <Box className="timeline-container">
@@ -497,6 +644,106 @@ const ManutencaoCaminhao: React.FC = () => {
                         </motion.div>
                     </Grid>
                 </Grid>
+                )}
+
+                {/* Tab 1: Equipamentos Eletrônicos */}
+                {abaAtiva === 1 && (
+                    <Grid container>
+                    <Grid item xs={12}>
+                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                                <Typography variant="h6" sx={{ fontWeight: 700, color: expressoTheme.colors.primaryDark }}>
+                                    📦 Equipamentos da Carreta
+                                </Typography>
+                                <Button
+                                    variant="contained"
+                                    startIcon={<Plus size={16} />}
+                                    onClick={() => handleOpenEquip()}
+                                    sx={{
+                                        background: expressoTheme.gradients.primary,
+                                        textTransform: 'none', fontWeight: 600,
+                                        borderRadius: expressoTheme.borderRadius.medium,
+                                        boxShadow: expressoTheme.shadows.button,
+                                    }}
+                                >
+                                    Novo Equipamento
+                                </Button>
+                            </Box>
+
+                            {equipamentos.length === 0 ? (
+                                <Box sx={{ textAlign: 'center', py: 6, color: expressoTheme.colors.textSecondary }}>
+                                    <Package size={40} style={{ opacity: 0.3, display: 'block', margin: '0 auto 12px' }} />
+                                    <Typography>Nenhum equipamento cadastrado para esta carreta.</Typography>
+                                </Box>
+                            ) : (
+                                <TableContainer component={Paper} sx={{ borderRadius: 2, boxShadow: expressoTheme.shadows.card, border: `1px solid ${expressoTheme.colors.border}` }}>
+                                    <Table size="small">
+                                        <TableHead sx={{ background: expressoTheme.colors.background }}>
+                                            <TableRow>
+                                                {['Equipamento', 'Tipo', 'Modelo/Fabricante', 'Nº Série', 'Últ. Manutenção', 'Próx. Manutenção', 'Status', 'Ações'].map(h => (
+                                                    <TableCell key={h} sx={{ fontWeight: 700, fontSize: '0.78rem', color: expressoTheme.colors.textSecondary, py: 1 }}>{h}</TableCell>
+                                                ))}
+                                            </TableRow>
+                                        </TableHead>
+                                        <TableBody>
+                                            {equipamentos.map(eq => {
+                                                const tipoConf = EQUIP_TIPOS.find(t => t.value === eq.tipo);
+                                                const statusConf = EQUIP_STATUS[eq.status] || EQUIP_STATUS.ativo;
+                                                const proxManut = eq.data_proxima_manutencao ? new Date(eq.data_proxima_manutencao + 'T12:00') : null;
+                                                const vencida = proxManut && proxManut < new Date();
+                                                return (
+                                                    <TableRow key={eq.id} hover>
+                                                        <TableCell sx={{ fontWeight: 600, fontSize: '0.85rem' }}>
+                                                            {tipoConf?.icon} {eq.nome}
+                                                        </TableCell>
+                                                        <TableCell sx={{ fontSize: '0.8rem' }}>{tipoConf?.label || eq.tipo}</TableCell>
+                                                        <TableCell sx={{ fontSize: '0.8rem', color: expressoTheme.colors.textSecondary }}>
+                                                            {[eq.modelo, eq.fabricante].filter(Boolean).join(' / ') || '—'}
+                                                        </TableCell>
+                                                        <TableCell sx={{ fontSize: '0.78rem', fontFamily: 'monospace' }}>{eq.numero_serie || '—'}</TableCell>
+                                                        <TableCell sx={{ fontSize: '0.78rem' }}>
+                                                            {eq.data_ultima_manutencao ? new Date(eq.data_ultima_manutencao + 'T12:00').toLocaleDateString('pt-BR') : '—'}
+                                                        </TableCell>
+                                                        <TableCell sx={{ fontSize: '0.78rem' }}>
+                                                            {proxManut ? (
+                                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: vencida ? '#DC3545' : 'inherit' }}>
+                                                                    {vencida && <AlertTriangle size={13} />}
+                                                                    {proxManut.toLocaleDateString('pt-BR')}
+                                                                </Box>
+                                                            ) : '—'}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <Chip label={statusConf.label} color={statusConf.color} size="small"
+                                                                sx={{ fontSize: '0.7rem', fontWeight: 600 }} />
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <Box sx={{ display: 'flex', gap: 0.5 }}>
+                                                                <Tooltip title="Editar">
+                                                                    <IconButton size="small" onClick={() => handleOpenEquip(eq)}
+                                                                        sx={{ color: expressoTheme.colors.primary }}>
+                                                                        <Pencil size={15} />
+                                                                    </IconButton>
+                                                                </Tooltip>
+                                                                <Tooltip title="Remover">
+                                                                    <IconButton size="small" onClick={() => handleDeleteEquip(eq)}
+                                                                        sx={{ color: expressoTheme.colors.danger }}>
+                                                                        <Trash2 size={15} />
+                                                                    </IconButton>
+                                                                </Tooltip>
+                                                            </Box>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                );
+                                            })}
+                                        </TableBody>
+                                    </Table>
+                                </TableContainer>
+                            )}
+                        </motion.div>
+                    </Grid>
+                    </Grid>
+                )}
+
             </Container>
 
             {/* Dialog */}
@@ -652,6 +899,104 @@ const ManutencaoCaminhao: React.FC = () => {
                             {saving ? <CircularProgress size={18} sx={{ color: 'white' }} /> : (editing ? 'Atualizar' : 'Registrar')}
                         </Button>
                     </motion.div>
+                </DialogActions>
+            </Dialog>
+
+            {/* Dialog — Novo/Editar Equipamento */}
+            <Dialog open={equipDialog} onClose={() => setEquipDialog(false)} maxWidth="md" fullWidth>
+                <DialogTitle sx={{ background: expressoTheme.gradients.primary, color: 'white', fontWeight: 700, fontSize: '1rem' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        <Package size={18} />
+                        {editingEquip ? 'Editar Equipamento' : 'Cadastrar Equipamento'}
+                    </Box>
+                </DialogTitle>
+                <DialogContent sx={{ pt: '20px !important' }}>
+                    <Grid container spacing={2}>
+                        {/* Tipo */}
+                        <Grid item xs={12}>
+                            <Typography sx={{ fontSize: '0.75rem', color: expressoTheme.colors.textSecondary, mb: 1, fontWeight: 600 }}>TIPO DE EQUIPAMENTO</Typography>
+                            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 1 }}>
+                                {EQUIP_TIPOS.map(t => (
+                                    <Box key={t.value}
+                                        onClick={() => setEquipForm({ ...equipForm, tipo: t.value })}
+                                        sx={{
+                                            p: 1.5, borderRadius: 2, cursor: 'pointer', textAlign: 'center',
+                                            border: `2px solid ${equipForm.tipo === t.value ? expressoTheme.colors.primary : expressoTheme.colors.border}`,
+                                            background: equipForm.tipo === t.value ? `${expressoTheme.colors.primary}15` : 'transparent',
+                                            transition: 'all 0.2s',
+                                        }}>
+                                        <Typography sx={{ fontSize: '1.4rem', lineHeight: 1, mb: 0.5 }}>{t.icon}</Typography>
+                                        <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, color: equipForm.tipo === t.value ? expressoTheme.colors.primary : expressoTheme.colors.text }}>{t.label}</Typography>
+                                    </Box>
+                                ))}
+                            </Box>
+                        </Grid>
+
+                        <Grid item xs={12} sm={8}>
+                            <TextField fullWidth size="small" label="Nome do Equipamento *"
+                                value={equipForm.nome} onChange={e => setEquipForm({ ...equipForm, nome: e.target.value })} sx={inputSx} />
+                        </Grid>
+                        <Grid item xs={12} sm={4}>
+                            <FormControl fullWidth size="small" sx={inputSx}>
+                                <InputLabel>Status</InputLabel>
+                                <Select value={equipForm.status} label="Status" onChange={e => setEquipForm({ ...equipForm, status: e.target.value })}>
+                                    {Object.entries(EQUIP_STATUS).map(([v, c]) => <MenuItem key={v} value={v}>{c.label}</MenuItem>)}
+                                </Select>
+                            </FormControl>
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                            <TextField fullWidth size="small" label="Modelo" value={equipForm.modelo}
+                                onChange={e => setEquipForm({ ...equipForm, modelo: e.target.value })} sx={inputSx} />
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                            <TextField fullWidth size="small" label="Fabricante" value={equipForm.fabricante}
+                                onChange={e => setEquipForm({ ...equipForm, fabricante: e.target.value })} sx={inputSx} />
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                            <TextField fullWidth size="small" label="Número de Série" value={equipForm.numero_serie}
+                                onChange={e => setEquipForm({ ...equipForm, numero_serie: e.target.value })} sx={inputSx} />
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                            <TextField fullWidth size="small" label="Nº Patrimônio" value={equipForm.numero_patrimonio}
+                                onChange={e => setEquipForm({ ...equipForm, numero_patrimonio: e.target.value })} sx={inputSx} />
+                        </Grid>
+                        <Grid item xs={12} sm={4}>
+                            <TextField fullWidth size="small" type="date" label="Data de Aquisição"
+                                value={equipForm.data_aquisicao} onChange={e => setEquipForm({ ...equipForm, data_aquisicao: e.target.value })}
+                                InputLabelProps={{ shrink: true }} sx={inputSx} />
+                        </Grid>
+                        <Grid item xs={12} sm={4}>
+                            <TextField fullWidth size="small" type="date" label="Última Manutenção"
+                                value={equipForm.data_ultima_manutencao} onChange={e => setEquipForm({ ...equipForm, data_ultima_manutencao: e.target.value })}
+                                InputLabelProps={{ shrink: true }} sx={inputSx} />
+                        </Grid>
+                        <Grid item xs={12} sm={4}>
+                            <TextField fullWidth size="small" type="date" label="Próxima Manutenção"
+                                value={equipForm.data_proxima_manutencao} onChange={e => setEquipForm({ ...equipForm, data_proxima_manutencao: e.target.value })}
+                                InputLabelProps={{ shrink: true }} sx={inputSx} />
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                            <TextField fullWidth size="small" type="number" label="Valor de Aquisição (R$)"
+                                value={equipForm.valor_aquisicao} onChange={e => setEquipForm({ ...equipForm, valor_aquisicao: e.target.value })}
+                                InputProps={{ startAdornment: <InputAdornment position="start">R$</InputAdornment> }} sx={inputSx} />
+                        </Grid>
+                        <Grid item xs={12}>
+                            <TextField fullWidth size="small" multiline rows={2} label="Observações"
+                                value={equipForm.observacoes} onChange={e => setEquipForm({ ...equipForm, observacoes: e.target.value })} sx={inputSx} />
+                        </Grid>
+                    </Grid>
+                </DialogContent>
+                <DialogActions sx={{ p: 2, gap: 1 }}>
+                    <Button onClick={() => setEquipDialog(false)} sx={{ color: expressoTheme.colors.textSecondary, textTransform: 'none' }}>Cancelar</Button>
+                    <Button variant="contained" onClick={handleSaveEquip} disabled={savingEquip}
+                        startIcon={savingEquip ? <CircularProgress size={16} color="inherit" /> : <Save size={16} />}
+                        sx={{
+                            background: expressoTheme.gradients.primary, color: 'white', fontWeight: 600,
+                            px: 3, borderRadius: expressoTheme.borderRadius.medium, textTransform: 'none',
+                            boxShadow: expressoTheme.shadows.button,
+                        }}>
+                        {editingEquip ? 'Atualizar' : 'Cadastrar'}
+                    </Button>
                 </DialogActions>
             </Dialog>
         </Box>

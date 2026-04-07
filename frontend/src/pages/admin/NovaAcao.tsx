@@ -31,6 +31,14 @@ import { useSnackbar } from 'notistack';
 import api from '../../services/api';
 import { systemTruckTheme } from '../../theme/systemTruckTheme';
 
+// ─── Máscaras de input ────────────────────────────────────────────────────────
+/** CNES: 7 dígitos numéricos */
+const formatCNES = (v: string) => v.replace(/\D/g, '').slice(0, 7);
+
+/** Número do Processo: mantém formato original, limita a 30 chars */
+const sanitizeNumeroProcesso = (v: string) => v.toUpperCase().slice(0, 30);
+
+
 interface Instituicao {
     id: string;
     razao_social: string;
@@ -121,13 +129,22 @@ const NovaAcao = () => {
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
+        let processedValue: string | number = value;
+
+        if (name === 'vagas_disponiveis' || name === 'meta_mensal_total') {
+            processedValue = parseInt(value) || (value === '' ? '' : 0);
+        } else if (name === 'numero_cnes') {
+            processedValue = formatCNES(value);
+        } else if (name === 'numero_processo') {
+            processedValue = sanitizeNumeroProcesso(value);
+        }
+
         setFormData({
             ...formData,
-            [name]: (name === 'vagas_disponiveis' || name === 'meta_mensal_total')
-                ? (parseInt(value) || (value === '' ? '' : 0))
-                : value,
+            [name]: processedValue,
         });
     };
+
 
     const handleAddCursoExame = () => {
         setCursosExamesSelecionados([
@@ -819,6 +836,8 @@ const NovaAcao = () => {
                                                 value={formData.numero_processo}
                                                 onChange={handleChange}
                                                 placeholder="Ex: AGS05.002888/2025-81"
+                                                inputProps={{ maxLength: 30 }}
+                                                helperText={`${formData.numero_processo.length}/30 chars · Formato: AGS00.000000/AAAA-00`}
                                                 sx={{
                                                     '& .MuiOutlinedInput-root': {
                                                         borderRadius: systemTruckTheme.borderRadius.medium,
@@ -833,8 +852,16 @@ const NovaAcao = () => {
                                                 name="numero_cnes"
                                                 value={formData.numero_cnes}
                                                 onChange={handleChange}
-                                                placeholder="Ex: 0000000"
-                                                inputProps={{ maxLength: 20 }}
+                                                placeholder="0000000"
+                                                inputProps={{ maxLength: 7, inputMode: 'numeric', pattern: '[0-9]*' }}
+                                                error={formData.numero_cnes.length > 0 && formData.numero_cnes.length < 7}
+                                                helperText={
+                                                    formData.numero_cnes.length === 0
+                                                        ? 'CNES: 7 dígitos numéricos'
+                                                        : formData.numero_cnes.length < 7
+                                                            ? `⚠️ ${7 - formData.numero_cnes.length} dígito(s) restante(s)`
+                                                            : '✅ CNES válido'
+                                                }
                                                 sx={{
                                                     '& .MuiOutlinedInput-root': {
                                                         borderRadius: systemTruckTheme.borderRadius.medium,

@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { Caminhao } from '../models/Caminhao';
 import { ManutencaoCaminhao } from '../models/ManutencaoCaminhao';
+import { EquipamentoCaminhao } from '../models/EquipamentoCaminhao';
 import { ContaPagar } from '../models/ContaPagar';
 import { AcaoCaminhao } from '../models/AcaoCaminhao';
 import { Acao } from '../models/Acao';
@@ -286,6 +287,75 @@ router.delete('/:id/manutencoes/:mid', authenticate, authorizeAdminOrEstrada, as
         res.json({ message: 'Manutenção removida com sucesso' });
     } catch (error) {
         res.status(500).json({ error: 'Erro ao remover manutenção' });
+    }
+});
+
+// ── Equipamentos por Carreta (F9) ───────────────────────────────────────────
+
+/**
+ * GET /api/caminhoes/:id/equipamentos
+ * Lista todos os equipamentos eletrônicos de uma carreta
+ */
+router.get('/:id/equipamentos', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
+    try {
+        const equipamentos = await EquipamentoCaminhao.findAll({
+            where: { caminhao_id: req.params.id },
+            order: [['nome', 'ASC']],
+        });
+        res.json(equipamentos);
+    } catch (error) {
+        console.error('Erro ao buscar equipamentos:', error);
+        res.status(500).json({ error: 'Erro ao buscar equipamentos' });
+    }
+});
+
+/**
+ * POST /api/caminhoes/:id/equipamentos
+ * Cadastra novo equipamento para uma carreta
+ */
+router.post('/:id/equipamentos', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const caminhao = await Caminhao.findByPk(id);
+        if (!caminhao) { res.status(404).json({ error: 'Caminhão não encontrado' }); return; }
+
+        const equip = await EquipamentoCaminhao.create({ ...req.body, caminhao_id: id });
+        res.status(201).json(equip);
+    } catch (error) {
+        console.error('Erro ao criar equipamento:', error);
+        res.status(500).json({ error: 'Erro ao cadastrar equipamento' });
+    }
+});
+
+/**
+ * PUT /api/caminhoes/:id/equipamentos/:eid
+ * Atualiza um equipamento
+ */
+router.put('/:id/equipamentos/:eid', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
+    try {
+        const { id, eid } = req.params;
+        const equip = await EquipamentoCaminhao.findOne({ where: { id: eid, caminhao_id: id } });
+        if (!equip) { res.status(404).json({ error: 'Equipamento não encontrado' }); return; }
+        await equip.update(req.body);
+        res.json(equip);
+    } catch (error) {
+        res.status(500).json({ error: 'Erro ao atualizar equipamento' });
+    }
+});
+
+/**
+ * DELETE /api/caminhoes/:id/equipamentos/:eid
+ * Remove um equipamento
+ */
+router.delete('/:id/equipamentos/:eid', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
+    try {
+        const { id, eid } = req.params;
+        const equip = await EquipamentoCaminhao.findOne({ where: { id: eid, caminhao_id: id } });
+        if (!equip) { res.status(404).json({ error: 'Equipamento não encontrado' }); return; }
+        await equip.destroy();
+        res.json({ message: 'Equipamento removido com sucesso' });
+    } catch (error) {
+        res.status(500).json({ error: 'Erro ao remover equipamento' });
     }
 });
 

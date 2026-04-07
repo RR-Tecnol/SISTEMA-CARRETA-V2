@@ -37,7 +37,9 @@ export function authorizeAdmin(req: AuthRequest, res: Response, next: NextFuncti
         return;
     }
 
-    if (req.user.tipo !== 'admin') {
+    // #12 — retrocompatível: tokens antigos (sem roles) usam tipo; tokens novos usam roles
+    const userRoles: string[] = req.user.roles ?? [req.user.tipo];
+    if (!userRoles.includes('admin')) {
         res.status(403).json({ error: 'Acesso negado. Apenas administradores.' });
         return;
     }
@@ -52,7 +54,9 @@ export function authorizeAdminOrEstrada(req: AuthRequest, res: Response, next: N
         return;
     }
 
-    if (req.user.tipo !== 'admin' && req.user.tipo !== 'admin_estrada') {
+    // #12 — retrocompatível: tokens antigos (sem roles) usam tipo; tokens novos usam roles
+    const userRoles: string[] = req.user.roles ?? [req.user.tipo];
+    if (!userRoles.some(r => ['admin', 'admin_estrada'].includes(r))) {
         res.status(403).json({ error: 'Acesso negado.' });
         return;
     }

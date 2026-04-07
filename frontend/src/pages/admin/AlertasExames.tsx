@@ -96,6 +96,12 @@ const AlertasExames: React.FC = () => {
         carregarAlertas();
     }, [carregarAlertas]);
 
+    // F8 — auto-refresh a cada 60s
+    useEffect(() => {
+        const interval = setInterval(carregarAlertas, 60 * 1000);
+        return () => clearInterval(interval);
+    }, [carregarAlertas]);
+
     const alertasFiltrados = alertas.filter(a => {
         const matchTipo = filtroTipo === 'todos' || a.tipo === filtroTipo;
         const matchBusca = !busca ||
@@ -168,7 +174,14 @@ const AlertasExames: React.FC = () => {
                     transition={{ delay: 0.1 }}
                 >
                     {Object.entries(tipoConfig).map(([key, cfg], i) => {
-                        const count = resumo ? (resumo as any)[`total_${key}s`] || 0 : 0;
+                        // B4 — mapeamento explícito dos campos de resumo (evita `total_vencendos` que não existe)
+                        const campoResumo: Record<string, keyof Resumo> = {
+                            vencido: 'total_vencidos',
+                            vencendo: 'total_vencendo',
+                            pendente: 'total_pendentes',
+                            bloqueado: 'total_bloqueados',
+                        };
+                        const count = resumo ? resumo[campoResumo[key]] || 0 : 0;
                         const Icon = cfg.icon;
                         return (
                             <motion.div

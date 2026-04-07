@@ -1,5 +1,13 @@
-﻿import { Router, Request, Response } from 'express';
+import { Router, Request, Response } from 'express';
 import { Op, fn, col, literal, where as seqWhere } from 'sequelize';
+import { sendExameResultadoEmail } from '../utils/email'; // F5
+import { FichaAtendimento } from '../models/FichaAtendimento';
+import { ConfiguracaoFilaAcao } from '../models/ConfiguracaoFilaAcao';
+import {
+    notificarCidadao,
+    notificarChamado,
+} from '../utils/notificacoes';
+import type { ConfigNotif, CidadaoNotif } from '../utils/notificacoes';
 
 // Condicao para identificar medicos (is_medico=true OU cargo tipico)
 const cargoMedicoWhere = {
@@ -20,6 +28,8 @@ import { Cidadao } from '../models/Cidadao';
 import { AcaoFuncionario } from '../models/AcaoFuncionario';
 import { Inscricao } from '../models/Inscricao';
 import { CursoExame } from '../models/CursoExame';
+import { AcaoCursoExame } from '../models/AcaoCursoExame';
+
 
 const router = Router();
 
@@ -31,7 +41,7 @@ const authorizeMedicoOrAdmin = (req: any, res: any, next: any) => {
     res.status(403).json({ error: 'Acesso negado' });
 };
 
-// â•â•â• GET /minhas-acoes â•â•â• AÃ§Ãµes em que o mÃ©dico estÃ¡ cadastrado
+// â• â• â•  GET /minhas-acoes â• â• â•  AÃ§Ãµes em que o mÃ©dico estÃ¡ cadastrado
 router.get('/minhas-acoes', authenticate, authorizeMedicoOrAdmin, async (req: any, res: Response) => {
     try {
         const funcionarioId = req.user.id;
@@ -83,7 +93,82 @@ router.get('/minhas-acoes', authenticate, authorizeMedicoOrAdmin, async (req: an
     }
 });
 
-// â•â•â• GET /acao/:id/inscricoes â•â•â• Lista inscritos de uma aÃ§Ã£o para o mÃ©dico atender
+// ═══ GET /me/exames-do-dia ═══ F7 — exames da ação filtrados pela especialidade do médico
+// Retorna apenas os CursoExame das ações do médico que correspondem à sua especialidade
+router.get('/me/exames-do-dia', authenticate, authorizeMedicoOrAdmin, async (req: any, res: Response) => {
+    try {
+        const funcionarioId = req.user.id;
+
+        // Buscar dados do médico para ver a especialidade
+        const medico = await Funcionario.findByPk(funcionarioId, {
+            attributes: ['id', 'nome', 'especialidade', 'cargo'],
+        });
+        if (!medico) {
+            res.status(404).json({ error: 'Médico não encontrado' });
+            return;
+        }
+
+        // Buscar ações vinculadas ao médico (ativas/planejadas)
+        const vinculos = await AcaoFuncionario.findAll({
+            where: { funcionario_id: funcionarioId },
+        });
+        const acaoIds = vinculos.map((v) => v.acao_id);
+
+        if (acaoIds.length === 0) {
+            res.json({ medico, exames: [] });
+            return;
+        }
+
+        // Buscar todos os CursoExame das ações do médico
+        const acaoCursos = await AcaoCursoExame.findAll({
+            where: { acao_id: { [Op.in]: acaoIds } },
+            include: [
+                { model: CursoExame, as: 'curso_exame', attributes: ['id', 'nome', 'tipo', 'codigo_sus'] },
+                { model: Acao, as: 'acao', attributes: ['id', 'numero_acao', 'nome', 'municipio', 'status'] },
+            ],
+        });
+
+        // F7 — filtrar pelo nome do exame que contém a especialidade do médico
+        // Se o médico tem especialidade definida, mostra apenas exames do seu tipo
+        // Se não tem especialidade, mostra todos (para não bloquear médicos sem especialidade cadastrada)
+        const especialidade = medico.especialidade?.toLowerCase().trim();
+        const examesFiltrados = especialidade
+            ? acaoCursos.filter((ac: any) => {
+                const nomeExame = (ac.curso_exame?.nome || '').toLowerCase();
+                return nomeExame.includes(especialidade) || especialidade.includes(nomeExame.split(' ')[0]);
+            })
+            : acaoCursos;
+
+        // Agrupar por ação
+        const porAcao = examesFiltrados.reduce((acc: any, ac: any) => {
+            const acaoId = ac.acao_id;
+            if (!acc[acaoId]) {
+                acc[acaoId] = { acao: ac.acao, exames: [] };
+            }
+            acc[acaoId].exames.push({
+                id: ac.id,
+                curso_exame_id: ac.curso_exame_id,
+                nome: ac.curso_exame?.nome,
+                tipo: ac.curso_exame?.tipo,
+                codigo_sus: ac.curso_exame?.codigo_sus,
+                vagas: ac.vagas,
+            });
+            return acc;
+        }, {});
+
+        res.json({
+            medico: { id: medico.id, nome: medico.nome, especialidade: medico.especialidade, cargo: medico.cargo },
+            totalExames: examesFiltrados.length,
+            filtroAplicado: Boolean(especialidade),
+            acoes: Object.values(porAcao),
+        });
+    } catch (error) {
+        console.error('Erro ao buscar exames do médico:', error);
+        res.status(500).json({ error: 'Erro ao buscar exames' });
+    }
+});
+
+// â• â• â•  GET /acao/:id/inscricoes â• â• â•  Lista inscritos de uma aÃ§Ã£o para o mÃ©dico atender
 router.get('/acao/:id/inscricoes', authenticate, authorizeMedicoOrAdmin, async (req: any, res: Response) => {
     try {
         const { id: acaoId } = req.params;
@@ -103,13 +188,16 @@ router.get('/acao/:id/inscricoes', authenticate, authorizeMedicoOrAdmin, async (
 
         const { rows: inscricoes, count } = await Inscricao.findAndCountAll({
             where: whereClause,
-            include: [{ model: Cidadao, as: 'cidadao', attributes: [['nome_completo', 'nome'], 'id', 'cpf', 'data_nascimento', 'telefone', 'genero'] }],
+            include: [
+                { model: Cidadao, as: 'cidadao', attributes: [['nome_completo', 'nome'], 'id', 'cpf', 'data_nascimento', 'telefone', 'genero'] },
+                { model: CursoExame, as: 'curso_exame', attributes: ['id', 'nome', 'tipo'] },
+            ],
             order: [['data_inscricao', 'ASC']],
             limit: Number(limit),
             offset,
         });
 
-        console.log(`[inscricoes] Encontrados: ${count} inscriÃ§Ãµes com filtro status=${status}`);
+        console.log(`[inscricoes] Encontrados: ${count} inscrições com filtro status=${status}`);
 
         res.json({ inscricoes, total: count, page: Number(page), pages: Math.ceil(count / Number(limit)) });
     } catch (error) {
@@ -155,25 +243,25 @@ router.get('/me', authenticate, authorizeMedicoOrAdmin, async (req: any, res: Re
             serverTime: new Date().toISOString(),
         });
     } catch (error) {
-        console.error('Erro ao buscar dados do mÃ©dico:', error);
+        console.error('Erro ao buscar dados do médico:', error);
         res.status(500).json({ error: 'Erro ao buscar dados' });
     }
 });
 
 
 
-// â•â•â• POST /atendimento/iniciar â•â•â• Inicia consulta (mÃ©dico ou admin)
+// ─── POST /atendimento/iniciar ─── Inicia consulta (médico ou admin)
 router.post('/atendimento/iniciar', authenticate, authorizeMedicoOrAdmin, async (req: any, res: Response) => {
     try {
-        const { funcionario_id, nome_paciente, cidadao_id, acao_id, ponto_id, observacoes } = req.body;
+        const { funcionario_id, nome_paciente, cidadao_id, acao_id, ponto_id, observacoes, inscricao_id } = req.body;
         const funcId = funcionario_id || req.user.id;
 
         if (!funcId) {
-            res.status(400).json({ error: 'funcionario_id Ã© obrigatÃ³rio' });
+            res.status(400).json({ error: 'funcionario_id é obrigatório' });
             return;
         }
 
-        // Verificar ponto ativo â€” abrir automaticamente se nÃ£o tiver
+        // Verificar ponto ativo — abrir automaticamente se não tiver
         let pontoAtivo = ponto_id;
         if (!pontoAtivo) {
             const ponto = await PontoMedico.findOne({ where: { funcionario_id: funcId, status: 'trabalhando' } });
@@ -201,6 +289,42 @@ router.post('/atendimento/iniciar', authenticate, authorizeMedicoOrAdmin, async 
             nome_paciente,
         });
 
+        // ✅ Atualizar ficha da inscrição para em_atendimento
+        if (inscricao_id || (cidadao_id && acao_id)) {
+            const whereficha: any = { status: { [Op.in]: ['aguardando', 'chamado'] } };
+            if (inscricao_id) whereficha.inscricao_id = inscricao_id;
+            else { whereficha.cidadao_id = cidadao_id; whereficha.acao_id = acao_id; }
+
+            await FichaAtendimento.update(
+                { status: 'em_atendimento', hora_atendimento: new Date() },
+                { where: whereficha }
+            );
+
+            // Emitir Socket.IO
+            const io = (req.app as any).get('io');
+            if (io && acao_id) io.to(`acao:${acao_id}`).emit('fila_atualizada', { acao_id });
+
+            // 📲 Notificar cidadão via WhatsApp/SMS/Email
+            if (cidadao_id) {
+                const cidadao = await Cidadao.findByPk(cidadao_id, { attributes: ['nome_completo', 'email', 'telefone'] });
+                if (cidadao) {
+                    const config = acao_id ? await ConfiguracaoFilaAcao.findOne({ where: { acao_id } }) : null;
+                    const cfg: ConfigNotif = {
+                        notif_email: config?.notif_email ?? false,
+                        notif_sms: config?.notif_sms ?? false,
+                        notif_whatsapp: config?.notif_whatsapp ?? true,
+                    };
+                    const cid: CidadaoNotif = { nome_completo: (cidadao as any).nome_completo, email: (cidadao as any).email, telefone: (cidadao as any).telefone };
+                    const primeiroNome = cid.nome_completo.split(' ')[0];
+                    await notificarCidadao(cid,
+                        '💉 Seu atendimento foi iniciado!',
+                        `💉 ${primeiroNome}, seu atendimento médico FOI INICIADO agora.\nHora: *${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}*\nAguarde as orientações do profissional.`,
+                        cfg
+                    );
+                }
+            }
+        }
+
         res.status(201).json(atendimento);
     } catch (error) {
         console.error('Erro ao iniciar atendimento:', error);
@@ -208,22 +332,69 @@ router.post('/atendimento/iniciar', authenticate, authorizeMedicoOrAdmin, async 
     }
 });
 
-// â•â•â• PUT /atendimento/:id/finalizar â•â•â• (mÃ©dico ou admin)
+// ─── PUT /atendimento/:id/finalizar ─── (médico ou admin)
 router.put('/atendimento/:id/finalizar', authenticate, authorizeMedicoOrAdmin, async (req: any, res: Response) => {
     try {
         const atendimento = await AtendimentoMedico.findByPk(req.params.id);
-        if (!atendimento) { res.status(404).json({ error: 'Atendimento nÃ£o encontrado' }); return; }
+        if (!atendimento) { res.status(404).json({ error: 'Atendimento não encontrado' }); return; }
         const fim = new Date();
         const duracaoMs = fim.getTime() - atendimento.hora_inicio.getTime();
         const duracaoMinutos = Math.max(1, Math.round(duracaoMs / (1000 * 60)));
         await atendimento.update({ hora_fim: fim, duracao_minutos: duracaoMinutos, status: 'concluido', observacoes: req.body.observacoes || atendimento.observacoes });
 
-        // Atualizar status da inscriÃ§Ã£o para 'atendido' se existir
+        const inscricao_id = req.body.inscricao_id;
+
+        // Atualizar status da inscrição para 'atendido' — apenas a inscrição específica
         if (atendimento.cidadao_id && atendimento.acao_id) {
-            await Inscricao.update(
-                { status: 'atendido' },
-                { where: { cidadao_id: atendimento.cidadao_id, acao_id: atendimento.acao_id, status: 'pendente' } }
+            if (inscricao_id) {
+                // Rota precisa: marcar apenas a inscrição do exame específico
+                await Inscricao.update(
+                    { status: 'atendido' },
+                    { where: { id: inscricao_id, cidadao_id: atendimento.cidadao_id, status: 'pendente' } }
+                );
+            } else {
+                // Fallback legado: marcar todas pendentes do cidadão nessa ação
+                await Inscricao.update(
+                    { status: 'atendido' },
+                    { where: { cidadao_id: atendimento.cidadao_id, acao_id: atendimento.acao_id, status: 'pendente' } }
+                );
+            }
+        }
+
+        // ✅ Atualizar ficha para concluido
+        if (atendimento.cidadao_id && atendimento.acao_id) {
+            const whereFinish: any = { status: 'em_atendimento' };
+            if (inscricao_id) whereFinish.inscricao_id = inscricao_id;
+            else { whereFinish.cidadao_id = atendimento.cidadao_id; whereFinish.acao_id = atendimento.acao_id; }
+
+            await FichaAtendimento.update(
+                { status: 'concluido', hora_conclusao: fim },
+                { where: whereFinish }
             );
+
+            // Emitir Socket.IO
+            const io = (req.app as any).get('io');
+            if (io) io.to(`acao:${atendimento.acao_id}`).emit('fila_atualizada', { acao_id: atendimento.acao_id });
+
+            // 📲 Notificar cidadão — atendimento concluído
+            if (atendimento.cidadao_id) {
+                const cidadao = await Cidadao.findByPk(atendimento.cidadao_id, { attributes: ['nome_completo', 'email', 'telefone'] });
+                if (cidadao) {
+                    const config = await ConfiguracaoFilaAcao.findOne({ where: { acao_id: atendimento.acao_id } });
+                    const cfg: ConfigNotif = {
+                        notif_email: config?.notif_email ?? false,
+                        notif_sms: config?.notif_sms ?? false,
+                        notif_whatsapp: config?.notif_whatsapp ?? true,
+                    };
+                    const cid: CidadaoNotif = { nome_completo: (cidadao as any).nome_completo, email: (cidadao as any).email, telefone: (cidadao as any).telefone };
+                    const primeiroNome = cid.nome_completo.split(' ')[0];
+                    await notificarCidadao(cid,
+                        '✅ Atendimento concluído!',
+                        `✅ ${primeiroNome}, seu atendimento foi *CONCLUÍDO*!\nHorário: *${fim.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}*\nDuração: *${duracaoMinutos} min*\nObrigado por utilizar nossos serviços. 💙`,
+                        cfg
+                    );
+                }
+            }
         }
 
         res.json(atendimento);
@@ -1051,6 +1222,82 @@ router.get('/fila/:funcionario_id', authenticate, authorizeMedicoOrAdmin, async 
     } catch (error) {
         console.error('Erro ao buscar fila:', error);
         res.status(500).json({ error: 'Erro ao buscar fila' });
+    }
+});
+
+// ═══ POST /atendimento/:id/enviar-resultado ═══ F5 — Enviar resultado de exame por e-mail
+router.post('/atendimento/:id/enviar-resultado', authenticate, authorizeMedicoOrAdmin, async (req: any, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { resultado, observacoes } = req.body;
+
+        if (!resultado || !resultado.trim()) {
+            res.status(400).json({ error: 'O campo resultado é obrigatório' });
+            return;
+        }
+
+        const atendimento = await AtendimentoMedico.findByPk(id, {
+            include: [
+                { model: Cidadao, as: 'cidadao', attributes: ['id', 'nome_completo', 'email'] },
+                { model: Funcionario, as: 'funcionario', attributes: ['id', 'nome', 'especialidade'] },
+                {
+                    model: Acao, as: 'acao',
+                    attributes: ['id', 'nome'],
+                    include: [{ model: CursoExame, as: 'cursos', attributes: ['nome'] }]
+                },
+            ],
+        });
+
+        if (!atendimento) {
+            res.status(404).json({ error: 'Atendimento não encontrado' });
+            return;
+        }
+
+        const cidadao = (atendimento as any).cidadao;
+        if (!cidadao?.email) {
+            res.status(422).json({
+                sucesso: false,
+                motivo: 'Cidadão não possui e-mail cadastrado — resultado não enviado',
+                cidadao: cidadao?.nome_completo,
+            });
+            return;
+        }
+
+        // Determinar nome do exame
+        const nomeExame = (atendimento as any).acao?.cursos?.[0]?.nome
+            || (atendimento as any).funcionario?.especialidade
+            || 'Exame Médico';
+
+        const dataExame = atendimento.hora_inicio
+            ? new Date(atendimento.hora_inicio).toLocaleDateString('pt-BR')
+            : undefined;
+
+        const medicoNome = (atendimento as any).funcionario?.nome;
+
+        await sendExameResultadoEmail(
+            cidadao.email,
+            cidadao.nome_completo,
+            nomeExame,
+            resultado,
+            observacoes,
+            medicoNome,
+            dataExame
+        );
+
+        // Salvar resultado nas observações do atendimento
+        const obsAtual = atendimento.observacoes || '';
+        await atendimento.update({
+            observacoes: obsAtual ? `${obsAtual}\n\nResultado: ${resultado}` : `Resultado: ${resultado}`,
+        });
+
+        res.json({
+            sucesso: true,
+            mensagem: `Resultado enviado para ${cidadao.email}`,
+            cidadao: cidadao.nome_completo,
+        });
+    } catch (error) {
+        console.error('Erro ao enviar resultado por e-mail:', error);
+        res.status(500).json({ error: 'Erro ao enviar resultado' });
     }
 });
 

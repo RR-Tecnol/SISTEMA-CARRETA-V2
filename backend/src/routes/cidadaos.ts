@@ -6,6 +6,9 @@ import { Op } from 'sequelize';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import bcrypt from 'bcrypt';
+import { sendWelcomeEmail, sendResultadoComAnexo } from '../utils/email';
+
 
 const router = Router();
 
@@ -150,12 +153,13 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
             bairro,
             municipio,
             estado,
-            senha
+            senha,
+            cartao_sus, // B1 — garantir que cartao_sus é salvo na criação
         } = req.body;
 
-        // Validações básicas
-        if (!nome_completo || !cpf || !data_nascimento) {
-            res.status(400).json({ error: 'Nome completo, CPF e data de nascimento são obrigatórios' });
+        // Validações básicas — apenas nome e CPF são obrigatórios agora (telefone é validado no frontend)
+        if (!nome_completo || !cpf) {
+            res.status(400).json({ error: 'Nome completo e CPF são obrigatórios' });
             return;
         }
 
@@ -195,7 +199,17 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
             municipio,
             estado,
             senha: senha || '123456', // Senha padrão se não fornecida
+            cartao_sus: cartao_sus || null, // B1 — garantir que cartao_sus é salvo
         } as any);
+
+        // F1 — Enviar e-mail de boas-vindas se o cidadão tem e-mail
+        // Não bloquear o cadastro se o e-mail falhar (sendWelcomeEmail já captura o erro)
+        const senhaPlain = senha || '123456';
+        if (email) {
+            sendWelcomeEmail(email, nome_completo, senhaPlain).catch(() => {
+                // ignore silently — já logado dentro de sendWelcomeEmail
+            });
+        }
 
         // Return cidadao data without senha
         const cidadaoData = novoCidadao.toJSON();
@@ -203,11 +217,58 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
 
         res.status(201).json({
             message: 'Cidadão criado com sucesso',
+            id: novoCidadao.id,
             cidadao: cidadaoData,
+            email_enviado: !!email,
         });
     } catch (error) {
         console.error('Error creating cidadao:', error);
         res.status(500).json({ error: 'Erro ao criar cidadão' });
+    }
+});
+
+/**
+ * PATCH /api/cidadaos/:id/redefinir-senha
+ * F2 — Admin redefine a senha do cidadão (gera senha temporária)
+ */
+router.patch('/:id/redefinir-senha', authenticate, async (req: AuthRequest, res: Response) => {
+    try {
+        if (!isAdminOrEstrada(req)) {
+            res.status(403).json({ error: 'Acesso negado' });
+            return;
+        }
+
+        const cidadao = await Cidadao.findByPk(req.params.id);
+        if (!cidadao) {
+            res.status(404).json({ error: 'Cidadão não encontrado' });
+            return;
+        }
+
+        // Gerar senha temporária de 8 caracteres alfanuméricos
+        const senhaTemp = Math.random().toString(36).slice(-8).toUpperCase();
+        const hash = await bcrypt.hash(senhaTemp, 10);
+
+        await cidadao.update({ senha: hash });
+
+        // Tentar enviar e-mail se o cidadão tem e-mail cadastrado
+        let emailEnviado = false;
+        if ((cidadao as any).email) {
+            const result = await sendWelcomeEmail(
+                (cidadao as any).email,
+                (cidadao as any).nome_completo,
+                senhaTemp
+            );
+            emailEnviado = !!result;
+        }
+
+        res.json({
+            message: 'Senha redefinida com sucesso',
+            senha_temporaria: senhaTemp,
+            email_enviado: emailEnviado,
+        });
+    } catch (error) {
+        console.error('Error resetting cidadao password:', error);
+        res.status(500).json({ error: 'Erro ao redefinir senha' });
     }
 });
 
@@ -489,5 +550,64 @@ router.delete('/:id/laudos/:filename', authenticate, async (req: AuthRequest, re
     }
 });
 
+// ── Multer config para envio de resultado (memoryStorage para passar buffer ao email) ──
+const resultadoUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 20 * 1024 * 1024 }, // 20 MB
+    fileFilter: (_req, file, cb) => {
+        const ext = path.extname(file.originalname).toLowerCase();
+        const allowed = ['.pdf', '.jpg', '.jpeg', '.png', '.dcm', '.tiff', '.tif', '.bmp', '.doc', '.docx'];
+        if (allowed.includes(ext)) {
+            cb(null, true);
+        } else {
+            cb(new Error('Formato não suportado. Use PDF, JPG, PNG, DICOM, TIFF, DOC ou DOCX'));
+        }
+    },
+});
+
+/**
+ * POST /api/cidadaos/:id/enviar-resultado
+ * Envia resultado de exame (arquivo) por e-mail para o cidadão (admin only)
+ */
+router.post('/:id/enviar-resultado', authenticate, resultadoUpload.single('arquivo'), async (req: AuthRequest, res: Response) => {
+    try {
+        if (!isAdminOrEstrada(req)) { res.status(403).json({ error: 'Acesso negado' }); return; }
+
+        const cidadao = await Cidadao.findByPk(req.params.id, {
+            attributes: ['id', 'nome_completo', 'email'],
+        });
+        if (!cidadao) { res.status(404).json({ error: 'Cidadão não encontrado' }); return; }
+
+        const email = (cidadao as any).email;
+        if (!email) {
+            res.status(422).json({ error: 'Este cidadão não possui e-mail cadastrado. Atualize o cadastro e tente novamente.' });
+            return;
+        }
+
+        if (!req.file) { res.status(400).json({ error: 'Nenhum arquivo enviado' }); return; }
+
+        const descricao = (req.body.descricao || '').trim();
+
+        await sendResultadoComAnexo(
+            email,
+            (cidadao as any).nome_completo,
+            descricao,
+            req.file.buffer,
+            req.file.originalname,
+            req.file.mimetype
+        );
+
+        res.json({
+            sucesso: true,
+            mensagem: `Resultado enviado com sucesso para ${email}`,
+            cidadao: (cidadao as any).nome_completo,
+        });
+    } catch (err: any) {
+        console.error('Erro ao enviar resultado por e-mail:', err);
+        res.status(500).json({ error: err.message || 'Erro ao enviar resultado por e-mail' });
+    }
+});
+
 export default router;
+
 

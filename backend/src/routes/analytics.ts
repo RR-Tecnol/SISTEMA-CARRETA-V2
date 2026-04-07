@@ -127,14 +127,15 @@ router.get('/exames-por-genero', authenticate, async (req: Request, res: Respons
     try {
         const { data_inicio, data_fim } = req.query;
 
+        // B2 — COALESCE garante que genero NULL seja agrupado como 'nao_declarado'
         const baseSql = `
             SELECT 
-                c.genero,
+                COALESCE(c.genero, 'nao_declarado') as genero,
                 COUNT(re.id) as quantidade
             FROM resultados_exames re
             INNER JOIN cidadaos c ON re.cidadao_id = c.id
             ${data_inicio && data_fim ? 'WHERE re.data_realizacao BETWEEN :dataInicio AND :dataFim' : ''}
-            GROUP BY c.genero
+            GROUP BY COALESCE(c.genero, 'nao_declarado')
             ORDER BY quantidade DESC
         `;
         const resultados = await sequelize.query(baseSql, {
@@ -270,6 +271,66 @@ router.get('/dashboard', authenticate, async (req: Request, res: Response) => {
     } catch (error: any) {
         console.error('Erro ao buscar dashboard:', error);
         res.status(500).json({ error: 'Erro ao buscar métricas do dashboard' });
+    }
+});
+
+/**
+ * GET /api/analytics/custo-por-pessoa
+ * B5 — Custo médio por pessoa atendida por ação
+ */
+router.get('/custo-por-pessoa', authenticate, async (req: Request, res: Response) => {
+    try {
+        const { mes, ano } = req.query;
+
+        const dataInicio = mes && ano
+            ? new Date(Number(ano), Number(mes) - 1, 1)
+            : new Date(new Date().getFullYear(), 0, 1);
+
+        const dataFim = mes && ano
+            ? new Date(Number(ano), Number(mes), 0, 23, 59, 59)
+            : new Date();
+
+        // Custo médio por pessoa: total de gastos da ação / número de inscritos atendidos
+        const sql = `
+            SELECT
+                a.id,
+                a.nome as nome_acao,
+                a.numero_acao,
+                a.municipio,
+                a.custo_total,
+                COUNT(DISTINCT i.cidadao_id) FILTER (WHERE i.status = 'atendido') as total_atendidos,
+                CASE
+                    WHEN COUNT(DISTINCT i.cidadao_id) FILTER (WHERE i.status = 'atendido') > 0
+                    THEN ROUND(a.custo_total / COUNT(DISTINCT i.cidadao_id) FILTER (WHERE i.status = 'atendido'), 2)
+                    ELSE 0
+                END as custo_por_pessoa
+            FROM acoes a
+            LEFT JOIN inscricoes i ON i.acao_id = a.id
+            WHERE a.data_inicio BETWEEN :dataInicio AND :dataFim
+              AND a.custo_total IS NOT NULL
+              AND a.custo_total > 0
+            GROUP BY a.id, a.nome, a.numero_acao, a.municipio, a.custo_total
+            ORDER BY custo_por_pessoa DESC
+            LIMIT 20
+        `;
+
+        const resultados = await sequelize.query(sql, {
+            type: 'SELECT',
+            replacements: { dataInicio: dataInicio.toISOString(), dataFim: dataFim.toISOString() },
+        });
+
+        // Média geral
+        const mediaGeral = (resultados as any[]).reduce((acc, r) => acc + Number(r.custo_por_pessoa || 0), 0)
+            / (resultados.length || 1);
+
+        res.json({
+            acoes: resultados,
+            media_geral: Math.round(mediaGeral * 100) / 100,
+            total_acoes: resultados.length,
+        });
+    } catch (error: any) {
+        console.error('Erro ao calcular custo por pessoa:', error);
+        res.status(500).json({ error: 'Erro ao calcular custo por pessoa' });
     }
 });
 

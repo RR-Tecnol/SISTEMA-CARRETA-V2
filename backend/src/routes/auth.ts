@@ -86,11 +86,11 @@ router.post('/login', validate(loginSchema), async (req: Request, res: Response)
             }
             const senhaValida = await bcrypt.compare(senha, medico.senha);
             if (senhaValida) {
-                const token = generateToken({ id: medico.id, tipo: 'medico' as any, email: medico.email || '' });
+                const token = generateToken({ id: medico.id, tipo: 'medico' as any, email: medico.email || '', roles: ['medico'] });
                 res.json({
                     message: 'Login realizado com sucesso',
                     token,
-                    user: { id: medico.id, nome: medico.nome, email: medico.email || '', tipo: 'medico', redirect: '/medico' },
+                    user: { id: medico.id, nome: medico.nome, email: medico.email || '', tipo: 'medico', roles: ['medico'], redirect: '/medico' },
                 });
                 return;
             }
@@ -122,11 +122,11 @@ router.post('/login', validate(loginSchema), async (req: Request, res: Response)
             }
             const senhaValida = await bcrypt.compare(senha, (adminEstrada as any).admin_estrada_senha);
             if (senhaValida) {
-                const token = generateToken({ id: adminEstrada.id, tipo: 'admin_estrada' as any, email: adminEstrada.email || '' });
+                const token = generateToken({ id: adminEstrada.id, tipo: 'admin_estrada' as any, email: adminEstrada.email || '', roles: ['admin_estrada'] });
                 res.json({
                     message: 'Login realizado com sucesso',
                     token,
-                    user: { id: adminEstrada.id, nome: adminEstrada.nome, email: adminEstrada.email || '', tipo: 'admin_estrada', redirect: '/admin' },
+                    user: { id: adminEstrada.id, nome: adminEstrada.nome, email: adminEstrada.email || '', tipo: 'admin_estrada', roles: ['admin_estrada'], redirect: '/admin' },
                 });
                 return;
             }
@@ -170,7 +170,8 @@ router.post('/login', validate(loginSchema), async (req: Request, res: Response)
         }
 
         const isAdmin = cidadao.tipo === 'admin';
-        const token = generateToken({ id: cidadao.id, tipo: isAdmin ? 'admin' : 'cidadao', email: cidadao.email });
+        const tipoUser = isAdmin ? 'admin' : 'cidadao';
+        const token = generateToken({ id: cidadao.id, tipo: tipoUser, email: cidadao.email, roles: [tipoUser] });
 
         res.json({
             message: 'Login realizado com sucesso',
@@ -179,7 +180,8 @@ router.post('/login', validate(loginSchema), async (req: Request, res: Response)
                 id: cidadao.id,
                 nome: cidadao.nome_completo,
                 email: cidadao.email,
-                tipo: isAdmin ? 'admin' : 'cidadao',
+                tipo: tipoUser,
+                roles: [tipoUser],
                 redirect: isAdmin ? '/admin' : '/portal',
             },
         });
