@@ -9,7 +9,8 @@ import { Box, Typography, Chip, Divider } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 
-const API = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001/api';
+const isLocal = window.location.hostname === 'localhost';
+const API = process.env.REACT_APP_API_URL || (isLocal ? 'http://localhost:3001/api' : '/api');
 
 interface FichaPublica {
     id: string;
