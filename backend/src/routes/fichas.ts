@@ -519,6 +519,73 @@ router.get('/painel/:acao_id', async (req: Request, res: Response) => {
     }
 });
 
+/**
+ * POST /api/fichas/acao/:acao_id/sincronizar-inscricoes
+ * Busca todos os inscritos daquela ação no dia de hoje e cria fichas para quem não tem.
+ * Isso resolve o problema de inscrições que já existiam antes da ativação do módulo de fila.
+ */
+router.post('/acao/:acao_id/sincronizar-inscricoes', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
+    try {
+        const { acao_id } = req.params;
+        const hoje = new Date();
+        hoje.setHours(0, 0, 0, 0);
+        const amanha = new Date(hoje);
+        amanha.setDate(amanha.getDate() + 1);
+
+        // 1. Buscar todas as inscrições desta ação hoje
+        const inscricoes = await Inscricao.findAll({
+            where: {
+                acao_id,
+                data_inscricao: { [Op.gte]: hoje, [Op.lt]: amanha }
+            }
+        });
+
+        if (inscricoes.length === 0) {
+            res.json({ message: 'Nenhuma inscrição encontrada para hoje.', criadas: 0 });
+            return;
+        }
+
+        // 2. Verificar quais já possuem ficha
+        const fichasExistentes = await FichaAtendimento.findAll({
+            where: {
+                acao_id,
+                hora_entrada: { [Op.gte]: hoje, [Op.lt]: amanha }
+            },
+            attributes: ['cidadao_id']
+        });
+        const idsComFicha = new Set(fichasExistentes.map(f => f.cidadao_id));
+
+        // 3. Criar fichas para os que faltam
+        let criadas = 0;
+        for (const ins of inscricoes) {
+            if (!idsComFicha.has(ins.cidadao_id)) {
+                await FichaAtendimento.create({
+                    cidadao_id: ins.cidadao_id,
+                    inscricao_id: ins.id,
+                    acao_id,
+                    status: 'aguardando'
+                });
+                criadas++;
+                idsComFicha.add(ins.cidadao_id); // Evitar duplicar no mesmo loop
+            }
+        }
+
+        // 4. Emitir atualização via Socket se houver mudanças
+        if (criadas > 0) {
+            const io = (req.app as any).get('io');
+            if (io) {
+                const filaAtualizada = await getFila(acao_id);
+                io.to(`acao:${acao_id}`).emit('fila_atualizada', { acao_id, fila: filaAtualizada });
+            }
+        }
+
+        res.json({ message: 'Sincronização concluída', criadas });
+    } catch (error) {
+        console.error('Erro ao sincronizar inscrições:', error);
+        res.status(500).json({ error: 'Erro ao sincronizar inscrições com a fila' });
+    }
+});
+
 export { getFila };
 export default router;
 

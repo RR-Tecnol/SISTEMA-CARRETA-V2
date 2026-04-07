@@ -4,9 +4,18 @@
  */
 import { io, Socket } from 'socket.io-client';
 
-// CRA usa process.env.REACT_APP_* — Vite usaria import.meta.env.VITE_*
-const API_URL = (process.env.REACT_APP_API_URL as string) || 'http://localhost:3001/api';
-const SOCKET_URL = API_URL.replace('/api', '').replace(/\/$/, '') || 'http://localhost:3001';
+// Em produção, conecta no mesmo origin da página (nginx faz o proxy /socket.io/ → backend)
+// Em desenvolvimento, usa REACT_APP_API_URL ou localhost:3001
+const SOCKET_URL = (() => {
+    if (process.env.REACT_APP_API_URL) {
+        return process.env.REACT_APP_API_URL.replace('/api', '').replace(/\/$/, '');
+    }
+    // Produção sem variável: usar mesmo origin (vai passar pelo nginx)
+    if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+        return window.location.origin;
+    }
+    return 'http://localhost:3001';
+})();
 
 let socket: Socket | null = null;
 

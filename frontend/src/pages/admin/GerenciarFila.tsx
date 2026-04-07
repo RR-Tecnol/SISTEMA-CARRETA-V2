@@ -67,6 +67,7 @@ export default function GerenciarFila() {
     const [acaoId, setAcaoId] = useState('');
     const [fila, setFila] = useState<FichaItem[]>([]);
     const [carregando, setCarregando] = useState(false);
+    const [sincronizando, setSincronizando] = useState(false);
 
     // Busca de cidadão
     const [cpfBusca, setCpfBusca] = useState('');
@@ -89,6 +90,32 @@ export default function GerenciarFila() {
         } catch { setEstacoes([]); }
     }, []);
 
+    // ─── Carregar fila via HTTP (fallback + carga inicial) ─────────────────
+    const carregarFila = useCallback(async (id: string) => {
+        try {
+            const r = await api.get(`/fichas/acao/${id}/fila`);
+            setFila(Array.isArray(r.data) ? r.data : []);
+        } catch { /* silencioso — socket.io já cuida das atualizações */ }
+    }, []);
+
+    // ─── Sincronizar inscrições → fichas ──────────────────────────────────
+    const sincronizarFila = useCallback(async () => {
+        if (!acaoId) return;
+        setSincronizando(true);
+        try {
+            const r = await api.post(`/fichas/acao/${acaoId}/sincronizar-inscricoes`);
+            enqueueSnackbar(
+                `✅ ${r.data.criadas ?? 0} ficha(s) criada(s) a partir das inscrições`,
+                { variant: 'success' }
+            );
+            await carregarFila(acaoId);
+        } catch {
+            enqueueSnackbar('Erro ao sincronizar inscrições com a fila', { variant: 'error' });
+        } finally {
+            setSincronizando(false);
+        }
+    }, [acaoId, carregarFila]);
+
     const statusEstacaoColor: Record<string, string> = {
         ativa: '#00C853',
         pausada: '#FF6F00',
@@ -103,11 +130,16 @@ export default function GerenciarFila() {
         }).catch(() => enqueueSnackbar('Erro ao carregar ações', { variant: 'error' }));
     }, []);
 
-    // Carregar estações ao trocar ação
+    // ─── Carregar fila + estações ao trocar ação ───────────────────────────
     useEffect(() => {
-        if (acaoId) carregarEstacoes(acaoId);
-        else setEstacoes([]);
-    }, [acaoId, carregarEstacoes]);
+        if (acaoId) {
+            carregarEstacoes(acaoId);
+            carregarFila(acaoId);
+        } else {
+            setEstacoes([]);
+            setFila([]);
+        }
+    }, [acaoId, carregarEstacoes, carregarFila]);
 
 
     // ─── Socket.IO — entrar na sala da ação ────────────────────────────────
@@ -119,6 +151,11 @@ export default function GerenciarFila() {
 
         socket.on('fila_atualizada', ({ fila: novaFila }: { acao_id: string; fila: FichaItem[] }) => {
             setFila(novaFila);
+        });
+
+        // Se o socket reconectar, recarregar a fila via HTTP como fallback
+        socket.on('connect', () => {
+            carregarFila(acaoId);
         });
 
         // Senha chamada = todos os exames do cidadão de uma vez
@@ -134,8 +171,9 @@ export default function GerenciarFila() {
             socket.off('fila_atualizada');
             socket.off('senha_chamada');
             socket.off('paciente_chamado');
+            socket.off('connect');
         };
-    }, [acaoId]);
+    }, [acaoId, carregarFila]);
 
 
     // ─── Buscar cidadão por CPF ────────────────────────────────────────────
@@ -375,6 +413,25 @@ export default function GerenciarFila() {
                                         ))}
                                     </CardContent>
                                 </Card>
+                            )}
+
+                            {/* Sincronizar inscrições → fila (quando fila está vazia) */}
+                            {acaoId && fila.filter(f => !['concluido','cancelado'].includes(f.status)).length === 0 && (
+                                <Button
+                                    fullWidth variant="outlined" size="medium"
+                                    onClick={sincronizarFila}
+                                    disabled={sincronizando}
+                                    startIcon={sincronizando ? <Loader size={18} /> : <RefreshCw size={18} />}
+                                    sx={{
+                                        borderColor: systemTruckTheme.colors.primary,
+                                        color: systemTruckTheme.colors.primary,
+                                        textTransform: 'none', fontWeight: 600,
+                                        borderRadius: systemTruckTheme.borderRadius.medium,
+                                        '&:hover': { background: `${systemTruckTheme.colors.primary}10` },
+                                    }}
+                                >
+                                    {sincronizando ? 'Sincronizando...' : '🔄 Carregar Inscritos na Fila'}
+                                </Button>
                             )}
 
                             {/* Chamar próximo */}

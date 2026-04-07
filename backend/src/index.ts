@@ -336,7 +336,10 @@ async function startServer(): Promise<void> {
                     updated_at TIMESTAMPTZ DEFAULT NOW()
                 );
             `);
-            console.log('✅ Migration estacoes_exame: tabela verificada/criada');
+            // Colunas extras de controle de tempo
+            await sequelize.query(`ALTER TABLE estacoes_exame ADD COLUMN IF NOT EXISTS pausada_em TIMESTAMPTZ`);
+            await sequelize.query(`ALTER TABLE estacoes_exame ADD COLUMN IF NOT EXISTS retomada_em TIMESTAMPTZ`);
+            console.log('✅ Migration estacoes_exame: tabela e colunas verificadas/criadas');
         } catch (migErr) {
             console.warn('⚠️ Migration estacoes_exame:', migErr);
         }
