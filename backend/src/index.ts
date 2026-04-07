@@ -350,18 +350,27 @@ async function startServer(): Promise<void> {
                 CREATE TABLE IF NOT EXISTS configuracoes_fila_acao (
                     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                     acao_id UUID NOT NULL UNIQUE REFERENCES acoes(id) ON DELETE CASCADE,
-                    notif_email BOOLEAN NOT NULL DEFAULT FALSE,
+                    notif_email BOOLEAN NOT NULL DEFAULT TRUE,
                     notif_sms BOOLEAN NOT NULL DEFAULT FALSE,
-                    notif_whatsapp BOOLEAN NOT NULL DEFAULT TRUE,
+                    notif_whatsapp BOOLEAN NOT NULL DEFAULT FALSE,
                     notif_ficha_gerada BOOLEAN NOT NULL DEFAULT TRUE,
                     notif_chegando BOOLEAN NOT NULL DEFAULT TRUE,
                     notif_chamado BOOLEAN NOT NULL DEFAULT TRUE,
-                    fichas_antes_aviso INTEGER NOT NULL DEFAULT 3,
+                    fichas_antes_aviso INTEGER NOT NULL DEFAULT 5,
                     created_at TIMESTAMPTZ DEFAULT NOW(),
                     updated_at TIMESTAMPTZ DEFAULT NOW()
                 );
             `);
-            console.log('✅ Migration configuracoes_fila_acao: tabela verificada/criada');
+            // Adicionar as novas colunas que diferem no modelo
+            await sequelize.query(`ALTER TABLE configuracoes_fila_acao ADD COLUMN IF NOT EXISTS usar_ficha_digital BOOLEAN DEFAULT TRUE`);
+            await sequelize.query(`ALTER TABLE configuracoes_fila_acao ADD COLUMN IF NOT EXISTS permitir_impressao BOOLEAN DEFAULT TRUE`);
+            await sequelize.query(`ALTER TABLE configuracoes_fila_acao ADD COLUMN IF NOT EXISTS usar_painel_tv BOOLEAN DEFAULT TRUE`);
+            await sequelize.query(`ALTER TABLE configuracoes_fila_acao ADD COLUMN IF NOT EXISTS notif_ao_gerar_ficha BOOLEAN DEFAULT TRUE`);
+            await sequelize.query(`ALTER TABLE configuracoes_fila_acao ADD COLUMN IF NOT EXISTS notif_quantidade_aviso INTEGER DEFAULT 5`);
+            await sequelize.query(`ALTER TABLE configuracoes_fila_acao ADD COLUMN IF NOT EXISTS notif_retorno_estacao BOOLEAN DEFAULT TRUE`);
+            await sequelize.query(`ALTER TABLE configuracoes_fila_acao ADD COLUMN IF NOT EXISTS sms_provider VARCHAR(20) DEFAULT 'brevo'`);
+            await sequelize.query(`ALTER TABLE configuracoes_fila_acao ADD COLUMN IF NOT EXISTS whatsapp_provider VARCHAR(20) DEFAULT 'zapi'`);
+            console.log('✅ Migration configuracoes_fila_acao: tabela e colunas verificadas/criadas');
         } catch (migErr) {
             console.warn('⚠️ Migration configuracoes_fila_acao:', migErr);
         }
