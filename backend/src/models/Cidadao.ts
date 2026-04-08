@@ -84,15 +84,16 @@ Cidadao.init(
         },
         data_nascimento: {
             type: DataTypes.DATEONLY,
-            allowNull: false,
+            allowNull: true,
         },
         telefone: {
             type: DataTypes.STRING(20),
-            allowNull: false,
+            allowNull: true,
+            defaultValue: 'Não informado',
         },
         email: {
             type: DataTypes.STRING,
-            allowNull: false,
+            allowNull: true,
         },
         senha: {
             type: DataTypes.STRING,
@@ -105,11 +106,13 @@ Cidadao.init(
         },
         municipio: {
             type: DataTypes.STRING,
-            allowNull: false,
+            allowNull: true,
+            defaultValue: 'Não informado',
         },
         estado: {
             type: DataTypes.STRING(2),
-            allowNull: false,
+            allowNull: true,
+            defaultValue: 'MA',
         },
         cep: {
             type: DataTypes.STRING(9),
@@ -163,9 +166,9 @@ Cidadao.init(
             allowNull: true,
         },
         cartao_sus: {
-            type: DataTypes.STRING(15),
+            type: DataTypes.STRING(20),
             allowNull: true,
-            comment: 'Número do Cartão Nacional de Saúde (CNS)',
+            comment: 'Número do Cartão Nacional de Saúde (CNS) — 15 dígitos, salvo sem formatação',
         },
         raca: {
             type: DataTypes.ENUM('branca', 'preta', 'parda', 'amarela', 'indigena', 'nao_declarada'),

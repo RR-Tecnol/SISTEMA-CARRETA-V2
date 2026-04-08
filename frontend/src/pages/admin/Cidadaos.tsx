@@ -1356,9 +1356,9 @@ const Cidadaos: React.FC = () => {
                                 <Grid item xs={12} sm={8}>
                                     <TextField
                                         fullWidth
-                                        label="Cidade"
-                                        value={(editData as any).cidade || ''}
-                                        onChange={(e) => setEditData({ ...editData, cidade: e.target.value } as any)}
+                                        label="Município"
+                                        value={editData.municipio || ''}
+                                        onChange={(e) => setEditData({ ...editData, municipio: e.target.value })}
                                         sx={{
                                             '& .MuiOutlinedInput-root': {
                                                 borderRadius: systemTruckTheme.borderRadius.medium,

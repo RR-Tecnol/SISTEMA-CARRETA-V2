@@ -181,25 +181,46 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
             return;
         }
 
+        // Mapear sexo (M/F/O) para genero (masculino/feminino/outro) — compatibilidade com frontend
+        const sexoMap: Record<string, string> = {
+            'M': 'masculino',
+            'F': 'feminino',
+            'O': 'outro',
+            'masculino': 'masculino',
+            'feminino': 'feminino',
+            'outro': 'outro',
+            'nao_declarado': 'nao_declarado',
+        };
+        const generoMapeado = sexo ? (sexoMap[sexo] || null) : null;
+
+        // Garantir que campos NOT NULL no banco recebam valores válidos
+        const telefoneFinal = telefone || 'Não informado';
+        const emailFinal = email || `${cleanCPF}@naoinformado.local`;
+        const municipioFinal = municipio || 'Não informado';
+        const estadoFinal = estado && estado.length === 2 ? estado : 'MA';
+        const dataNascimentoFinal = data_nascimento || null;
+        // Remover formatação do CNS (espaços) antes de salvar — armazena apenas os 15 dígitos
+        const cartaoSusFinal = cartao_sus ? cartao_sus.replace(/\D/g, '').slice(0, 15) || null : null;
+
         // Criar cidadão
         const novoCidadao = await Cidadao.create({
             nome_completo,
             nome_mae,
             cpf: formattedCPF,
-            data_nascimento,
-            sexo,
-            raca,
-            telefone,
-            email,
-            cep,
-            rua,
-            numero,
-            complemento,
-            bairro,
-            municipio,
-            estado,
+            data_nascimento: dataNascimentoFinal,
+            genero: generoMapeado,
+            raca: raca || null,
+            telefone: telefoneFinal,
+            email: emailFinal,
+            cep: cep || null,
+            rua: rua || null,
+            numero: numero || null,
+            complemento: complemento || null,
+            bairro: bairro || null,
+            municipio: municipioFinal,
+            estado: estadoFinal,
             senha: senha || '123456', // Senha padrão se não fornecida
-            cartao_sus: cartao_sus || null, // B1 — garantir que cartao_sus é salvo
+            cartao_sus: cartaoSusFinal, // B1 — garantir que cartao_sus é salvo
         } as any);
 
         // F1 — Enviar e-mail de boas-vindas se o cidadão tem e-mail
@@ -384,6 +405,11 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
             return;
         }
 
+        // Sanitização do CNS — remove espaços/formatação, salva apenas os dígitos
+        const cartaoSusAtualizado = cartao_sus !== undefined
+            ? (cartao_sus ? cartao_sus.replace(/\D/g, '').slice(0, 15) || null : null)
+            : cidadao.cartao_sus;
+
         // Update cidadao data
         await cidadao.update({
             nome_completo: nome_completo || cidadao.nome_completo,
@@ -400,7 +426,7 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
             bairro: bairro !== undefined ? bairro : cidadao.bairro,
             municipio: municipio || cidadao.municipio,
             estado: estado || cidadao.estado,
-            cartao_sus: cartao_sus !== undefined ? cartao_sus : cidadao.cartao_sus,
+            cartao_sus: cartaoSusAtualizado,
         });
 
         // Return updated cidadao without senha
