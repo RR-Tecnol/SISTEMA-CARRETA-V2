@@ -22,7 +22,7 @@ import api from '../../services/api';
 // Types
 // -----------------------------------------------------------------------------
 interface Medico { id: string; nome: string; cargo: string; especialidade?: string; custo_diaria: number; ativo: boolean; }
-interface Ponto { id: string; funcionario_id: string; acao_id?: string; data_hora_entrada: string; data_hora_saida?: string; horas_trabalhadas?: number; status: 'trabalhando' | 'saiu'; observacoes?: string; funcionario?: Medico; acao?: { id: string; numero_acao: string; nome: string }; atendimentos?: Atendimento[]; }
+interface Ponto { id: string; funcionario_id: string; acao_id?: string; data_hora_entrada: string; data_hora_saida?: string; horas_trabalhadas?: number; status: 'trabalhando' | 'saiu' | 'intervalo'; observacoes?: string; funcionario?: Medico; acao?: { id: string; numero_acao: string; nome: string }; atendimentos?: Atendimento[]; }
 interface Atendimento { id: string; funcionario_id: string; acao_id?: string; cidadao_id?: string; ponto_id?: string | null; hora_inicio: string; hora_fim?: string; duracao_minutos?: number; status: 'em_andamento' | 'concluido' | 'cancelado'; observacoes?: string; nome_paciente?: string; cidadao?: { id: string; nome: string; sus_numero?: string; }; funcionario?: Medico; acao?: { id: string; numero_acao: string; nome: string }; }
 interface Dashboard { medicosAtivos: number; atendimentosHoje: number; atendimentosConcluidos: number; tempoMedioMinutos: number; totalMedicos: number; topMedico: { nome: string; total: number } | null; alertas: { medico_nome: string; entrada: string; ponto_id: string }[]; }
 interface Acao { id: string; numero_acao: string; nome: string; status: string; }
@@ -456,8 +456,8 @@ const MedicoMonitoring: React.FC = () => {
     }, [liveAtendimentos]);
 
     const getPontoAtivo = (medicoId: string) => {
-        let p = pontosLive.find(p => String(p.funcionario_id) === String(medicoId) && p.status === 'trabalhando');
-        if (!p) p = pontos.find(p => String(p.funcionario_id) === String(medicoId) && p.status === 'trabalhando');
+        let p = pontosLive.find(p => String(p.funcionario_id) === String(medicoId) && ['trabalhando', 'intervalo'].includes(p.status));
+        if (!p) p = pontos.find(p => String(p.funcionario_id) === String(medicoId) && ['trabalhando', 'intervalo'].includes(p.status));
         return p;
     };
 
@@ -525,6 +525,21 @@ const MedicoMonitoring: React.FC = () => {
             if (detalheModal.medico) abrirDetalhe(detalheModal.medico);
             fetchAll(true);
         } catch (err: any) { enqueueSnackbar('Erro ao finalizar atendimento', { variant: 'error' }); }
+    };
+
+    // B5: Controle de almoço
+    const handleAlmoco = async (pontoId: string, acao: 'iniciar' | 'finalizar') => {
+        try {
+            await api.post(`/medico-monitoring/ponto/${pontoId}/almoco/${acao}`);
+            enqueueSnackbar(
+                acao === 'iniciar' ? '☕ Almoço iniciado!' : '✅ Almoço finalizado!',
+                { variant: 'success' }
+            );
+            fetchAll(true);
+            fetchLive();
+        } catch (err: any) {
+            enqueueSnackbar(err.response?.data?.error || 'Erro ao registrar almoço', { variant: 'error' });
+        }
     };
 
     const abrirDetalhe = async (medico: Medico) => {
@@ -619,7 +634,7 @@ const MedicoMonitoring: React.FC = () => {
                                     <Stethoscope size={36} color="white" />
                                 </Box>
                                 <Box>
-                                    <Typography variant="h4" sx={{ color: 'white', fontWeight: 800, letterSpacing: -0.5 }}>Acompanhamento de Médicos</Typography>
+                                    <Typography variant="h4" sx={{ color: 'white', fontWeight: 800, letterSpacing: -0.5 }}>Monitoramento de Saúde</Typography>
                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
                                         <PulsingDot color={dashboard?.medicosAtivos ? '#4ade80' : '#94a3b8'} />
                                         <Typography sx={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.9rem' }}>
@@ -715,8 +730,8 @@ const MedicoMonitoring: React.FC = () => {
                                         <TableBody>
                                             {liveAtendimentos.map(atd => (
                                                 <TableRow key={atd.id} hover>
-                                                    <TableCell sx={{ fontSize: '0.82rem', fontWeight: 600 }}>{(atd as any).funcionario?.nome || '—'}</TableCell>
-                                                    <TableCell sx={{ fontSize: '0.82rem' }}>{atd.nome_paciente_display}</TableCell>
+                                                    <TableCell sx={{ fontSize: '0.82rem', fontWeight: 600, maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{(atd as any).funcionario?.nome || '—'}</TableCell>
+                                                    <TableCell sx={{ fontSize: '0.82rem', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{atd.nome_paciente_display}</TableCell>
                                                     <TableCell sx={{ fontSize: '0.78rem', color: expressoTheme.colors.textSecondary }}>{(atd as any).acao?.nome || '—'}</TableCell>
                                                     <TableCell sx={{ fontSize: '0.78rem' }}>{formatHora(atd.hora_inicio)}</TableCell>
                                                     <TableCell>
@@ -750,11 +765,11 @@ const MedicoMonitoring: React.FC = () => {
                             <input value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="Buscar médico..." style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: '0.95rem', width: '100%', color: expressoTheme.colors.text }} />
                         </Box>
                         {/* #9 — Filtro de atendimentos por médico */}
-                        <FormControl size="small" sx={{ minWidth: 200 }}>
-                            <InputLabel>Atendimentos — Filtrar por Médico</InputLabel>
+                        <FormControl size="small" sx={{ minWidth: 220 }}>
+                            <InputLabel>Filtrar por Médico</InputLabel>
                             <Select
                                 value={filtroMedicoId}
-                                label="Atendimentos — Filtrar por Médico"
+                                label="Filtrar por Médico"
                                 onChange={e => setFiltroMedicoId(e.target.value)}
                                 sx={{ borderRadius: expressoTheme.borderRadius.medium }}
                             >
@@ -803,6 +818,7 @@ const MedicoMonitoring: React.FC = () => {
                                 );
 
                                 const isAtivo = !!pontoAtivo || emAndamento > 0 || liveDoMedico.length > 0;
+                                const isAlmoco = pontoAtivo && pontoAtivo.status === 'intervalo';
                                 // Horas hoje = pontos finalizados + ponto ativo
                                 // Se não há ponto mas há live, usa hora_inicio do atendimento ao vivo
                                 const pontosDoMedico = pontos.filter(p => String(p.funcionario_id) === String(medico.id));
@@ -833,8 +849,8 @@ const MedicoMonitoring: React.FC = () => {
                                             <Box sx={{
                                                 background: expressoTheme.colors.cardBackground,
                                                 borderRadius: expressoTheme.borderRadius.large,
-                                                border: `2px solid ${isAtivo ? expressoTheme.colors.success : expressoTheme.colors.border}`,
-                                                p: 3, boxShadow: isAtivo ? '0 4px 20px rgba(40,167,69,0.15)' : expressoTheme.shadows.card,
+                                                border: `2px solid ${isAlmoco ? '#fcd34d' : (isAtivo ? expressoTheme.colors.success : expressoTheme.colors.border)}`,
+                                                p: 3, boxShadow: isAlmoco ? '0 4px 20px rgba(252,211,77,0.2)' : (isAtivo ? '0 4px 20px rgba(40,167,69,0.15)' : expressoTheme.shadows.card),
                                                 transition: 'all .3s',
                                                 '&:hover': { boxShadow: expressoTheme.shadows.cardHover }
                                             }}>
@@ -850,9 +866,9 @@ const MedicoMonitoring: React.FC = () => {
                                                         </Box>
                                                     </Box>
                                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                                        <PulsingDot color={emAndamento > 0 ? expressoTheme.colors.danger : (isAtivo ? expressoTheme.colors.success : '#94a3b8')} />
-                                                        <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: emAndamento > 0 ? expressoTheme.colors.danger : (isAtivo ? expressoTheme.colors.success : expressoTheme.colors.textLight) }}>
-                                                            {emAndamento > 0 ? 'EM ATENDIMENTO' : (isAtivo ? 'ATIVO' : 'FORA')}
+                                                        <PulsingDot color={emAndamento > 0 ? expressoTheme.colors.danger : (isAlmoco ? '#d97706' : (isAtivo ? expressoTheme.colors.success : '#94a3b8'))} />
+                                                        <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: emAndamento > 0 ? expressoTheme.colors.danger : (isAlmoco ? '#d97706' : (isAtivo ? expressoTheme.colors.success : expressoTheme.colors.textLight)) }}>
+                                                            {emAndamento > 0 ? 'ATENDENDO' : (isAlmoco ? 'PAUSA PARA ALMOÇO' : (isAtivo ? 'ATIVO' : 'FORA'))}
                                                         </Typography>
                                                     </Box>
                                                 </Box>
@@ -865,7 +881,7 @@ const MedicoMonitoring: React.FC = () => {
                                                         { label: 'Horas hoje', value: horasDisplay, color: expressoTheme.colors.primary },
                                                     ].map((s, si) => (
                                                         <Box key={si} sx={{ flex: 1, background: expressoTheme.colors.background, borderRadius: expressoTheme.borderRadius.small, p: 1, textAlign: 'center' }}>
-                                                            <Typography sx={{ fontSize: '1.1rem', fontWeight: 800, color: s.color }}>{s.value}</Typography>
+                                                            <Typography sx={{ fontSize: 'clamp(0.85rem, 1.5vw, 1.1rem)', fontWeight: 800, color: s.color, whiteSpace: 'nowrap' }}>{s.value}</Typography>
                                                             <Typography sx={{ fontSize: '0.65rem', color: expressoTheme.colors.textSecondary, lineHeight: 1.2 }}>{s.label}</Typography>
                                                         </Box>
                                                     ))}
@@ -877,6 +893,12 @@ const MedicoMonitoring: React.FC = () => {
                                                         <Typography sx={{ fontSize: '0.8rem', color: '#166534', fontWeight: 600 }}>
                                                             Entrada: {formatHora(pontoAtivo.data_hora_entrada)}
                                                             {pontoAtivo.acao && ` · ${pontoAtivo.acao.nome}`}
+                                                            {pontoAtivo.status === 'intervalo' && (
+                                                                <span style={{ marginLeft: 8, color: '#d97706', fontWeight: 700 }}>☕ Em almoço</span>
+                                                            )}
+                                                            {(pontoAtivo as any).duracao_almoco_minutos && (
+                                                                <span style={{ marginLeft: 8, color: '#6b7280', fontWeight: 500 }}>· Almoço: {(pontoAtivo as any).duracao_almoco_minutos}min</span>
+                                                            )}
                                                         </Typography>
                                                     </Box>
                                                 )}
@@ -901,6 +923,24 @@ const MedicoMonitoring: React.FC = () => {
                                                                 sx={{ flex: 1, background: '#22c55e', color: 'white', textTransform: 'none', fontWeight: 600, fontSize: '0.8rem', borderRadius: expressoTheme.borderRadius.small, '&:hover': { background: '#16a34a' } }}>
                                                                 Atendimento
                                                             </Button>
+                                                            {/* B5 — Botão de almoço */}
+                                                            {pontoAtivo.status === 'intervalo' ? (
+                                                                <Tooltip title="Finalizar almoço">
+                                                                    <Button size="small" variant="outlined"
+                                                                        onClick={() => handleAlmoco(pontoAtivo.id, 'finalizar')}
+                                                                        sx={{ minWidth: 0, px: 1, borderColor: '#ef4444', color: '#ef4444', fontWeight: 700, fontSize: '0.8rem', borderRadius: expressoTheme.borderRadius.small, '&:hover': { background: '#fff5f5' } }}>
+                                                                        ☕ Fim
+                                                                    </Button>
+                                                                </Tooltip>
+                                                            ) : (
+                                                                <Tooltip title="Iniciar almoço">
+                                                                    <Button size="small" variant="outlined"
+                                                                        onClick={() => handleAlmoco(pontoAtivo.id, 'iniciar')}
+                                                                        sx={{ minWidth: 0, px: 1, borderColor: '#f59e0b', color: '#f59e0b', fontWeight: 700, fontSize: '0.8rem', borderRadius: expressoTheme.borderRadius.small, '&:hover': { background: '#fffbeb' } }}>
+                                                                        ☕ Almoço
+                                                                    </Button>
+                                                                </Tooltip>
+                                                            )}
                                                         </>
                                                     )}
                                                     <Tooltip title="Ver detalhes">
@@ -914,34 +954,6 @@ const MedicoMonitoring: React.FC = () => {
                                                         </IconButton>
                                                     </Tooltip>
                                                 </Box>
-                                                {/* F5 — Enviar resultado (exibe para atendimentos concluídos do dia) */}
-                                                {atdsMedico.filter((a: any) => a.status === 'concluido').length > 0 && (
-                                                    <Box sx={{ mt: 1.5, borderTop: `1px dashed ${expressoTheme.colors.border}`, pt: 1.5 }}>
-                                                        <Typography sx={{ fontSize: '0.7rem', color: expressoTheme.colors.textSecondary, mb: 1 }}>
-                                                            Enviar resultado de exame:
-                                                        </Typography>
-                                                        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                                                            {atdsMedico.filter((a: any) => a.status === 'concluido').slice(0, 3).map((atd: any) => (
-                                                                <Button
-                                                                    key={atd.id}
-                                                                    size="small"
-                                                                    variant="outlined"
-                                                                    onClick={() => { setResultadoModal({ open: true, atendimento: atd }); setResultadoForm({ resultado: '', observacoes: '' }); }}
-                                                                    sx={{
-                                                                        fontSize: '0.7rem',
-                                                                        borderColor: '#0097a7',
-                                                                        color: '#0097a7',
-                                                                        textTransform: 'none',
-                                                                        py: 0.3,
-                                                                        '&:hover': { background: 'rgba(0,151,167,0.06)' }
-                                                                    }}
-                                                                >
-                                                                    🩺 {atd.cidadao?.nome_completo?.split(' ')[0] || atd.nome_paciente?.split(' ')[0] || 'Paciente'}
-                                                                </Button>
-                                                            ))}
-                                                        </Box>
-                                                    </Box>
-                                                )}
                                             </Box>
                                         </motion.div>
                                     </Grid>
@@ -1340,7 +1352,7 @@ const MedicoMonitoring: React.FC = () => {
                             <Divider sx={{ mb: 2 }} />
                             {/* Tabela de atendimentos */}
                             <Typography sx={{ fontWeight: 700, mb: 1.5, color: expressoTheme.colors.primaryDark }}>Histórico de Atendimentos</Typography>
-                            <TableContainer component={Paper} sx={{ borderRadius: expressoTheme.borderRadius.medium, border: `1px solid ${expressoTheme.colors.border}`, maxHeight: 300 }}>
+                            <TableContainer component={Paper} sx={{ borderRadius: expressoTheme.borderRadius.medium, border: `1px solid ${expressoTheme.colors.border}`, maxHeight: 300, overflowX: 'auto' }}>
                                 <Table size="small" stickyHeader>
                                     <TableHead>
                                         <TableRow>
@@ -1469,7 +1481,7 @@ const MedicoMonitoring: React.FC = () => {
                                 <Trophy size={18} color="#f59e0b" />
                                 <Typography sx={{ fontWeight: 700, color: expressoTheme.colors.primaryDark }}>Ranking de Médicos</Typography>
                             </Box>
-                            <TableContainer component={Paper} sx={{ borderRadius: expressoTheme.borderRadius.medium, border: `1px solid ${expressoTheme.colors.border}`, maxHeight: 320 }}>
+                            <TableContainer component={Paper} sx={{ borderRadius: expressoTheme.borderRadius.medium, border: `1px solid ${expressoTheme.colors.border}`, maxHeight: 320, overflowX: 'auto' }}>
                                 <Table size="small" stickyHeader>
                                     <TableHead>
                                         <TableRow>

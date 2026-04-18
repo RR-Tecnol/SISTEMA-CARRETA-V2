@@ -28,6 +28,7 @@ import { FuncionarioAnotacao } from './FuncionarioAnotacao';
 import { FichaAtendimento } from './FichaAtendimento';
 import { EstacaoExame } from './EstacaoExame';
 import { ConfiguracaoFilaAcao } from './ConfiguracaoFilaAcao';
+import { Emergencia } from './Emergencia';
 
 // Define associations
 export function setupAssociations(): void {
@@ -239,6 +240,12 @@ export function setupAssociations(): void {
         as: 'resultados',
     });
 
+    // Inscricao <-> ResultadoExame (1:1)
+    Inscricao.hasOne(ResultadoExame, {
+        foreignKey: 'inscricao_id',
+        as: 'resultado_exame',
+    });
+
     // Caminhao <-> ManutencaoCaminhao (1:N)
     Caminhao.hasMany(ManutencaoCaminhao, {
         foreignKey: 'caminhao_id',
@@ -348,6 +355,18 @@ export function setupAssociations(): void {
     // Acao <-> ConfiguracaoFilaAcao (1:1)
     Acao.hasOne(ConfiguracaoFilaAcao, { foreignKey: 'acao_id', as: 'configuracao_fila' });
     ConfiguracaoFilaAcao.belongsTo(Acao, { foreignKey: 'acao_id', as: 'acao' });
+
+    // Acao <-> Emergencia (1:N)
+    Acao.hasMany(Emergencia, { foreignKey: 'acao_id', as: 'emergencias' });
+    Emergencia.belongsTo(Acao, { foreignKey: 'acao_id', as: 'acao' });
+
+    // Cidadao <-> Emergencia (1:N)
+    Cidadao.hasMany(Emergencia, { foreignKey: 'cidadao_id', as: 'emergencias' });
+    Emergencia.belongsTo(Cidadao, { foreignKey: 'cidadao_id', as: 'cidadao' });
+
+    // Funcionario <-> Emergencia (1:N) — quem atendeu
+    Funcionario.hasMany(Emergencia, { foreignKey: 'atendido_por', as: 'emergencias_atendidas' });
+    Emergencia.belongsTo(Funcionario, { foreignKey: 'atendido_por', as: 'profissional' });
 }
 
 
@@ -382,6 +401,7 @@ export {
     FichaAtendimento,
     EstacaoExame,
     ConfiguracaoFilaAcao,
+    Emergencia,
 };
 
 

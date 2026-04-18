@@ -2,12 +2,14 @@
  * PainelChamada.tsx — Painel público de chamada de fichas (TV/Telão)
  * Rota: /painel/:acao_id — sem autenticação
  * Design: Light, profissional, Full HD — com histórico de chamadas
+ * D1: Síntese de voz (Web Speech API) adicionada
  */
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import { Box, Typography, Chip, Divider } from '@mui/material';
+import { Box, Typography, Chip, Divider, Button } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
+import { getSocket } from '../../utils/socket';
 
 const isLocal = window.location.hostname === 'localhost';
 const API = process.env.REACT_APP_API_URL || (isLocal ? 'http://localhost:3001/api' : '/api');
@@ -36,16 +38,18 @@ interface PainelData {
     aguardando: FichaPublica[];
     chamadas: FichaPublica[];   // historico de chamadas do dia
     estacoes: EstacaoPublica[];
+    profissionaisSalas?: Array<{
+        id: string;
+        medico_nome: string;
+        especialidade: string | null;
+        sala: string;
+        status: string;
+    }>;
     totalHoje: number;
     concluidos: number;
     nomeAcao: string;
 }
 
-const STATUS_DOT: Record<string, string> = {
-    ativa: '#16A34A',
-    pausada: '#D97706',
-    manutencao: '#DC2626',
-};
 
 const fmtHora = (iso?: string) =>
     iso ? new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '';
@@ -53,39 +57,245 @@ const fmtHora = (iso?: string) =>
 export default function PainelChamada() {
     const { acao_id } = useParams<{ acao_id: string }>();
     const [painel, setPainel] = useState<PainelData | null>(null);
-    const [prevFicha, setPrevFicha] = useState<number | null>(null);
+    const [callQueue, setCallQueue] = useState<FichaPublica[]>([]);
     const [hora, setHora] = useState(new Date());
     const [flashActive, setFlashActive] = useState(false);
     const [historico, setHistorico] = useState<FichaPublica[]>([]);
     const audioRef = useRef<HTMLAudioElement | null>(null);
+    const isPlayingRef = useRef(false);
+    const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
-    const fetchPainel = useCallback(async () => {
+    // D1 — Estado de ativação de voz (navegador bloqueia sem gesto do usuário)
+    const [vozAtivada, setVozAtivada] = useState(false);
+
+    // D1 — Pré-carregar vozes assincronamente (Chrome carrega após interação)
+    useEffect(() => {
+        if (!window.speechSynthesis) return;
+        const carregarVozes = () => window.speechSynthesis.getVoices();
+        carregarVozes();
+        window.speechSynthesis.onvoiceschanged = carregarVozes;
+        return () => { window.speechSynthesis.onvoiceschanged = null; };
+    }, []);
+
+    // D1 — Função de síntese de voz convertida para Promise para enfileiramento
+    const reproduzirVoz = async (ficha: FichaPublica): Promise<void> => {
+        return new Promise((resolve) => {
+            if (!vozAtivada || !window.speechSynthesis) {
+                resolve();
+                return;
+            }
+
+            const numero = String(ficha.numero_ficha).padStart(3, '0').split('').join(' ');
+            const sala = ficha.estacao?.nome || ficha.guiche || 'Balcão de Atendimento';
+            const exame = ficha.inscricao?.curso_exame?.nome ? `, para ${ficha.inscricao.curso_exame.nome}` : '';
+            const texto = `Senha, ${numero}${exame}. Dirija-se ao ${sala}, por favor.`;
+
+            const utterance = new SpeechSynthesisUtterance(texto);
+            utteranceRef.current = utterance; // Previne Garbage Collection no Chrome
+
+            utterance.lang = 'pt-BR';
+            utterance.rate = 0.88;
+            utterance.pitch = 1.05;
+            utterance.volume = 1;
+
+            const vozes = window.speechSynthesis.getVoices();
+            const vozBR = vozes.find(v => v.lang === 'pt-BR') || vozes.find(v => v.lang.startsWith('pt'));
+            if (vozBR) utterance.voice = vozBR;
+
+            const fallbackTimer = setTimeout(() => {
+                window.speechSynthesis.cancel();
+                resolve();
+            }, 10000); // Fallback: unblock the queue if the voice engine freezes
+
+            utterance.onend = () => {
+                clearTimeout(fallbackTimer);
+                setTimeout(resolve, 600); // aguarda 0.6s após a fala antes de liberar a fila
+            };
+            
+            utterance.onerror = () => {
+                clearTimeout(fallbackTimer);
+                resolve(); // libera se der erro
+            };
+
+            window.speechSynthesis.speak(utterance);
+        });
+    };
+
+    // D1 — Ativar voz com gesto do usuário (desbloqueia AudioContext/SpeechSynthesis)
+    const ativarVoz = () => {
+        setVozAtivada(true);
+        if (window.speechSynthesis) {
+            const teste = new SpeechSynthesisUtterance('Voz ativada. Sistema pronto.');
+            teste.lang = 'pt-BR';
+            teste.volume = 0.7;
+            const vozes = window.speechSynthesis.getVoices();
+            const vozBR = vozes.find(v => v.lang === 'pt-BR') || vozes.find(v => v.lang.startsWith('pt'));
+            if (vozBR) teste.voice = vozBR;
+            window.speechSynthesis.speak(teste);
+        }
+    };
+
+    // Loop de Processamento da Fila
+    useEffect(() => {
+        let isCancelled = false;
+
+        const loopQueue = async () => {
+            if (isPlayingRef.current || callQueue.length === 0) return;
+            
+            isPlayingRef.current = true;
+            const proximaFicha = callQueue[0];
+            
+            // Atualizar UI tela para a ficha que vai tocar
+            setPainel(prev => prev ? { ...prev, ultimaChamada: proximaFicha } : null);
+            setFlashActive(true);
+            setTimeout(() => { if (!isCancelled) setFlashActive(false); }, 2000);
+            audioRef.current?.play().catch(() => {});
+
+            // Tocar Voz Assincronamente
+            await reproduzirVoz(proximaFicha);
+
+            if (!isCancelled) {
+                setCallQueue(prev => prev.slice(1)); // Remove a ficha já tocada
+                isPlayingRef.current = false; // Libera o lock
+            }
+        };
+
+        loopQueue();
+        return () => { isCancelled = true; };
+    }, [callQueue, vozAtivada]);
+
+    // ─── Polling de dados (fetch HTTP) ─────────────────────────
+    // DEVE ser declarado ANTES dos useEffects que o referenciam
+    const fetchPainelAsync = useCallback(async (forceRefresh = false) => {
         if (!acao_id) return;
         try {
             const { data } = await axios.get(`${API}/fichas/painel/${acao_id}`);
-            setPainel(data);
+            setPainel(prev => {
+                if (!prev || forceRefresh) {
+                    if (data.chamadas?.length) setHistorico(data.chamadas.slice(0, 12));
+                    return data;
+                }
+                return {
+                    ...prev,
+                    totalHoje: data.totalHoje,
+                    concluidos: data.concluidos,
+                    nomeAcao: data.nomeAcao,
+                    estacoes: data.estacoes,
+                    profissionaisSalas: data.profissionaisSalas
+                };
+            });
+        } catch { } // Silencioso
+    }, [acao_id]);
 
-            // Atualizar histórico com fichas chamadas/em_atendimento/concluidas
-            if (data.chamadas?.length) {
-                setHistorico(data.chamadas.slice(0, 12));
-            }
-
-            if (data.ultimaChamada && data.ultimaChamada.numero_ficha !== prevFicha) {
-                setPrevFicha(data.ultimaChamada.numero_ficha);
-                setFlashActive(true);
-                setTimeout(() => setFlashActive(false), 2000);
-                audioRef.current?.play().catch(() => {});
-            }
-        } catch {
-            // silencioso
-        }
-    }, [acao_id, prevFicha]);
-
+    // ─── WebSocket — conexão robusta ────────────────────────────
     useEffect(() => {
-        fetchPainel();
-        const interval = setInterval(fetchPainel, 5000);
+        if (!acao_id) return;
+
+        const socket = getSocket();
+
+        // Handlers de eventos da fila
+        const handleFilaAtualizada = (dados: any) => {
+            // L2: Se não vier payload 'fila', fazer refetch HTTP — evento emitido por inscricoes.ts
+            if (!dados.fila || !Array.isArray(dados.fila)) {
+                fetchPainelAsync(true);
+                return;
+            }
+
+            const aguardandoFila = dados.fila.filter((f: any) =>
+                f.status === 'aguardando' || f.status === 'pendente'
+            );
+            const pChamadosEAtendidos = dados.fila.filter((f: any) =>
+                ['chamado', 'em_atendimento', 'concluido'].includes(f.status)
+            );
+
+            pChamadosEAtendidos.sort((a: any, b: any) =>
+                new Date(b.hora_chamada || 0).getTime() - new Date(a.hora_chamada || 0).getTime()
+            );
+
+            setPainel(prev => prev ? { ...prev, aguardando: aguardandoFila } : null);
+
+            setHistorico(prev => {
+                const combinados = [...pChamadosEAtendidos, ...prev];
+                const ids = new Set();
+                return combinados
+                    .filter(item => { if (ids.has(item.id)) return false; ids.add(item.id); return true; })
+                    .sort((a, b) => new Date(b.hora_chamada || 0).getTime() - new Date(a.hora_chamada || 0).getTime())
+                    .slice(0, 12);
+            });
+        };
+
+        const handlePacienteChamado = (payload: any) => {
+            if (!payload?.ficha) return;
+            const bf = payload.ficha;
+            const bc = payload.cidadao;
+
+            const novaFicha: FichaPublica = {
+                id: bf.id,
+                numero_ficha: bf.numero_ficha,
+                status: bf.status,
+                hora_chamada: bf.hora_chamada,
+                cidadao: bc ? { nome_completo: bc.nome_completo } : undefined,
+                guiche: payload.guiche || bf.guiche,
+                inscricao: bf.inscricao,
+                estacao: bf.estacao,
+            };
+
+            setHistorico(prev => {
+                if (prev[0]?.id === novaFicha.id) return prev;
+                return [novaFicha, ...prev].slice(0, 12);
+            });
+
+            // Enfileira para tocar som + voz
+            setCallQueue(prev => [...prev, novaFicha]);
+        };
+
+        // Garante o join à room — chamado sempre que socket estiver conectado
+        const doJoin = () => {
+            console.log(`📡 [PainelTV] Emitindo join_acao:${acao_id}`);
+            socket.emit('join_acao', acao_id);
+        };
+
+        // Handler de reconexão: rejoin + fetch completo para recuperar estado
+        const handleConnect = () => {
+            console.log('📡 [PainelTV] Socket conectado/reconectado — rejoinando e recarregando dados');
+            doJoin();
+            fetchPainelAsync(true);
+        };
+
+        // A4: Atualizar painel quando médico finaliza atendimento
+        const handleAtendimentoConcluido = () => {
+            fetchPainelAsync(true);
+        };
+
+        // Registrar listeners
+        socket.on('fila_atualizada', handleFilaAtualizada);
+        socket.on('paciente_chamado', handlePacienteChamado);
+        socket.on('atendimento_concluido', handleAtendimentoConcluido);
+        socket.on('connect', handleConnect);
+
+        // Se o socket JÁ está conectado agora, fazer join imediatamente
+        // (o evento 'connect' não vai mais disparar para conexões estabilizadas)
+        if (socket.connected) {
+            doJoin();
+        }
+
+        return () => {
+            socket.off('fila_atualizada', handleFilaAtualizada);
+            socket.off('paciente_chamado', handlePacienteChamado);
+            socket.off('atendimento_concluido', handleAtendimentoConcluido);
+            socket.off('connect', handleConnect);
+            socket.emit('leave_acao', acao_id);
+        };
+    }, [acao_id, fetchPainelAsync]);
+
+    // ─── Polling HTTP periódico (15s) ───────────────────────────
+    useEffect(() => {
+        fetchPainelAsync();
+        const interval = setInterval(fetchPainelAsync, 15000);
         return () => clearInterval(interval);
-    }, [fetchPainel]);
+    }, [fetchPainelAsync]);
+
+
 
     useEffect(() => {
         const tick = setInterval(() => setHora(new Date()), 1000);
@@ -126,6 +336,71 @@ export default function PainelChamada() {
                 )}
             </AnimatePresence>
 
+            {/* D1 — Overlay "Ativar Voz" enquanto não ativado */}
+            {!vozAtivada && (
+                <Box sx={{
+                    position: 'fixed', inset: 0, zIndex: 1000,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: 'rgba(15, 23, 42, 0.55)',
+                    backdropFilter: 'blur(4px)',
+                }}>
+                    <motion.div
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+                    >
+                        <Box sx={{
+                            background: 'white',
+                            borderRadius: 4,
+                            p: 5,
+                            textAlign: 'center',
+                            boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+                            maxWidth: 420,
+                        }}>
+                            <Typography sx={{ fontSize: '3rem', mb: 1 }}>🔊</Typography>
+                            <Typography sx={{ color: '#1E3A8A', fontWeight: 800, fontSize: '1.5rem', mb: 1 }}>
+                                Painel de Chamada
+                            </Typography>
+                            <Typography sx={{ color: '#64748B', fontSize: '0.95rem', mb: 3, lineHeight: 1.6 }}>
+                                Clique para ativar a voz de chamada.
+                                Os navegadores exigem uma interação do usuário para liberar o áudio.
+                            </Typography>
+                            <Button
+                                variant="contained"
+                                onClick={ativarVoz}
+                                sx={{
+                                    background: 'linear-gradient(135deg, #2563EB, #1E40AF)',
+                                    color: 'white',
+                                    fontWeight: 700,
+                                    fontSize: '1rem',
+                                    px: 5,
+                                    py: 1.5,
+                                    borderRadius: 3,
+                                    textTransform: 'none',
+                                    boxShadow: '0 4px 16px rgba(37,99,235,0.4)',
+                                    '&:hover': {
+                                        background: 'linear-gradient(135deg, #1D4ED8, #1E3A8A)',
+                                        transform: 'translateY(-1px)',
+                                    },
+                                    transition: 'all 0.2s',
+                                }}
+                            >
+                                🔊 Ativar Voz e Iniciar Painel
+                            </Button>
+                            <Typography sx={{ color: '#94A3B8', fontSize: '0.72rem', mt: 2 }}>
+                                Você pode continuar sem voz clicando fora desta janela
+                            </Typography>
+                            <Button
+                                onClick={() => setVozAtivada(true)}
+                                sx={{ color: '#94A3B8', fontSize: '0.72rem', mt: 0.5, textTransform: 'none' }}
+                            >
+                                Continuar sem voz
+                            </Button>
+                        </Box>
+                    </motion.div>
+                </Box>
+            )}
+
             {/* ── HEADER ─────────────────────────────────────────── */}
             <Box sx={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -152,13 +427,43 @@ export default function PainelChamada() {
                         </Typography>
                     </Box>
                 </Box>
-                <Box sx={{ textAlign: 'right' }}>
-                    <Typography sx={{ color: '#1E3A8A', fontWeight: 800, fontSize: '2.1rem', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
-                        {horaStr}
-                    </Typography>
-                    <Typography sx={{ color: '#64748B', fontSize: '0.72rem', textTransform: 'capitalize' }}>
-                        {dataStr}
-                    </Typography>
+
+                {/* D1 — Indicador de voz ativa no header */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                    {vozAtivada && (
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                        >
+                            <Box sx={{
+                                display: 'flex', alignItems: 'center', gap: 0.8,
+                                background: '#DCFCE7', border: '1px solid #BBF7D0',
+                                borderRadius: 2, px: 1.5, py: 0.6,
+                            }}>
+                                <Box sx={{
+                                    width: 7, height: 7, borderRadius: '50%',
+                                    background: '#16A34A',
+                                    animation: 'pulse 1.5s ease-in-out infinite',
+                                    '@keyframes pulse': {
+                                        '0%, 100%': { opacity: 1 },
+                                        '50%': { opacity: 0.4 },
+                                    },
+                                }} />
+                                <Typography sx={{ color: '#15803D', fontSize: '0.7rem', fontWeight: 700 }}>
+                                    🔊 Voz ativa
+                                </Typography>
+                            </Box>
+                        </motion.div>
+                    )}
+
+                    <Box sx={{ textAlign: 'right' }}>
+                        <Typography sx={{ color: '#1E3A8A', fontWeight: 800, fontSize: '2.1rem', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
+                            {horaStr}
+                        </Typography>
+                        <Typography sx={{ color: '#64748B', fontSize: '0.72rem', textTransform: 'capitalize' }}>
+                            {dataStr}
+                        </Typography>
+                    </Box>
                 </Box>
             </Box>
 
@@ -223,7 +528,15 @@ export default function PainelChamada() {
                                 />
                             )}
                             {ultimaChamada.cidadao?.nome_completo && (
-                                <Typography sx={{ color: '#475569', fontSize: '1rem', mt: 1 }}>
+                                <Typography sx={{ 
+                                    color: '#0F172A', 
+                                    fontSize: '2.8rem', 
+                                    mt: 2, 
+                                    fontWeight: 800,
+                                    letterSpacing: '-1px',
+                                    textTransform: 'uppercase',
+                                    textShadow: '0 2px 10px rgba(0,0,0,0.05)'
+                                }}>
                                     {ultimaChamada.cidadao.nome_completo}
                                 </Typography>
                             )}
@@ -303,35 +616,37 @@ export default function PainelChamada() {
                         Status das salas
                     </Typography>
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.8 }}>
-                        {(painel?.estacoes ?? []).map(e => (
-                            <Box key={e.id} sx={{
-                                display: 'flex', alignItems: 'center', gap: 1.5,
-                                background: '#F8FAFC', border: '1px solid #E2E8F0',
-                                borderRadius: 2, px: 2, py: 1.2,
-                            }}>
-                                <Box sx={{ width: 9, height: 9, borderRadius: '50%', background: STATUS_DOT[e.status] ?? '#16A34A', boxShadow: `0 0 6px ${STATUS_DOT[e.status] ?? '#16A34A'}`, flexShrink: 0 }} />
-                                <Box sx={{ flex: 1 }}>
-                                    <Typography sx={{ color: '#1E293B', fontSize: '0.82rem', fontWeight: 600, lineHeight: 1.2 }}>
-                                        {e.nome}
-                                    </Typography>
-                                    {e.curso_exame?.nome && (
-                                        <Typography sx={{ color: '#94A3B8', fontSize: '0.62rem' }}>{e.curso_exame.nome}</Typography>
-                                    )}
+                        {(painel?.profissionaisSalas ?? []).map(p => {
+                            const isAtivo = p.status === 'trabalhando';
+                            const dotColor = isAtivo ? '#16A34A' : '#D97706';
+                            return (
+                                <Box key={p.id} sx={{
+                                    display: 'flex', alignItems: 'center', gap: 1.5,
+                                    background: '#F8FAFC', border: '1px solid #E2E8F0',
+                                    borderRadius: 2, px: 2, py: 1.2,
+                                }}>
+                                    <Box sx={{ width: 9, height: 9, borderRadius: '50%', background: dotColor, boxShadow: `0 0 6px ${dotColor}`, flexShrink: 0 }} />
+                                    <Box sx={{ flex: 1 }}>
+                                        <Typography sx={{ color: '#1E293B', fontSize: '0.82rem', fontWeight: 600, lineHeight: 1.2 }}>
+                                            {p.sala}
+                                        </Typography>
+                                        <Typography sx={{ color: '#94A3B8', fontSize: '0.62rem' }}>{p.medico_nome}</Typography>
+                                    </Box>
+                                    <Chip
+                                        label={isAtivo ? 'Atendendo' : 'Intervalo'}
+                                        size="small"
+                                        sx={{
+                                            background: isAtivo ? '#DCFCE7' : '#FEF3C7',
+                                            color: isAtivo ? '#15803D' : '#92400E',
+                                            fontWeight: 700, fontSize: '0.6rem', height: 20,
+                                        }}
+                                    />
                                 </Box>
-                                <Chip
-                                    label={e.status === 'ativa' ? 'Ativa' : e.status === 'pausada' ? 'Pausada' : 'Manutenção'}
-                                    size="small"
-                                    sx={{
-                                        background: e.status === 'ativa' ? '#DCFCE7' : e.status === 'pausada' ? '#FEF3C7' : '#FEE2E2',
-                                        color: e.status === 'ativa' ? '#15803D' : e.status === 'pausada' ? '#92400E' : '#991B1B',
-                                        fontWeight: 700, fontSize: '0.6rem', height: 20,
-                                    }}
-                                />
-                            </Box>
-                        ))}
-                        {(painel?.estacoes.length ?? 0) === 0 && (
+                            );
+                        })}
+                        {(painel?.profissionaisSalas?.length ?? 0) === 0 && (
                             <Typography sx={{ color: '#CBD5E1', fontSize: '0.82rem', textAlign: 'center', py: 1 }}>
-                                Nenhuma sala configurada
+                                Nenhum médico ativo no momento
                             </Typography>
                         )}
                     </Box>
@@ -420,6 +735,7 @@ export default function PainelChamada() {
             <Box sx={{ textAlign: 'center', py: 1.2, borderTop: '1px solid #DBEAFE', background: 'white' }}>
                 <Typography sx={{ color: '#CBD5E1', fontSize: '0.65rem' }}>
                     Sistema Gestão Sobre Rodas — Governo do Maranhão • Atualizado automaticamente a cada 5 segundos
+                    {vozAtivada && ' • 🔊 Síntese de voz ativa'}
                 </Typography>
             </Box>
         </Box>

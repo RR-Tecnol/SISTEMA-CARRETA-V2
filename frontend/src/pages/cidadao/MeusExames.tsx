@@ -4,7 +4,7 @@ import {
     FileText, Download, Calendar, Activity,
     Search, Eye
 } from 'lucide-react';
-import api from '../../services/api';
+import api, { BASE_URL } from '../../services/api';
 import './MeusExames.css';
 
 interface Exame {
@@ -208,7 +208,7 @@ const MeusExames: React.FC = () => {
                                         </div>
                                         {exame.arquivo_resultado_url && (
                                             <motion.a
-                                                href={exame.arquivo_resultado_url}
+                                                href={exame.arquivo_resultado_url.startsWith('http') ? exame.arquivo_resultado_url : `${BASE_URL}${exame.arquivo_resultado_url}`}
                                                 download
                                                 className="btn-download"
                                                 whileHover={{ scale: 1.05 }}
@@ -290,7 +290,7 @@ const MeusExames: React.FC = () => {
                             {selectedExame.arquivo_resultado_url && (
                                 <div className="modal-footer-exames">
                                     <motion.a
-                                        href={selectedExame.arquivo_resultado_url}
+                                        href={selectedExame.arquivo_resultado_url.startsWith('http') ? selectedExame.arquivo_resultado_url : `${BASE_URL}${selectedExame.arquivo_resultado_url}`}
                                         download
                                         className="btn-download-modal"
                                         whileHover={{ scale: 1.05 }}

@@ -8,7 +8,7 @@ export interface InscricaoAttributes {
     cidadao_id: string;
     acao_id: string;
     curso_exame_id?: string;
-    status: 'pendente' | 'atendido' | 'faltou';
+    status: 'pendente' | 'atendido' | 'faltou' | 'cancelado';
     data_inscricao: Date;
     observacoes?: string;
     numero_prontuario?: string;
@@ -20,7 +20,7 @@ export class Inscricao extends Model<InscricaoAttributes> implements InscricaoAt
     public cidadao_id!: string;
     public acao_id!: string;
     public curso_exame_id?: string;
-    public status!: 'pendente' | 'atendido' | 'faltou';
+    public status!: 'pendente' | 'atendido' | 'faltou' | 'cancelado';
     public data_inscricao!: Date;
     public observacoes?: string;
     public numero_prontuario?: string;
@@ -66,7 +66,7 @@ Inscricao.init(
             allowNull: false,
             defaultValue: 'pendente',
             validate: {
-                isIn: [['pendente', 'atendido', 'faltou']],
+                isIn: [['pendente', 'atendido', 'faltou', 'cancelado']],
             },
         },
         data_inscricao: {

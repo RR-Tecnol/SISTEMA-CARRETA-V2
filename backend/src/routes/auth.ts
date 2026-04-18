@@ -9,6 +9,7 @@ import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 import { sendPasswordResetEmail } from '../utils/email';
 import { Op } from 'sequelize';
+import { registrarAuditoria, extrairDadosUsuario } from '../utils/auditoria';
 
 const router = Router();
 
@@ -22,6 +23,7 @@ const loginSchema = Joi.object({
         'string.empty': 'Senha é obrigatória',
         'any.required': 'Senha é obrigatória',
     }),
+    perfilSelecionado: Joi.string().optional(),
 });
 
 // Validation schema for cadastro
@@ -56,47 +58,33 @@ const cadastroSchema = Joi.object({
  */
 router.post('/login', validate(loginSchema), async (req: Request, res: Response) => {
     try {
-        const { cpf } = req.body;
+        const { cpf, perfilSelecionado } = req.body;
         const senhaRaw = req.body.senha;
         const senha = String(senhaRaw || '').trim();
 
         const cleanCPF = cpf.replace(/\D/g, '');
         const formattedCPF = cleanCPF.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4');
 
+        const perfisEncontrados: any[] = [];
+
         // ── 1. Verificar se é MÉDICO (antes do validarCPF) ──
         const medico = await Funcionario.findOne({
             where: {
                 is_medico: true,
                 [Op.or]: [
-                    { login_cpf: cpf },
-                    { login_cpf: cleanCPF },
-                    { login_cpf: formattedCPF },
-                    { cpf: cleanCPF },
-                    { cpf: formattedCPF },
+                    { login_cpf: cpf }, { login_cpf: cleanCPF }, { login_cpf: formattedCPF },
+                    { cpf: cleanCPF }, { cpf: formattedCPF },
                 ],
             },
         });
 
-        let medicoEncontrado = false;
-        if (medico && medico.senha) {
-            medicoEncontrado = true;
-            if (!(medico as any).ativo) {
-                res.status(403).json({ error: 'Acesso suspenso. Entre em contato com o administrador.' });
-                return;
-            }
+        if (medico && medico.senha && (medico as any).ativo) {
             const senhaValida = await bcrypt.compare(senha, medico.senha);
             if (senhaValida) {
-                const token = generateToken({ id: medico.id, tipo: 'medico' as any, email: medico.email || '', roles: ['medico'] });
-                res.json({
-                    message: 'Login realizado com sucesso',
-                    token,
-                    user: { id: medico.id, nome: medico.nome, email: medico.email || '', tipo: 'medico', roles: ['medico'], redirect: '/medico' },
-                });
-                return;
+                perfisEncontrados.push({ id: medico.id, nome: medico.nome, email: medico.email || '', tipo: 'medico', data: medico });
             }
-            // Senha errada para médico encontrado → 401 (não cair no lookup de cidadão)
-            res.status(401).json({ error: 'CPF ou senha inválidos' });
-            return;
+        } else if (medico && medico.senha && !(medico as any).ativo && perfisEncontrados.length === 0) {
+             // Conta bloqueada (só joga erro se não houver outra opção)
         }
 
         // ── 2. Verificar se é ADMIN ESTRADA (antes do validarCPF) ──
@@ -104,85 +92,86 @@ router.post('/login', validate(loginSchema), async (req: Request, res: Response)
             where: {
                 is_admin_estrada: true,
                 [Op.or]: [
-                    { admin_estrada_login_cpf: cpf },
-                    { admin_estrada_login_cpf: cleanCPF },
-                    { admin_estrada_login_cpf: formattedCPF },
-                    { cpf: cleanCPF },
-                    { cpf: formattedCPF },
+                    { admin_estrada_login_cpf: cpf }, { admin_estrada_login_cpf: cleanCPF }, { admin_estrada_login_cpf: formattedCPF },
+                    { cpf: cleanCPF }, { cpf: formattedCPF },
                 ],
             },
         });
 
-        let adminEstradaEncontrado = false;
-        if (adminEstrada && (adminEstrada as any).admin_estrada_senha) {
-            adminEstradaEncontrado = true;
-            if (!(adminEstrada as any).ativo) {
-                res.status(403).json({ error: 'Acesso suspenso. Entre em contato com o administrador.' });
-                return;
-            }
+        if (adminEstrada && (adminEstrada as any).admin_estrada_senha && (adminEstrada as any).ativo) {
             const senhaValida = await bcrypt.compare(senha, (adminEstrada as any).admin_estrada_senha);
             if (senhaValida) {
-                const token = generateToken({ id: adminEstrada.id, tipo: 'admin_estrada' as any, email: adminEstrada.email || '', roles: ['admin_estrada'] });
-                res.json({
-                    message: 'Login realizado com sucesso',
-                    token,
-                    user: { id: adminEstrada.id, nome: adminEstrada.nome, email: adminEstrada.email || '', tipo: 'admin_estrada', roles: ['admin_estrada'], redirect: '/admin' },
-                });
-                return;
+                perfisEncontrados.push({ id: adminEstrada.id, nome: adminEstrada.nome, email: adminEstrada.email || '', tipo: 'admin_estrada', data: adminEstrada });
             }
-            // Senha errada para admin_estrada encontrado → 401
-            res.status(401).json({ error: 'CPF ou senha inválidos' });
-            return;
         }
 
-        // Se chegou aqui, não é médico nem admin_estrada — prosseguir para cidadão
-        // (só chega aqui se NENHUM dos dois foi encontrado pelo login_cpf)
-        if (medicoEncontrado || adminEstradaEncontrado) {
-            res.status(401).json({ error: 'CPF ou senha inválidos' });
-            return;
-        }
-
-        // ── 3. Login como CIDADÃO ou ADMIN ──
-        // Agora sim valida o CPF matematicamente
-        if (!validarCPF(cpf)) {
-            res.status(400).json({ error: 'CPF inválido' });
-            return;
-        }
-
+        // 👤 3. Verificar se é CIDADÃO ou ADMIN GERAL 👤
         const cidadao = await Cidadao.findOne({
             where: { [Op.or]: [{ cpf: cleanCPF }, { cpf: formattedCPF }] },
         });
 
-        if (!cidadao) {
-            res.status(404).json({ error: 'Usuário não encontrado' });
-            return;
+        if (cidadao && cidadao.senha) {
+            const senhaValida = await bcrypt.compare(senha, cidadao.senha);
+            if (senhaValida) {
+                const tipoUser = cidadao.tipo === 'admin' ? 'admin' : 'cidadao';
+                perfisEncontrados.push({ id: cidadao.id, nome: cidadao.nome_completo, email: cidadao.email, tipo: tipoUser, data: cidadao });
+            }
         }
 
-        if (!cidadao.senha) {
-            res.status(401).json({ error: 'Senha não cadastrada' });
-            return;
-        }
-
-        const senhaValida = await bcrypt.compare(senha, cidadao.senha);
-        if (!senhaValida) {
+        if (perfisEncontrados.length === 0) {
             res.status(401).json({ error: 'CPF ou senha inválidos' });
             return;
         }
 
-        const isAdmin = cidadao.tipo === 'admin';
-        const tipoUser = isAdmin ? 'admin' : 'cidadao';
-        const token = generateToken({ id: cidadao.id, tipo: tipoUser, email: cidadao.email, roles: [tipoUser] });
+        // Se encontrou multiplos perfis e o front nao informou qual quer, pedir selecao (L1-12)
+        if (perfisEncontrados.length > 1 && !perfilSelecionado) {
+            res.json({
+                requireProfileSelection: true,
+                profiles: perfisEncontrados.map(p => ({ tipo: p.tipo, nome: p.nome }))
+            });
+            return;
+        }
+
+        // Pega o perfil selecionado ou o unico disponivel
+        let targetProfile = perfisEncontrados[0];
+        if (perfilSelecionado) {
+            const found = perfisEncontrados.find(p => p.tipo === perfilSelecionado);
+            if (!found) {
+                res.status(401).json({ error: 'Perfil selecionado inválido ou senha incorreta' });
+                return;
+            }
+            targetProfile = found;
+        }
+
+        const redirectPath = targetProfile.tipo === 'admin' || targetProfile.tipo === 'admin_estrada' 
+            ? '/admin' 
+            : targetProfile.tipo === 'medico' ? '/medico' : '/portal';
+
+        const token = generateToken({ 
+            id: targetProfile.id, 
+            tipo: targetProfile.tipo as any, 
+            email: targetProfile.email, 
+            roles: [targetProfile.tipo] 
+        });
+
+        registrarAuditoria({
+            ...extrairDadosUsuario(req),
+            usuario_id: targetProfile.id,
+            acao: 'LOGIN',
+            tabela_afetada: targetProfile.tipo === 'cidadao' || targetProfile.tipo === 'admin' ? 'cidadaos' : 'funcionarios',
+            descricao: `Login ${targetProfile.tipo} bem-sucedido: ${cpf}`,
+        }).catch(() => {});
 
         res.json({
             message: 'Login realizado com sucesso',
             token,
             user: {
-                id: cidadao.id,
-                nome: cidadao.nome_completo,
-                email: cidadao.email,
-                tipo: tipoUser,
-                roles: [tipoUser],
-                redirect: isAdmin ? '/admin' : '/portal',
+                id: targetProfile.id,
+                nome: targetProfile.nome,
+                email: targetProfile.email,
+                tipo: targetProfile.tipo,
+                roles: [targetProfile.tipo],
+                redirect: redirectPath,
             },
         });
     } catch (error) {

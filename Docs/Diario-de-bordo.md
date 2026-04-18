@@ -527,3 +527,239 @@ Nenhum erro de tipo introduzido pelas mudanças da Fase 1.
 
 *Atualizado em 06/04/2026 — Fase 3 Frontend 100% concluída*
 *Diário iniciado em 06/04/2026 — Sistema Gestão Sobre Rodas v2.0*
+
+---
+
+## 🗓️ 09/04/2026 — SESSÃO — B5 Correções + C1 Relatório Executivo PDF
+
+**Responsável:** Antigravity AI + Equipe RR Tecnologia
+**Status:** ✅ tsc backend: exit 0 | tsc frontend: exit 0
+
+---
+
+### 🐛 B5-FIX-1: Migration na tabela errada (pontos_funcionarios → pontos_medicos)
+
+**O quê:** A migration das colunas de almoço foi aplicada na tabela `pontos_funcionarios` em vez de `pontos_medicos`.
+
+**Root cause:** A sessão anterior inseriu o nome incorreto da tabela. O model `PontoMedico` usa `tableName: 'pontos_medicos'`.
+
+**Correção:** Substituídas as 3 queries `ALTER TABLE pontos_funcionarios` por `ALTER TABLE pontos_medicos` no bloco de migration inline do `index.ts`. Também adicionado o `ALTER TYPE "enum_pontos_medicos_status" ADD VALUE IF NOT EXISTS 'intervalo'` para atualizar o ENUM do PostgreSQL.
+
+**Arquivos modificados:**
+- `backend/src/index.ts` — bloco de migration B5 linha ~388
+
+---
+
+### 🐛 B5-FIX-2: Model PontoMedico sem campos de almoço
+
+**O quê:** O model `PontoMedico.ts` não tinha os campos `inicio_almoco`, `fim_almoco` e `duracao_almoco_minutos` na interface, classe nem no `init()`. O status `'intervalo'` também não constava no tipo nem no ENUM do Sequelize.
+
+**Correção:** Arquivo `PontoMedico.ts` reescrito com:
+- `PontoMedicoStatus = 'trabalhando' | 'saiu' | 'intervalo'`
+- Interface + classe com os 3 campos de almoço opcionais
+- `DataTypes.DATE allowNull: true` para inicio/fim
+- `DataTypes.INTEGER allowNull: true defaultValue: 0` para duração
+- ENUM status agora inclui `'intervalo'`
+
+**Arquivos modificados:**
+- `backend/src/models/PontoMedico.ts` — reescrita completa (81 → 100 linhas)
+
+---
+
+### 🐛 B5-FIX-3: Endpoints de almoço com lógica incorreta
+
+**O quê:** Os endpoints `POST /ponto/:id/almoco/iniciar` e `POST /ponto/:id/almoco/finalizar` não usavam o campo `status: 'intervalo'` — tentavam salvar os campos de almoço como any cast sem atualizar o status.
+
+**Correção:** Endpoints reescritos com:
+- Iniciar: verifica `status === 'trabalhando'` → atualiza para `status: 'intervalo'` + `inicio_almoco`
+- Finalizar: verifica `status === 'intervalo'` → calcula duração → atualiza para `status: 'trabalhando'` + `fim_almoco` + acumula `duracao_almoco_minutos`
+
+**Arquivos modificados:**
+- `backend/src/routes/medicoMonitoring.ts` — rotas POST /ponto/:id/almoco/{iniciar,finalizar} (linhas 652–688)
+
+---
+
+### ✨ C1: Relatório Executivo de Prestação de Contas (PDF)
+
+**O quê:** Implementação completa do relatório formal de prestação de contas para contratação pública, gerado client-side em PDF via jsPDF + autoTable.
+
+**Estrutura do PDF (6 seções, multipágina):**
+
+| # | Seção | Conteúdo |
+|---|---|---|
+| 1 | Capa Institucional | Fundo azul escuro, 5 KPI boxes coloridos, barra de progresso meta, RT |
+| 2 | BPA-I | Tabela de procedimentos com Cód.SUS + valores + produção por médico |
+| 3 | Perfil Beneficiários | Gráficos nativos de barras (gênero + faixa etária) + tabelas resumo |
+| 4 | Custos Operacionais | Tabela por categoria + gráfico horizontal de barras + custo/pessoa |
+| 5 | Relação Nominal | AutoTable paginada com todos os beneficiários atendidos |
+| 6 | Encerramento | Declaração formal + quadro de assinatura RT + data por extenso |
+
+**Rodapé:** Numeração correta de páginas (`Página X de Y`) em todas as páginas, atualizada no loop final após geração completa.
+
+**Arquivos criados:**
+- `frontend/src/services/relatorioExecutivo.ts` — serviço de dados com `Promise.allSettled` (graceful degradation)
+- `frontend/src/utils/gerarPrestacaoContas.ts` — gerador PDF completo (~500 linhas)
+
+**Arquivos modificados:**
+- `frontend/src/pages/admin/Relatorios.tsx` — botão "Prestação de Contas (PDF)" no header + Dialog com campos: Ação, Período, Processo, Lote, Intercorrências
+
+**Decisão técnica:** Gráficos desenhados 100% nativamente via `doc.rect()` e `doc.roundedRect()` — sem `html2canvas`, sem dependências externas. O `autoTable(doc, {...})` é chamado como função importada (não `doc.autoTable()`), compatível com os tipos TypeScript do `jspdf-autotable`.
+
+---
+
+### 🔍 Verificação TypeScript — Sessão 09/04/2026
+
+**Backend:** `npx tsc --noEmit` → Exit code **0** ✅
+**Frontend:** `npx tsc --noEmit` → Exit code **0** ✅
+
+Nenhum erro de tipo introduzido pelas implementações desta sessão.
+
+---
+
+*Atualizado em 09/04/2026 — B5 (3 bugs corrigidos) + C1 (Relatório Executivo PDF)*
+
+---
+
+## 🗓️ 09/04/2026 — SESSÃO 2 — B1 (Prontuário Eletrônico) + B2 (QR Code)
+
+**Responsável:** Antigravity AI + Equipe RR Tecnologia
+**Status:** ✅ tsc backend: exit 0 | tsc frontend: exit 0
+
+---
+
+### ✨ B1: Prontuário Eletrônico Completo + Gravação de Voz com IA
+
+**O quê:** Implementação de prontuário médico estruturado (ficha clínica) como Drawer lateral no MedicoPanel.tsx, com 7 seções clínicas padronizadas, gravação de voz via Web Speech API e autosave com debounce de 3 segundos.
+
+**Backend — 4 alterações:**
+1. **Migration** (`index.ts`): `ALTER TABLE atendimentos_medicos ADD COLUMN IF NOT EXISTS ficha_clinica JSONB DEFAULT '{}'`
+2. **Model** (`AtendimentoMedico.ts`): Campo `ficha_clinica: Record<string, any>` na interface, classe e init
+3. **Rota PATCH** (`medicoMonitoring.ts`): `PATCH /atendimento/:id/ficha` — salva prontuário em andamento (autosave)
+4. **Rota PUT** (`medicoMonitoring.ts`): `PUT /atendimento/:id/finalizar` — agora persiste `ficha_clinica` do body
+5. **Rota GET** (`medicoMonitoring.ts`): `GET /cidadao/:cidadaoId/historico` — retorna dados do cidadão + 20 últimos atendimentos concluídos com ficha clínica
+
+**Frontend — Componente FichaClinica.tsx (530+ linhas):**
+
+| Seção | Conteúdo |
+|---|---|
+| Header | Fundo gradiente azul, nome paciente, botões Salvar/Fechar |
+| Identificação | Nome, CPF, CNS, idade, gênero, alergias (chip vermelho) |
+| Histórico | Accordion colapsado, chama GET /historico ao abrir, lista data+médico+CID |
+| Anamnese | Queixa principal, HDA, alergias, medicamentos, doenças crônicas |
+| Exame Físico | PA, FC, Temp, Peso, Altura, SpO2 + IMC calculado automaticamente |
+| Conduta | Diagnóstico, CID-10, conduta, prescrição, retorno |
+| Observações + Voz | TextField 4 rows + botão 🎤 (Web Speech API pt-BR continuous) |
+| Footer | Salvar Rascunho + Finalizar Consulta |
+
+**Autosave:** debounce 3s → PATCH silencioso. Indicador "💾 Salvamento em 3s..." enquanto pendente.
+
+**Arquivos criados:**
+- `frontend/src/components/medico/FichaClinica.tsx`
+
+**Arquivos modificados:**
+- `backend/src/models/AtendimentoMedico.ts`
+- `backend/src/index.ts`
+- `backend/src/routes/medicoMonitoring.ts`
+- `frontend/src/pages/medico/MedicoPanel.tsx`
+
+---
+
+### ✨ B2: QR Code do Paciente
+
+**O quê:** Dialog com QR Code SVG contendo dados de saúde do paciente em JSON compacto para uso em emergências. Acessível via ícone 🔲 na lista de inscritos do médico.
+
+**Dados codificados no QR (JSON):** nome, CPF, CNS, idade, gênero, alergias, doenças crônicas, medicamentos, último diagnóstico/CID, telefone, identificador do sistema.
+
+**Funcionalidades:**
+- Chips coloridos: alergias (vermelho), doenças crônicas (âmbar), medicamentos (azul)
+- Botão 🖨️ Imprimir com CSS `@media print` para esconder controles
+- QRCodeSVG do `qrcode.react` com 220px e nível M
+
+**Arquivos criados:**
+- `frontend/src/components/medico/QrCodePaciente.tsx`
+
+**Dependências:**
+- `qrcode.react` instalado via npm
+
+**Arquivos modificados:**
+- `frontend/src/pages/medico/MedicoPanel.tsx` — ícone QrCode + estados + Dialog
+
+---
+
+### 🔍 Verificação TypeScript — Sessão 2
+
+**Backend:** `npx tsc --noEmit` → Exit code **0** ✅
+**Frontend:** `npx tsc --noEmit` → Exit code **0** ✅
+
+---
+
+*Atualizado em 09/04/2026 — B1 (Prontuário Eletrônico + Voz) + B2 (QR Code Paciente)*
+
+---
+
+## 🗓️ 09/04/2026 — SESSÃO 3 — B3 (Emergência + Chat Médico-Cidadão)
+
+**Responsável:** Antigravity AI + Equipe RR Tecnologia
+**Status:** ✅ tsc backend: exit 0 | tsc frontend: exit 0
+
+---
+
+### ✨ B3: Botão de Emergência + Chat Médico-Cidadão
+
+**O quê:** Sistema de chat em tempo real entre médico e cidadão via Socket.IO, com botão de emergência que envia alerta sonoro + visual para toda a equipe na ação.
+
+**Arquitetura Socket.IO:**
+- **Rooms existentes:** `acao:${acao_id}` (médico, recepção, painel)
+- **Novos rooms:** `chat:${acao_id}:${cidadao_id}` (chat privado)
+- **Eventos:** `join_chat`, `leave_chat`, `emergencia` (broadcast), `chat_msg`, `chat_nova_msg`
+
+**Backend — 4 componentes:**
+
+| Componente | Arquivo | O que faz |
+|---|---|---|
+| Migration | `index.ts` | `chat_mensagens` (UUID, FK acoes+cidadaos, de CHECK, lida, timestamp) + índice |
+| Socket.IO | `index.ts` | join_chat, leave_chat, emergencia broadcast para `acao:` room |
+| REST API | `routes/chat.ts` (novo) | GET /:acao/:cidadao, POST mensagem, PATCH lido |
+| Registro | `index.ts` | `app.use('/api/chat', chatRoutes)` |
+
+**Frontend — 3 novos componentes:**
+
+| Componente | Descrição |
+|---|---|
+| `ChatMedico.tsx` | Drawer esquerdo 400px, bubbles azul/branco, auto-scroll, Shift+Enter, mark-as-read |
+| `EmergenciaAlert.tsx` | Overlay fixo z-9999, vermelho pulsante, AnimatePresence, botões Chat + Dismiss |
+| `MinhasInscricoes.tsx` | 🆘 botão + chat inline accordion no card de inscrição pendente |
+
+**Integração MedicoPanel.tsx:**
+- Ícone 💬 MessageCircle na lista de inscritos (ao lado do QR)
+- Badge vermelho com contador de não lidas
+- useEffect Socket.IO: emergência (com AudioContext 880Hz) + nova msg
+- ChatMedico drawer + EmergenciaAlert overlay com `AnimatePresence`
+
+**Integração MinhasInscricoes.tsx (cidadão):**
+- Botão 🆘 Emergência (vermelho, cooldown 30s)
+- Botão 💬 Chat (outlined, toggle)
+- Chat inline: área de mensagens + TextField + Send
+- Listeners Socket.IO: join_chat + chat_msg real-time
+
+**Arquivos criados:**
+- `backend/src/routes/chat.ts`
+- `frontend/src/components/medico/ChatMedico.tsx`
+- `frontend/src/components/medico/EmergenciaAlert.tsx`
+
+**Arquivos modificados:**
+- `backend/src/index.ts` (migration + socket events + route register)
+- `frontend/src/pages/medico/MedicoPanel.tsx`
+- `frontend/src/pages/citizen/MinhasInscricoes.tsx`
+
+---
+
+### 🔍 Verificação TypeScript — Sessão 3
+
+**Backend:** `npx tsc --noEmit` → Exit code **0** ✅
+**Frontend:** `npx tsc --noEmit` → Exit code **0** ✅
+
+---
+
+*Atualizado em 09/04/2026 — B3 (Emergência + Chat Médico-Cidadão)*
+

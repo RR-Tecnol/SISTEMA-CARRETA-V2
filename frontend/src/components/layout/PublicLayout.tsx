@@ -80,7 +80,7 @@ const PublicLayout: React.FC = () => {
                                 <Box
                                     component="img"
                                     src={`${process.env.PUBLIC_URL}/images/logo-system-truck.png`}
-                                    alt="System Truck Logo"
+                                    alt="Gestão sobre Rodas Logo"
                                     sx={{
                                         height: { xs: 52, sm: 68, md: 80, lg: 96 },
                                         width: 'auto',
@@ -211,7 +211,7 @@ const PublicLayout: React.FC = () => {
                     }}
                 >
                     <Typography sx={{ color: '#fff', fontWeight: 700, fontSize: '1rem' }}>
-                        System Truck
+                        Gestão sobre Rodas
                     </Typography>
                     <IconButton onClick={() => setDrawerOpen(false)} size="small" sx={{ color: '#fff' }}>
                         <X size={20} />

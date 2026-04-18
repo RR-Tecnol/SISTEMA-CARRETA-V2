@@ -23,6 +23,7 @@ import { logout } from '../../store/slices/authSlice';
 import api from '../../services/api';
 import { AdminSidebar } from './AdminSidebar';
 import { expressoTheme } from '../../theme/expressoTheme';
+import NotificacaoSino from '../shared/NotificacaoSino';
 
 const AdminLayout: React.FC = () => {
     const navigate = useNavigate();
@@ -112,27 +113,30 @@ const AdminLayout: React.FC = () => {
                         >
                             {user?.tipo === 'admin_estrada' ? 'Painel Operacional' : 'Painel Administrativo'}
                         </Typography>
-                        <IconButton
-                            onClick={handleMenuOpen}
-                            sx={{
-                                p: 0,
-                                '&:hover': {
-                                    backgroundColor: expressoTheme.colors.cardHover,
-                                },
-                            }}
-                        >
-                            <Avatar
-                                src={adminFoto}
-                                alt={user?.nome || 'Admin'}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 } }}>
+                            <NotificacaoSino />
+                            <IconButton
+                                onClick={handleMenuOpen}
                                 sx={{
-                                    width: 40,
-                                    height: 40,
-                                    border: `2px solid ${expressoTheme.colors.primary}`,
+                                    p: 0,
+                                    '&:hover': {
+                                        backgroundColor: expressoTheme.colors.cardHover,
+                                    },
                                 }}
                             >
-                                {!adminFoto && user?.nome?.charAt(0).toUpperCase()}
-                            </Avatar>
-                        </IconButton>
+                                <Avatar
+                                    src={adminFoto}
+                                    alt={user?.nome || 'Admin'}
+                                    sx={{
+                                        width: 40,
+                                        height: 40,
+                                        border: `2px solid ${expressoTheme.colors.primary}`,
+                                    }}
+                                >
+                                    {!adminFoto && user?.nome?.charAt(0).toUpperCase()}
+                                </Avatar>
+                            </IconButton>
+                        </Box>
                         <Menu
                             anchorEl={anchorEl}
                             open={Boolean(anchorEl)}

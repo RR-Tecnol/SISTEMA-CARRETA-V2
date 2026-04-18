@@ -20,6 +20,9 @@ import {
     Button,
     MenuItem,
     Autocomplete,
+    FormControlLabel,
+    Checkbox,
+    ListItemText,
 } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -99,6 +102,23 @@ const Cidadaos: React.FC = () => {
     const [descricaoResultado, setDescricaoResultado] = useState('');
     const [enviandoResultado, setEnviandoResultado] = useState(false);
 
+    // ─── Prontuário Médico ──────────────────────────────────────────────────────
+    const [historicoMedico, setHistoricoMedico] = useState<any[]>([]);
+    const [loadingHistorico, setLoadingHistorico] = useState(false);
+    const [prontuarioModalOpen, setProntuarioModalOpen] = useState<any | null>(null);
+
+    useEffect(() => {
+        if (detailsOpen && selectedCidadao) {
+            setLoadingHistorico(true);
+            api.get(`/medico-monitoring/cidadao/${selectedCidadao.id}/historico`)
+                .then(r => setHistoricoMedico(r.data.historico || []))
+                .catch(() => setHistoricoMedico([]))
+                .finally(() => setLoadingHistorico(false));
+        } else {
+            setHistoricoMedico([]);
+        }
+    }, [detailsOpen, selectedCidadao]);
+
     const [laudosOpen, setLaudosOpen] = useState(false);
     const [laudosCidadao, setLaudosCidadao] = useState<Cidadao | null>(null);
     const [laudos, setLaudos] = useState<any[]>([]);
@@ -122,7 +142,37 @@ const Cidadaos: React.FC = () => {
         estado: '',
         senha: '',
         cartao_sus: '',
+        sem_cartao_sus: false,
     });
+
+    // ─── Cadastro: Duplicidade e Vinculação a Ação ───────────────────────────
+    const [cpfExistente, setCpfExistente] = useState(false);
+    const [nomeExistente, setNomeExistente] = useState(false);
+    const [duplicidadeMotivo, setDuplicidadeMotivo] = useState('');
+    const [acoesAtivas, setAcoesAtivas] = useState<any[]>([]);
+    const [vincularAcaoId, setVincularAcaoId] = useState<string>('');
+    const [vincularExamesIds, setVincularExamesIds] = useState<string[]>([]);
+    const [examesDisponiveis, setExamesDisponiveis] = useState<any[]>([]);
+
+    useEffect(() => {
+        if (createOpen) {
+            api.get('/acoes?status=ativa').then(r => {
+                const data = Array.isArray(r.data) ? r.data : (r.data.acoes || r.data.data || []);
+                setAcoesAtivas(data);
+            }).catch(console.error);
+        }
+    }, [createOpen]);
+
+    useEffect(() => {
+        if (createOpen && vincularAcaoId) {
+            api.get(`/acoes/${vincularAcaoId}`).then(r => {
+                setExamesDisponiveis(r.data.cursos_exames || []);
+            }).catch(() => setExamesDisponiveis([]));
+        } else {
+            setExamesDisponiveis([]);
+            setVincularExamesIds([]); // Reset selection if Acao changes
+        }
+    }, [vincularAcaoId, createOpen]);
 
     useEffect(() => {
         fetchCidadaos();
@@ -183,7 +233,13 @@ const Cidadaos: React.FC = () => {
             estado: '',
             senha: '',
             cartao_sus: '',
+            sem_cartao_sus: false,
         });
+        setCpfExistente(false);
+        setNomeExistente(false);
+        setDuplicidadeMotivo('');
+        setVincularAcaoId('');
+        setVincularExamesIds([]);
     };
 
     const TITLE_CASE_FIELDS = ['nome_completo', 'nome_mae', 'bairro', 'rua', 'municipio', 'complemento'];
@@ -204,6 +260,25 @@ const Cidadaos: React.FC = () => {
         }
     };
 
+    const verificarDuplicidade = async (cpf: string, nome: string) => {
+        if (!cpf && !nome) return;
+        try {
+            const { data } = await api.get('/cidadaos/check-duplicidade', { params: { cpf, nome } });
+            if (data.duplicado) {
+                setCpfExistente(data.motivo.includes('CPF'));
+                setNomeExistente(data.motivo.includes('Nome'));
+                setDuplicidadeMotivo(`Cidadão já cadastrado com este ${data.motivo}.`);
+                enqueueSnackbar(`Atenção: ${data.motivo} já existe no sistema.`, { variant: 'warning' });
+            } else {
+                setCpfExistente(false);
+                setNomeExistente(false);
+                setDuplicidadeMotivo('');
+            }
+        } catch (err) {
+            console.error('Erro ao verificar duplicidade', err);
+        }
+    };
+
     const handleCEPBlur = async (cep: string) => {
         const endereco = await buscarCEP(cep);
         if (endereco) {
@@ -221,49 +296,85 @@ const Cidadaos: React.FC = () => {
 
     const handleCPFBlur = async (cpf: string) => {
         const cpfLimpo = cpf.replace(/\D/g, '');
+        if (cpfLimpo.length === 11) verificarDuplicidade(cpfLimpo, formData.nome_completo);
+        
         if (cpfLimpo.length !== 11) return;
         try {
-            const { data } = await api.get(`/cidadaos/buscar-cpf/${cpfLimpo}`);
-            setFormData(prev => ({ ...prev, ...data }));
-            enqueueSnackbar('Dados do cidadão carregados automaticamente!', { variant: 'info' });
-        } catch {
-            // CPF não encontrado — continuar preenchimento normal
+            await api.get(`/cidadaos/buscar-cpf/${cpfLimpo}`);
+            // Removendo autopreenchimento total para evitar edição acidental ao criar
+            enqueueSnackbar('Cidadão já cadastrado! O cadastro não pode ser duplicado.', { variant: 'error' });
+        } catch (err: any) {
+             // Ignorar erro 404
         }
     };
 
     const handleSubmit = async () => {
+        if (cpfExistente || nomeExistente) {
+            enqueueSnackbar(duplicidadeMotivo || 'Corrija os dados duplicados antes de continuar', { variant: 'error' });
+            return;
+        }
+
         // Email agora é opcional — apenas nome, CPF e telefone são obrigatórios
         if (!formData.nome_completo || !formData.cpf || !formData.telefone) {
             enqueueSnackbar('Preencha os campos obrigatórios: Nome, CPF e Telefone', { variant: 'warning' });
             return;
         }
 
+        // A8 — Data de nascimento obrigatória
+        if (!formData.data_nascimento) {
+            enqueueSnackbar('Data de nascimento é obrigatória', { variant: 'warning' });
+            return;
+        }
+
+        // Cartão SUS obrigatório
+        if (!formData.cartao_sus && !formData.sem_cartao_sus) {
+            enqueueSnackbar('Informe o Cartão SUS ou marque a opção "Não possuo"', { variant: 'warning' });
+            return;
+        }
+
         try {
             setSubmitting(true);
-            const response = await api.post('/cidadaos', formData);
+            const res = await api.post('/cidadaos', formData);
+            
+            // Inscrição Opcional se vinculado
+            const newCidadaoId = res.data.id || res.data.cidadao?.id;
+            if (vincularAcaoId && vincularExamesIds.length > 0 && newCidadaoId) {
+                try {
+                    await api.post(`/inscricoes/bulk`, {
+                        cidadao_id: newCidadaoId,
+                        acaoId: vincularAcaoId,
+                        acao_curso_ids: vincularExamesIds
+                    });
+                    enqueueSnackbar(`Cidadão criado e inscrito em ${vincularExamesIds.length} exame(s) com sucesso!`, { variant: 'success' });
+                } catch (e: any) {
+                    enqueueSnackbar(`Cidadão criado, mas ocorreram falhas em algumas inscrições.`, { variant: 'warning' });
+                }
+            } else {
+                enqueueSnackbar('Cidadão cadastrado com sucesso!', {
+                    variant: 'success',
+                    autoHideDuration: 8000,
+                    action: (
+                        <Button
+                            size="small"
+                            color="inherit"
+                            sx={{ fontWeight: 700 }}
+                            onClick={() => navigate(`/admin/acoes`)}
+                        >
+                            Ver Ações Disponíveis →
+                        </Button>
+                    ),
+                });
+            }
+
             handleCloseCreate();
             fetchCidadaos();
-            // #2 — Redirect pós-cadastro: snackbar com botão de ação por 8s
-            enqueueSnackbar('Cidadão cadastrado com sucesso!', {
-                variant: 'success',
-                autoHideDuration: 8000,
-                action: (
-                    <Button
-                        size="small"
-                        color="inherit"
-                        sx={{ fontWeight: 700 }}
-                        onClick={() => navigate(`/admin/inscricoes?cidadao_id=${response.data.id}`)}
-                    >
-                        Inscrever em Exame →
-                    </Button>
-                ),
-            });
         } catch (error: any) {
             enqueueSnackbar(error.response?.data?.error || 'Erro ao cadastrar cidadão', { variant: 'error' });
         } finally {
             setSubmitting(false);
         }
     };
+
 
     const getInitials = (name: string) => {
         const names = name.split(' ');
@@ -350,13 +461,7 @@ const Cidadaos: React.FC = () => {
         }
     };
 
-    if (loading && cidadaos.length === 0) {
-        return (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: systemTruckTheme.colors.background }}>
-                <CircularProgress sx={{ color: systemTruckTheme.colors.primary }} size={60} />
-            </Box>
-        );
-    }
+    // Removido early return agressivo que causava perda de focus no TextField.
 
     return (
         <Box sx={{ minHeight: '100vh', background: systemTruckTheme.colors.background, py: 4 }}>
@@ -444,7 +549,13 @@ const Cidadaos: React.FC = () => {
                 {/* Cidadãos Grid */}
                 <Grid container spacing={3}>
                     <AnimatePresence>
-                        {cidadaos.length === 0 ? (
+                        {loading && cidadaos.length === 0 ? (
+                            <Grid item xs={12}>
+                                <Box sx={{ display: 'flex', justifyContent: 'center', py: 10 }}>
+                                    <CircularProgress sx={{ color: systemTruckTheme.colors.primary }} size={60} />
+                                </Box>
+                            </Grid>
+                        ) : cidadaos.length === 0 ? (
                             <Grid item xs={12}>
                                 <Box
                                     sx={{
@@ -663,6 +774,133 @@ const Cidadaos: React.FC = () => {
                     </Box>
                 )}
             </Container>
+
+            {/* Prontuário Focus Modal */}
+            <Dialog open={!!prontuarioModalOpen} onClose={() => setProntuarioModalOpen(null)} maxWidth="md" fullWidth
+                PaperProps={{ sx: { borderRadius: systemTruckTheme.borderRadius.large, zIndex: 9999 } }}>
+                {prontuarioModalOpen && prontuarioModalOpen.ficha_clinica && (
+                    <>
+                        <DialogTitle sx={{ pb: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <Box>
+                                <Typography sx={{ fontWeight: 800, color: systemTruckTheme.colors.primaryDark }}>
+                                    🩺 Prontuário Médico: {prontuarioModalOpen.nome_completo}
+                                </Typography>
+                                <Typography sx={{ fontSize: '0.8rem', color: systemTruckTheme.colors.textSecondary }}>
+                                    {new Date(prontuarioModalOpen.ficha_clinica.hora_inicio).toLocaleDateString()} às {new Date(prontuarioModalOpen.ficha_clinica.hora_inicio).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                    {prontuarioModalOpen.ficha_clinica.duracao_minutos ? ` · ${prontuarioModalOpen.ficha_clinica.duracao_minutos} min` : ''}
+                                    {prontuarioModalOpen.ficha_clinica.funcionario?.nome ? ` · Dr(a). ${prontuarioModalOpen.ficha_clinica.funcionario.nome}` : ''}
+                                </Typography>
+                            </Box>
+                            <IconButton onClick={() => setProntuarioModalOpen(null)}><X size={20} /></IconButton>
+                        </DialogTitle>
+                        
+                        <DialogContent dividers sx={{ pt: 2 }}>
+                            {/* Sinais Vitais */}
+                            {(prontuarioModalOpen.ficha_clinica.pressao_arterial || prontuarioModalOpen.ficha_clinica.frequencia_cardiaca || prontuarioModalOpen.ficha_clinica.temperatura || prontuarioModalOpen.ficha_clinica.spo2 || prontuarioModalOpen.ficha_clinica.peso || prontuarioModalOpen.ficha_clinica.altura) && (
+                                <Box sx={{ mb: 2 }}>
+                                    <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', mb: 1 }}>
+                                        Sinais Vitais
+                                    </Typography>
+                                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                                        {prontuarioModalOpen.ficha_clinica.pressao_arterial && <Chip label={`PA (mmHg): ${prontuarioModalOpen.ficha_clinica.pressao_arterial}`} size="small" sx={{ background: '#fef3c7', color: '#92400e', fontWeight: 600, fontSize: '0.72rem', height: 24 }} />}
+                                        {prontuarioModalOpen.ficha_clinica.frequencia_cardiaca && <Chip label={`FC (bpm): ${prontuarioModalOpen.ficha_clinica.frequencia_cardiaca}`} size="small" sx={{ background: '#fee2e2', color: '#b91c1c', fontWeight: 600, fontSize: '0.72rem', height: 24 }} />}
+                                        {prontuarioModalOpen.ficha_clinica.temperatura && <Chip label={`Temperatura (°C): ${prontuarioModalOpen.ficha_clinica.temperatura}`} size="small" sx={{ background: '#ede9fe', color: '#6d28d9', fontWeight: 600, fontSize: '0.72rem', height: 24 }} />}
+                                        {prontuarioModalOpen.ficha_clinica.spo2 && <Chip label={`SpO2 (%): ${prontuarioModalOpen.ficha_clinica.spo2}`} size="small" sx={{ background: '#dcfce7', color: '#166534', fontWeight: 600, fontSize: '0.72rem', height: 24 }} />}
+                                        {prontuarioModalOpen.ficha_clinica.peso && <Chip label={`Peso (kg): ${prontuarioModalOpen.ficha_clinica.peso}`} size="small" sx={{ background: '#f0fdf4', color: '#15803d', fontWeight: 600, fontSize: '0.72rem', height: 24 }} />}
+                                        {prontuarioModalOpen.ficha_clinica.altura && <Chip label={`Altura (cm): ${prontuarioModalOpen.ficha_clinica.altura}`} size="small" sx={{ background: '#eff6ff', color: '#1d4ed8', fontWeight: 600, fontSize: '0.72rem', height: 24 }} />}
+                                    </Box>
+                                </Box>
+                            )}
+
+                            {/* Anamnese */}
+                            {(prontuarioModalOpen.ficha_clinica.queixa_principal || prontuarioModalOpen.ficha_clinica.historia_doenca || prontuarioModalOpen.ficha_clinica.alergias || prontuarioModalOpen.ficha_clinica.medicamentos_uso || prontuarioModalOpen.ficha_clinica.doencas_cronicas) && (
+                                <Box sx={{ mb: 2 }}>
+                                    <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', mb: 1 }}>
+                                        Anamnese
+                                    </Typography>
+                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                        {prontuarioModalOpen.ficha_clinica.queixa_principal && (
+                                            <Box>
+                                                <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, color: '#94A3B8' }}>Queixa Principal</Typography>
+                                                <Typography sx={{ fontSize: '0.82rem', color: '#1E293B' }}>{prontuarioModalOpen.ficha_clinica.queixa_principal}</Typography>
+                                            </Box>
+                                        )}
+                                        {prontuarioModalOpen.ficha_clinica.historia_doenca && (
+                                            <Box>
+                                                <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, color: '#94A3B8' }}>História da Doença</Typography>
+                                                <Typography sx={{ fontSize: '0.82rem', color: '#1E293B' }}>{prontuarioModalOpen.ficha_clinica.historia_doenca}</Typography>
+                                            </Box>
+                                        )}
+                                        {prontuarioModalOpen.ficha_clinica.alergias && (
+                                            <Box>
+                                                <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, color: '#94A3B8' }}>Alergias</Typography>
+                                                <Typography sx={{ fontSize: '0.82rem', color: '#1E293B' }}>{prontuarioModalOpen.ficha_clinica.alergias}</Typography>
+                                            </Box>
+                                        )}
+                                        {prontuarioModalOpen.ficha_clinica.medicamentos_uso && (
+                                            <Box>
+                                                <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, color: '#94A3B8' }}>Medicamentos em uso</Typography>
+                                                <Typography sx={{ fontSize: '0.82rem', color: '#1E293B' }}>{prontuarioModalOpen.ficha_clinica.medicamentos_uso}</Typography>
+                                            </Box>
+                                        )}
+                                        {prontuarioModalOpen.ficha_clinica.doencas_cronicas && (
+                                            <Box>
+                                                <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, color: '#94A3B8' }}>Doenças crônicas</Typography>
+                                                <Typography sx={{ fontSize: '0.82rem', color: '#1E293B' }}>{prontuarioModalOpen.ficha_clinica.doencas_cronicas}</Typography>
+                                            </Box>
+                                        )}
+                                    </Box>
+                                </Box>
+                            )}
+
+                            {/* Conduta e Diagnóstico */}
+                            {(prontuarioModalOpen.ficha_clinica.diagnostico || prontuarioModalOpen.ficha_clinica.cid || prontuarioModalOpen.ficha_clinica.conduta || prontuarioModalOpen.ficha_clinica.prescricao || prontuarioModalOpen.ficha_clinica.retorno || prontuarioModalOpen.ficha_clinica.observacoes_medico) && (
+                                <Box sx={{ mb: 2, p: 1.5, borderRadius: '8px', background: '#F0FDF4', border: '1px solid #BBF7D0' }}>
+                                    <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#166534', textTransform: 'uppercase', mb: 1 }}>
+                                        Conduta Médica
+                                    </Typography>
+                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                        {prontuarioModalOpen.ficha_clinica.diagnostico && (
+                                            <Box>
+                                                <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, color: '#166534', opacity: 0.8 }}>Diagnóstico</Typography>
+                                                <Typography sx={{ fontSize: '0.82rem', color: '#14532D', fontWeight: 700 }}>{prontuarioModalOpen.ficha_clinica.diagnostico}</Typography>
+                                            </Box>
+                                        )}
+                                        {prontuarioModalOpen.ficha_clinica.cid && (
+                                            <Box>
+                                                <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, color: '#166534', opacity: 0.8 }}>CID</Typography>
+                                                <Typography sx={{ fontSize: '0.82rem', color: '#14532D' }}>{prontuarioModalOpen.ficha_clinica.cid}</Typography>
+                                            </Box>
+                                        )}
+                                        {prontuarioModalOpen.ficha_clinica.conduta && (
+                                            <Box>
+                                                <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, color: '#166534', opacity: 0.8 }}>Conduta</Typography>
+                                                <Typography sx={{ fontSize: '0.82rem', color: '#14532D' }}>{prontuarioModalOpen.ficha_clinica.conduta}</Typography>
+                                            </Box>
+                                        )}
+                                        {prontuarioModalOpen.ficha_clinica.prescricao && (
+                                            <Box>
+                                                <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, color: '#166534', opacity: 0.8 }}>Prescrição</Typography>
+                                                <Typography sx={{ fontSize: '0.82rem', color: '#14532D', whiteSpace: 'pre-wrap' }}>{prontuarioModalOpen.ficha_clinica.prescricao}</Typography>
+                                            </Box>
+                                        )}
+                                        {prontuarioModalOpen.ficha_clinica.retorno && (
+                                            <Box>
+                                                <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, color: '#166534', opacity: 0.8 }}>Retorno</Typography>
+                                                <Typography sx={{ fontSize: '0.82rem', color: '#14532D' }}>{prontuarioModalOpen.ficha_clinica.retorno}</Typography>
+                                            </Box>
+                                        )}
+                                    </Box>
+                                </Box>
+                            )}
+
+                        </DialogContent>
+                        <DialogActions sx={{ px: 3, pb: 2 }}>
+                            <Button onClick={() => setProntuarioModalOpen(null)} sx={{ textTransform: 'none' }}>Fechar</Button>
+                        </DialogActions>
+                    </>
+                )}
+            </Dialog>
 
             {/* ── Enviar Resultado de Exame Dialog ────────────────────────────── */}
             <Dialog
@@ -1075,6 +1313,79 @@ const Cidadaos: React.FC = () => {
                                         </Typography>
                                     </Box>
                                 </Grid>
+
+                                {/* Histórico Médico */}
+                                <Grid item xs={12}>
+                                    <Typography variant="h6" sx={{ fontWeight: 700, color: systemTruckTheme.colors.primaryDark, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                                        <FileText size={20} />
+                                        Histórico Médico / Prontuário
+                                    </Typography>
+
+                                    {loadingHistorico ? (
+                                        <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+                                            <CircularProgress size={30} />
+                                        </Box>
+                                    ) : historicoMedico.length === 0 ? (
+                                        <Typography sx={{ color: systemTruckTheme.colors.textSecondary, fontStyle: 'italic' }}>
+                                            Nenhum atendimento médico finalizado para este cidadão.
+                                        </Typography>
+                                    ) : (
+                                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                            {historicoMedico.map((atend, i) => (
+                                                <Box key={i} sx={{ 
+                                                    p: 2, 
+                                                    borderRadius: systemTruckTheme.borderRadius.medium, 
+                                                    border: `1px solid ${systemTruckTheme.colors.border}`,
+                                                    background: systemTruckTheme.colors.cardHover || '#f8fafc' 
+                                                }}>
+                                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                                                        <Typography sx={{ fontWeight: 700, color: systemTruckTheme.colors.primary }}>
+                                                            {atend.funcionario?.nome || 'Médico não informado'} <Typography component="span" sx={{ fontSize: '0.8rem', color: systemTruckTheme.colors.textSecondary }}>({atend.funcionario?.especialidade || 'Geral'})</Typography>
+                                                        </Typography>
+                                                        <Typography sx={{ fontSize: '0.85rem', color: systemTruckTheme.colors.textSecondary }}>
+                                                            {new Date(atend.hora_inicio).toLocaleDateString()}
+                                                        </Typography>
+                                                    </Box>
+                                                    <Typography sx={{ fontSize: '0.85rem', color: systemTruckTheme.colors.textSecondary, mb: 1 }}>
+                                                        <MapPin size={12} style={{ display: 'inline', marginRight: 4, verticalAlign: 'text-bottom' }} />
+                                                        {atend.acao?.nome || 'Ação'} ({atend.acao?.municipio || 'Local'})
+                                                    </Typography>
+                                                    {atend.ficha_clinica && Object.keys(atend.ficha_clinica).length > 0 ? (
+                                                        <Box sx={{ mt: 2, background: '#f8fafc', p: 1.5, borderRadius: '8px', border: '1px dashed #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                                            <Box>
+                                                                <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, color: '#0f172a' }}>Prontuário Médico Preenchido</Typography>
+                                                                {atend.ficha_clinica.diagnostico && (
+                                                                    <Typography sx={{ fontSize: '0.75rem', color: '#16a34a', fontWeight: 600 }}>Diagnóstico: {atend.ficha_clinica.diagnostico}</Typography>
+                                                                )}
+                                                            </Box>
+                                                            <Button 
+                                                                variant="contained" 
+                                                                size="small" 
+                                                                onClick={() => setProntuarioModalOpen(atend)}
+                                                                sx={{ background: systemTruckTheme.colors.primary, textTransform: 'none', fontWeight: 600, boxShadow: 'none' }}
+                                                            >
+                                                                Ver Prontuário
+                                                            </Button>
+                                                        </Box>
+                                                    ) : (
+                                                        <Typography sx={{ 
+                                                            whiteSpace: 'pre-wrap', 
+                                                            fontSize: '0.9rem', 
+                                                            color: systemTruckTheme.colors.text,
+                                                            background: '#fff',
+                                                            p: 1.5,
+                                                            borderRadius: '8px',
+                                                            border: '1px solid #e2e8f0',
+                                                            mt: 1
+                                                        }}>
+                                                            {atend.observacoes || 'Nenhuma observação clínica ou prontuário registrado.'}
+                                                        </Typography>
+                                                    )}
+                                                </Box>
+                                            ))}
+                                        </Box>
+                                    )}
+                                </Grid>
                             </Grid>
                         </DialogContent>
                         <DialogActions sx={{ borderTop: `1px solid ${systemTruckTheme.colors.border}`, p: 2 }}>
@@ -1102,7 +1413,7 @@ const Cidadaos: React.FC = () => {
                 {editData && (
                     <>
                         <DialogTitle sx={{ borderBottom: `1px solid ${systemTruckTheme.colors.border}` }}>
-                            <Typography variant="h5" sx={{ fontWeight: 700, color: systemTruckTheme.colors.primaryDark }}>
+                            <Typography component="div" variant="h5" sx={{ fontWeight: 700, color: systemTruckTheme.colors.primaryDark }}>
                                 Editar Cidadão
                             </Typography>
                         </DialogTitle>
@@ -1142,7 +1453,7 @@ const Cidadaos: React.FC = () => {
                                         }}
                                     />
                                 </Grid>
-                                <Grid item xs={12} sm={6}>
+                                <Grid item xs={12} sm={4}>
                                     <TextField
                                         fullWidth
                                         label="E-mail"
@@ -1158,12 +1469,30 @@ const Cidadaos: React.FC = () => {
                                         }}
                                     />
                                 </Grid>
-                                <Grid item xs={12} sm={6}>
+                                <Grid item xs={12} sm={4}>
                                     <TextField
                                         fullWidth
                                         label="CPF *"
                                         defaultValue={editData.cpf}
                                         disabled
+                                        sx={{
+                                            '& .MuiOutlinedInput-root': {
+                                                borderRadius: systemTruckTheme.borderRadius.medium,
+                                            },
+                                            '& .MuiInputBase-input': {
+                                                fontWeight: '600 !important',
+                                            },
+                                        }}
+                                    />
+                                </Grid>
+                                <Grid item xs={12} sm={4}>
+                                    <TextField
+                                        fullWidth
+                                        label="Nova Senha (Opcional)"
+                                        type="password"
+                                        placeholder="Deixe em branco para manter"
+                                        value={(editData as any).senha || ''}
+                                        onChange={(e) => setEditData({ ...editData, senha: e.target.value } as any)}
                                         sx={{
                                             '& .MuiOutlinedInput-root': {
                                                 borderRadius: systemTruckTheme.borderRadius.medium,
@@ -1436,7 +1765,7 @@ const Cidadaos: React.FC = () => {
                 }}
             >
                 <DialogTitle sx={{ borderBottom: `1px solid ${systemTruckTheme.colors.border}` }}>
-                    <Typography variant="h5" sx={{ fontWeight: 700, color: systemTruckTheme.colors.primaryDark }}>
+                    <Typography component="div" variant="h5" sx={{ fontWeight: 700, color: systemTruckTheme.colors.primaryDark }}>
                         Cadastrar Novo Cidadão
                     </Typography>
                 </DialogTitle>
@@ -1493,12 +1822,14 @@ const Cidadaos: React.FC = () => {
 
                         <Grid item xs={12} sm={6}>
                             <TextField
+                                required
                                 fullWidth
                                 type="date"
-                                label="Data de Nascimento (opcional)"
+                                label="Data de Nascimento *"
                                 value={formData.data_nascimento}
                                 onChange={(e) => handleChange('data_nascimento', e.target.value)}
                                 InputLabelProps={{ shrink: true }}
+                                helperText="Obrigatório"
                                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: systemTruckTheme.borderRadius.medium } }}
                             />
                         </Grid>
@@ -1538,13 +1869,29 @@ const Cidadaos: React.FC = () => {
                         <Grid item xs={12} sm={6}>
                             <TextField
                                 fullWidth
-                                label="Cartão SUS — CNS (opcional)"
+                                required={!formData.sem_cartao_sus}
+                                disabled={formData.sem_cartao_sus}
+                                label="Cartão SUS — CNS *"
                                 placeholder="000 0000 0000 0000"
-                                helperText={formData.cartao_sus.replace(/\D/g, '').length > 0 && formData.cartao_sus.replace(/\D/g, '').length < 15 ? `${15 - formData.cartao_sus.replace(/\D/g,'').length} dígitos restantes` : 'Deixe em branco se não souber — 15 dígitos'}
+                                helperText={formData.cartao_sus.replace(/\D/g, '').length > 0 && formData.cartao_sus.replace(/\D/g, '').length < 15 ? `${15 - formData.cartao_sus.replace(/\D/g,'').length} dígitos restantes` : '15 dígitos'}
                                 value={formData.cartao_sus}
                                 onChange={(e) => handleChange('cartao_sus', formatCNS(e.target.value))}
                                 inputProps={{ maxLength: 19 }}
                                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: systemTruckTheme.borderRadius.medium } }}
+                            />
+                            <FormControlLabel
+                                control={
+                                    <Checkbox
+                                        checked={formData.sem_cartao_sus}
+                                        onChange={(e) => {
+                                            handleChange('sem_cartao_sus', e.target.checked as any);
+                                            if (e.target.checked) handleChange('cartao_sus', '');
+                                        }}
+                                        size="small"
+                                    />
+                                }
+                                label={<Typography variant="body2" color="text.secondary">Não possuo</Typography>}
+                                sx={{ mt: 0.5, ml: 0.5 }}
                             />
                         </Grid>
 
@@ -1692,6 +2039,58 @@ const Cidadaos: React.FC = () => {
                                 placeholder="Deixe em branco para gerar automaticamente"
                                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: systemTruckTheme.borderRadius.medium } }}
                             />
+                        </Grid>
+
+                        {/* Vinculação Direta à Ação */}
+                        <Grid item xs={12}>
+                            <Typography variant="h6" sx={{ color: systemTruckTheme.colors.text, fontWeight: 600, mb: 1, mt: 2 }}>
+                                Inscrição Rápida (Opcional)
+                            </Typography>
+                        </Grid>
+                        
+                        <Grid item xs={12} sm={6}>
+                            <TextField
+                                select
+                                fullWidth
+                                label="Vincular a uma Ação Ativa"
+                                value={vincularAcaoId}
+                                onChange={(e) => setVincularAcaoId(e.target.value)}
+                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: systemTruckTheme.borderRadius.medium } }}
+                            >
+                                <MenuItem value=""><em>Nenhuma Ação</em></MenuItem>
+                                {acoesAtivas.map(acao => (
+                                    <MenuItem key={acao.id} value={acao.id}>{acao.nome} ({acao.municipio} - {new Date(acao.data_inicio).toLocaleDateString()})</MenuItem>
+                                ))}
+                            </TextField>
+                        </Grid>
+
+                        <Grid item xs={12} sm={6}>
+                            <TextField
+                                select
+                                fullWidth
+                                label="Inscrever em Exame(s)"
+                                value={vincularExamesIds}
+                                onChange={(e) => setVincularExamesIds(typeof e.target.value === 'string' ? e.target.value.split(',') : e.target.value as string[])}
+                                disabled={!vincularAcaoId || examesDisponiveis.length === 0}
+                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: systemTruckTheme.borderRadius.medium } }}
+                                SelectProps={{
+                                    multiple: true,
+                                    renderValue: (selected) => {
+                                        const selectedIds = selected as string[];
+                                        if (selectedIds.length === 0) return <em>Nenhum Exame</em>;
+                                        return selectedIds
+                                            .map(id => examesDisponiveis.find(e => e.id === id)?.curso_exame?.nome || id)
+                                            .join(', ');
+                                    }
+                                }}
+                            >
+                                {examesDisponiveis.map(exame => (
+                                    <MenuItem key={exame.id} value={exame.id}>
+                                        <Checkbox checked={vincularExamesIds.indexOf(exame.id) > -1} />
+                                        <ListItemText primary={exame.curso_exame?.nome} />
+                                    </MenuItem>
+                                ))}
+                            </TextField>
                         </Grid>
                     </Grid>
                 </DialogContent>

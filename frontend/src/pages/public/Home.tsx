@@ -6,7 +6,7 @@ import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, EffectFade } from 'swiper/modules';
 import {
     Activity, Users, FileText, TrendingUp,
-    Truck, Shield, Clock, Award,
+    Globe, Shield, Clock, Award,
     BarChart3, DollarSign, Package, ArrowRight,
     MapPin, Calendar
 } from 'lucide-react';
@@ -143,7 +143,7 @@ const Home: React.FC = () => {
                     <div className="hero-text">
                         <img
                             src={`${process.env.PUBLIC_URL}/images/logo-system-truck.png`}
-                            alt="System Truck Logo"
+                            alt="Gestão sobre Rodas Logo"
                             className="hero-logo"
                         />
                         <h1 className="hero-title">
@@ -174,7 +174,7 @@ const Home: React.FC = () => {
                                 <div key={acao.id} className="action-card">
                                     <div className="action-header">
                                         <div className="action-icon">
-                                            <Truck size={28} />
+                                            <Globe size={28} />
                                         </div>
                                         <div className="action-info">
                                             <h3 className="action-title">{acao.nome}</h3>
@@ -210,9 +210,9 @@ const Home: React.FC = () => {
                 <div className="container">
                     <div className="about-grid">
                         <div className="about-content">
-                            <h2 className="section-title">O System Truck</h2>
+                            <h2 className="section-title">O Gestão sobre Rodas</h2>
                             <p className="about-text">
-                                O <strong>System Truck</strong> nasceu com a missão de facilitar a gestão de operações de saúde móvel,
+                                O <strong>Gestão sobre Rodas</strong> nasceu com a missão de facilitar a gestão de operações de saúde móvel,
                                 oferecendo uma plataforma completa e integrada para o gerenciamento de ações itinerantes.
                             </p>
                             <p className="about-text">
@@ -256,7 +256,7 @@ const Home: React.FC = () => {
                             <div className="image-card">
                                 <img
                                     src={`${process.env.PUBLIC_URL}/images/truck-about-new.jpg`}
-                                    alt="System Truck Dashboard"
+                                    alt="Gestão sobre Rodas Dashboard"
                                 />
                             </div>
                         </div>
@@ -292,7 +292,7 @@ const Home: React.FC = () => {
                     <div className="benefits-grid">
                         <div className="benefits-content">
                             <h2 className="section-title">Benefícios</h2>
-                            <h3 className="benefits-subtitle">Por que escolher o System Truck?</h3>
+                            <h3 className="benefits-subtitle">Por que escolher o Gestão sobre Rodas?</h3>
 
                             <div className="benefits-list">
                                 {benefits.map((benefit, index) => (
@@ -313,7 +313,7 @@ const Home: React.FC = () => {
                             <div className="image-card">
                                 <img
                                     src={`${process.env.PUBLIC_URL}/images/truck-benefits-new.jpg`}
-                                    alt="System Truck Benefits"
+                                    alt="Gestão sobre Rodas Benefits"
                                 />
                             </div>
                         </div>
@@ -326,7 +326,7 @@ const Home: React.FC = () => {
                 <div className="container">
                     <div className="cta-content">
                         <h2 className="cta-title">Transforme a gestão da sua operação de saúde móvel</h2>
-                        <p className="cta-subtitle">Comece agora e descubra como o System Truck pode otimizar seus processos</p>
+                        <p className="cta-subtitle">Comece agora e descubra como o Gestão sobre Rodas pode otimizar seus processos</p>
                         <a href="#" onClick={handleCTAClick} className="cta-button">
                             <span>Começar Agora</span>
                             <ArrowRight size={20} />
@@ -340,7 +340,7 @@ const Home: React.FC = () => {
                 <div className="container">
                     <div className="footer-content">
                         <div className="footer-brand">
-                            <h3 className="footer-logo">System Truck</h3>
+                            <h3 className="footer-logo">Gestão sobre Rodas</h3>
                             <p className="footer-description">
                                 Sistema completo de gestão para operações de saúde móvel,
                                 promovendo eficiência e qualidade no atendimento à população.

@@ -119,8 +119,8 @@ FichaAtendimento.init(
         underscored: true,
         hooks: {
             // Gera numero_ficha sequencial por dia/acao
-            beforeCreate: async (ficha) => {
-                if (!ficha.numero_ficha) {
+            beforeValidate: async (ficha) => {
+                if (!ficha.numero_ficha && ficha.acao_id) {
                     const hoje = new Date();
                     hoje.setHours(0, 0, 0, 0);
                     const amanha = new Date(hoje);

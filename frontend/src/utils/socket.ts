@@ -18,6 +18,7 @@ const SOCKET_URL = (() => {
 })();
 
 let socket: Socket | null = null;
+let currentAcaoId: string | null = null;
 
 /** Retorna (ou cria) a instância singleton do socket */
 export function getSocket(): Socket {
@@ -26,12 +27,18 @@ export function getSocket(): Socket {
             transports: ['websocket', 'polling'],
             autoConnect: true,
             reconnection: true,
-            reconnectionDelay: 1000,
-            reconnectionAttempts: 5,
+            reconnectionDelay: 1500,
+            reconnectionDelayMax: 5000,
+            reconnectionAttempts: Infinity, // Tenta reconectar para sempre (útil quando nodemon demora 10s)
         });
 
         socket.on('connect', () => {
-            console.log(`⚡ Socket conectado: ${socket?.id}`);
+            console.log(`📡 Socket conectado: ${socket?.id}`);
+            // Auto rejoin room upon reconnection!
+            if (currentAcaoId) {
+                console.log(`Re-conectando à sala da ação: ${currentAcaoId}`);
+                socket?.emit('join_acao', currentAcaoId);
+            }
         });
         socket.on('disconnect', (reason) => {
             console.warn(`🔌 Socket desconectado: ${reason}`);
@@ -45,6 +52,7 @@ export function getSocket(): Socket {
 
 /** Entra na sala de uma ação (necessário para receber eventos dessa ação) */
 export function joinAcaoRoom(acao_id: string): Socket {
+    currentAcaoId = acao_id;
     const s = getSocket();
     s.emit('join_acao', acao_id);
     return s;
@@ -52,6 +60,7 @@ export function joinAcaoRoom(acao_id: string): Socket {
 
 /** Sai da sala de uma ação */
 export function leaveAcaoRoom(acao_id: string): void {
+    if (currentAcaoId === acao_id) currentAcaoId = null;
     if (socket) {
         socket.emit('leave_acao', acao_id);
     }

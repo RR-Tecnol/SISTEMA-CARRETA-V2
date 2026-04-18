@@ -119,7 +119,7 @@ async function seedData() {
                 campos_customizados: { tipo: 'saude', municipio: 'João Pessoa', estado: 'PB' },
                 ativo: true,
             },
-        ]);
+        ], { ignoreDuplicates: true });
         console.log(`✅ ${instituicoes.length} instituições criadas\n`);
 
         // ========================================
@@ -127,6 +127,30 @@ async function seedData() {
         // ========================================
         console.log('🚚 Criando Caminhões...');
         const caminhoes = await Caminhao.bulkCreate([
+            {
+                placa: 'MED-2024',
+                modelo: 'Carreta Médica Avançada',
+                ano: 2024,
+                capacidade_atendimento: 200,
+                custo_diario: 500.00,
+                status: 'disponivel',
+            },
+            {
+                placa: 'ODO-2023',
+                modelo: 'Carreta Odontológica',
+                ano: 2023,
+                capacidade_atendimento: 150,
+                custo_diario: 450.00,
+                status: 'disponivel',
+            },
+            {
+                placa: 'IMG-2025',
+                modelo: 'Carreta de Imagem',
+                ano: 2025,
+                capacidade_atendimento: 250,
+                custo_diario: 600.00,
+                status: 'disponivel',
+            },
             {
                 placa: 'ABC-1234',
                 modelo: 'Mercedes-Benz Accelo 1016',
@@ -157,7 +181,7 @@ async function seedData() {
                 ano: 2021,
                 capacidade_atendimento: 35,
                 custo_diario: 280.00,
-                status: 'em_manutencao',
+                status: 'manutencao',
             },
             {
                 placa: 'MNO-7890',
@@ -205,7 +229,7 @@ async function seedData() {
                 ano: 2022,
                 capacidade_atendimento: 55,
                 custo_diario: 380.00,
-                status: 'em_acao',
+                status: 'em_uso',
             },
             {
                 placa: 'EFG-6802',
@@ -223,8 +247,8 @@ async function seedData() {
                 custo_diario: 285.00,
                 status: 'disponivel',
             },
-        ]);
-        console.log(`✅ ${caminhoes.length} caminhões criados\n`);
+        ], { ignoreDuplicates: true });
+        console.log(`✅ ${caminhoes.length} caminhões processados\n`);
 
         // ========================================
         // 3. FUNCIONÁRIOS (20)
@@ -376,7 +400,7 @@ async function seedData() {
                 custo_diario: 220.00,
                 status: 'ativo',
             },
-        ]);
+        ], { ignoreDuplicates: true });
         console.log(`✅ ${funcionarios.length} funcionários criados\n`);
 
         // ========================================
@@ -508,7 +532,7 @@ async function seedData() {
                 certificadora: 'SENAC PB',
                 ativo: true,
             },
-        ]);
+        ], { ignoreDuplicates: true });
         console.log(`✅ ${cursosExames.length} cursos e exames criados\n`);
 
         // ========================================
@@ -518,6 +542,7 @@ async function seedData() {
 
         const acao1 = await Acao.create({
             instituicao_id: instituicoes[0].id,
+            nome: 'Saúde em Movimento - Campina Grande',
             tipo: 'saude',
             municipio: 'Campina Grande',
             estado: 'PB',
@@ -536,6 +561,7 @@ async function seedData() {
 
         const acao2 = await Acao.create({
             instituicao_id: instituicoes[1].id,
+            nome: 'Carreta da Educação - João Pessoa',
             tipo: 'curso',
             municipio: 'João Pessoa',
             estado: 'PB',
@@ -554,6 +580,7 @@ async function seedData() {
 
         const acao3 = await Acao.create({
             instituicao_id: instituicoes[3].id,
+            nome: 'Saúde do Coração - Patos',
             tipo: 'saude',
             municipio: 'Patos',
             estado: 'PB',
@@ -572,6 +599,7 @@ async function seedData() {
 
         const acao4 = await Acao.create({
             instituicao_id: instituicoes[2].id,
+            nome: 'Capacitação Profissional - Campina Grande',
             tipo: 'curso',
             municipio: 'Campina Grande',
             estado: 'PB',
@@ -590,6 +618,7 @@ async function seedData() {
 
         const acao5 = await Acao.create({
             instituicao_id: instituicoes[7].id,
+            nome: 'Saúde Para Todos - Cajazeiras',
             tipo: 'saude',
             municipio: 'Cajazeiras',
             estado: 'PB',
@@ -608,6 +637,7 @@ async function seedData() {
 
         const acao6 = await Acao.create({
             instituicao_id: instituicoes[6].id,
+            nome: 'Jornada Técnica IFPB',
             tipo: 'curso',
             municipio: 'João Pessoa',
             estado: 'PB',
@@ -626,6 +656,7 @@ async function seedData() {
 
         const acao7 = await Acao.create({
             instituicao_id: instituicoes[9].id,
+            nome: 'SESI Saúde Preventiva',
             tipo: 'saude',
             municipio: 'João Pessoa',
             estado: 'PB',
@@ -644,6 +675,7 @@ async function seedData() {
 
         const acao8 = await Acao.create({
             instituicao_id: instituicoes[4].id,
+            nome: 'Qualifica SENAC - Campina Grande',
             tipo: 'curso',
             municipio: 'Campina Grande',
             estado: 'PB',
@@ -662,6 +694,7 @@ async function seedData() {
 
         const acao9 = await Acao.create({
             instituicao_id: instituicoes[5].id,
+            nome: 'Mutirão da Saúde - Sousa',
             tipo: 'saude',
             municipio: 'Sousa',
             estado: 'PB',
@@ -680,6 +713,7 @@ async function seedData() {
 
         const acao10 = await Acao.create({
             instituicao_id: instituicoes[1].id,
+            nome: 'Educação Digital - Patos',
             tipo: 'curso',
             municipio: 'Patos',
             estado: 'PB',

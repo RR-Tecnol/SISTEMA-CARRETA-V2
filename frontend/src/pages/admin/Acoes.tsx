@@ -77,14 +77,14 @@ const Acoes = () => {
     }, [fetchAcoes]);
 
     const filteredAcoes = acoes.filter((acao) => {
-        const matchesSearch = acao.municipio.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            acao.descricao.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            acao.nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            acao.numero_acao?.toString().includes(searchTerm);
+        const matchesSearch = (acao.municipio?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
+            (acao.descricao?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
+            (acao.nome?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
+            (acao.numero_acao?.toString().includes(searchTerm) || false);
         const matchesTipo = !filterTipo || acao.tipo === filterTipo;
         const matchesStatus = !filterStatus || acao.status === filterStatus;
-        const matchesMunicipio = !filterMunicipio || acao.municipio.toLowerCase().includes(filterMunicipio.toLowerCase());
-        const matchesEstado = !filterEstado || acao.estado.toLowerCase().includes(filterEstado.toLowerCase());
+        const matchesMunicipio = !filterMunicipio || (acao.municipio?.toLowerCase().includes(filterMunicipio.toLowerCase()) || false);
+        const matchesEstado = !filterEstado || (acao.estado?.toLowerCase().includes(filterEstado.toLowerCase()) || false);
 
         return matchesSearch && matchesTipo && matchesStatus && matchesMunicipio && matchesEstado;
     });
@@ -335,26 +335,30 @@ const Acoes = () => {
                                             </Typography>
 
                                             <Typography sx={{ color: expressoTheme.colors.textSecondary, fontSize: '0.85rem', mb: 0.8, minHeight: 20 }}>
-                                                {acao.descricao.length > 80 ? `${acao.descricao.substring(0, 80)}...` : acao.descricao}
+                                                {(acao.descricao?.length || 0) > 80 ? `${acao.descricao?.substring(0, 80)}...` : (acao.descricao || 'Sem descrição')}
                                             </Typography>
 
                                             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                                     <MapPin size={14} color={expressoTheme.colors.primary} />
                                                     <Typography sx={{ color: expressoTheme.colors.textSecondary, fontSize: '0.8rem' }}>
-                                                        {acao.municipio}/{acao.estado}
+                                                        {acao.municipio || 'N/A'}/{acao.estado || 'N/A'}
                                                     </Typography>
                                                 </Box>
                                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                                     <Calendar size={14} color={expressoTheme.colors.primary} />
                                                     <Typography sx={{ color: expressoTheme.colors.textSecondary, fontSize: '0.8rem' }}>
-                                                        {new Date(acao.data_inicio).toLocaleDateString('pt-BR')} - {new Date(acao.data_fim).toLocaleDateString('pt-BR')}
+                                                        {acao.data_inicio && typeof acao.data_inicio === 'string' 
+                                                            ? acao.data_inicio.split('T')[0].split('-').reverse().join('/') 
+                                                            : ''} - {acao.data_fim && typeof acao.data_fim === 'string'
+                                                            ? acao.data_fim.split('T')[0].split('-').reverse().join('/')
+                                                            : ''}
                                                     </Typography>
                                                 </Box>
                                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                                     <Users size={14} color={expressoTheme.colors.primary} />
                                                     <Typography sx={{ color: expressoTheme.colors.textSecondary, fontSize: '0.8rem' }}>
-                                                        {acao.vagas_disponiveis} vagas disponíveis
+                                                        {(acao.vagas_disponiveis || 0)} vagas disponíveis
                                                     </Typography>
                                                 </Box>
                                             </Box>

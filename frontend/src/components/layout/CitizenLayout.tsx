@@ -15,6 +15,7 @@ import {
     ListItemText,
     useTheme,
     useMediaQuery,
+    Badge,
 } from '@mui/material';
 import {
     Menu as MenuIcon,
@@ -25,6 +26,9 @@ import {
     User,
     LogOut,
     ChevronRight,
+    MessageCircle,
+    AlertTriangle,
+    Stethoscope,
 } from 'lucide-react';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../store';
@@ -42,6 +46,9 @@ const menuItems: MenuItemType[] = [
     { text: 'Início', icon: Home, path: '/portal' },
     { text: 'Ações Disponíveis', icon: Calendar, path: '/portal/acoes' },
     { text: 'Minhas Inscrições', icon: ClipboardList, path: '/portal/inscricoes' },
+    { text: 'Chat', icon: MessageCircle, path: '/portal/chat' },
+    { text: 'Emergências', icon: AlertTriangle, path: '/portal/emergencias' },
+    { text: 'Meus Resultados', icon: Stethoscope, path: '/portal/exames' },
 ];
 
 const sidebarVariants = {
@@ -87,6 +94,7 @@ const CitizenLayout: React.FC = () => {
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const [cidadaoFoto, setCidadaoFoto] = useState<string>('');
     const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
+    const [unreadChat, setUnreadChat] = useState(0);
 
     // Check both Redux state AND localStorage as fallback
     const hasToken = isAuthenticated || !!localStorage.getItem('token');
@@ -124,6 +132,16 @@ const CitizenLayout: React.FC = () => {
             window.removeEventListener('profilePhotoUpdated', handleProfileUpdate);
         };
     }, [hasToken, location.pathname]); // Refresh when route changes
+
+    useEffect(() => {
+        if (!hasToken) return;
+        const fetchUnread = () => {
+            api.get('/chat/unread/cidadao').then(r => setUnreadChat(r.data?.unread || 0)).catch(() => {});
+        };
+        fetchUnread();
+        const interval = setInterval(fetchUnread, 15000);
+        return () => clearInterval(interval);
+    }, [hasToken]);
 
     // Close sidebar on mobile when route changes
     useEffect(() => {
@@ -257,7 +275,7 @@ const CitizenLayout: React.FC = () => {
                                 Portal do Cidadão
                             </Box>
                             <Box sx={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.9)', fontWeight: 500 }}>
-                                System Truck
+                                Gestão sobre Rodas
                             </Box>
                         </Box>
                     </motion.div>
@@ -316,24 +334,31 @@ const CitizenLayout: React.FC = () => {
                                             : {},
                                     }}
                                 >
-                                    <Box
-                                        sx={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            width: 32,
-                                            height: 32,
-                                            borderRadius: systemTruckTheme.borderRadius.small,
-                                            background: active ? 'rgba(255,255,255,0.2)' : systemTruckTheme.colors.cardHover,
-                                            transition: 'all 0.3s ease',
-                                        }}
-                                    >
-                                        <Icon size={18} />
-                                    </Box>
+                                        <Box
+                                            sx={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                width: 32,
+                                                height: 32,
+                                                borderRadius: systemTruckTheme.borderRadius.small,
+                                                background: active ? 'rgba(255,255,255,0.2)' : systemTruckTheme.colors.cardHover,
+                                                transition: 'all 0.3s ease',
+                                            }}
+                                        >
+                                            <Badge color="error" variant="dot" invisible={item.path !== '/portal/chat' || unreadChat === 0}>
+                                                <Icon size={18} />
+                                            </Badge>
+                                        </Box>
 
-                                    <Box sx={{ flex: 1, fontSize: '0.9rem' }}>{item.text}</Box>
+                                        <Box sx={{ flex: 1, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: 1 }}>
+                                            {item.text}
+                                            {item.path === '/portal/chat' && unreadChat > 0 && (
+                                                <Badge badgeContent={unreadChat} color="error" sx={{ '& .MuiBadge-badge': { position: 'static', transform: 'none' } }} />
+                                            )}
+                                        </Box>
 
-                                    {active && (
+                                        {active && (
                                         <motion.div
                                             initial={{ opacity: 0, scale: 0 }}
                                             animate={{ opacity: 1, scale: 1 }}
@@ -357,7 +382,7 @@ const CitizenLayout: React.FC = () => {
                     }}
                 >
                     <Box sx={{ fontSize: '0.75rem', color: systemTruckTheme.colors.textSecondary, mb: 1 }}>
-                        © 2026 System Truck
+                        © 2026 Gestão sobre Rodas
                     </Box>
                     <Box sx={{ fontSize: '0.7rem', color: systemTruckTheme.colors.textLight, mb: 1.5 }}>
                         v1.0.0

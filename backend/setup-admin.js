@@ -31,7 +31,7 @@ async function setupDatabase() {
                 VALUES (
                     gen_random_uuid(),
                     '123.456.789-09',
-                    'Administrador System Truck',
+                    'Administrador Gestão sobre Rodas',
                     '1990-01-01',
                     '(83) 99999-9999',
                     'admin@systemtruck.com',

@@ -42,7 +42,13 @@ import MedicoPanel from './pages/medico/MedicoPanel';
 import MedicoAcoes from './pages/medico/MedicoAcoes';
 import GerenciarFila from './pages/admin/GerenciarFila';
 import PainelChamada from './pages/public/PainelChamada';
-
+import FichaPaciente from './pages/public/FichaPaciente';
+import Emergencias from './pages/admin/Emergencias';
+import ChatPage from './pages/admin/ChatPage';
+import Auditoria from './pages/admin/Auditoria';
+import ChatCidadao from './pages/citizen/ChatCidadao';
+import EmergenciasCidadao from './pages/citizen/EmergenciasCidadao';
+import MeusExames from './pages/citizen/MeusExames';
 
 // Layout
 import PublicLayout from './components/layout/PublicLayout';
@@ -75,6 +81,9 @@ function App() {
                     <Route path="acoes" element={<AcoesDisponiveis />} />
                     <Route path="perfil" element={<MeuPerfil />} />
                     <Route path="inscricoes" element={<MinhasInscricoes />} />
+                    <Route path="chat" element={<ChatCidadao />} />
+                    <Route path="emergencias" element={<EmergenciasCidadao />} />
+                    <Route path="exames" element={<MeusExames />} />
                 </Route>
 
                 {/* Admin routes */}
@@ -102,15 +111,23 @@ function App() {
                     <Route path="noticias" element={<Noticias />} />
                     <Route path="fila" element={<GerenciarFila />} />
                     <Route path="acoes/:id/fila" element={<GerenciarFila />} />
+                    <Route path="emergencias" element={<Emergencias />} />
+                    <Route path="chat" element={<ChatPage />} />
+                    <Route path="auditoria" element={<Auditoria />} />
                 </Route>
 
                 {/* Painel de TV — público, sem auth, tela cheia */}
                 <Route path="/painel/:acao_id" element={<PainelChamada />} />
 
+                {/* Ficha Clínica — autenticado, standalone */}
+                <Route path="/ficha/:id" element={<FichaPaciente />} />
+
                 {/* Medico panel */}
                 <Route path="/medico" element={<MedicoLayout />}>
                     <Route index element={<MedicoAcoes />} />
                     <Route path="acao/:acaoId" element={<MedicoPanel />} />
+                    <Route path="emergencias" element={<Emergencias />} />
+                    <Route path="chat" element={<ChatPage />} />
                 </Route>
             </Routes>
         </>

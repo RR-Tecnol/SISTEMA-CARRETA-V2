@@ -315,6 +315,15 @@ const ContasPagar = () => {
     return (
         <Box sx={{ minHeight: '100vh', background: expressoTheme.colors.background, py: 4 }}>
             <Container maxWidth="xl">
+                {/* Input oculto de arquivo - MOVIDO DE DENTRO DO MAP PARA O TOPO */}
+                <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".jpg,.jpeg,.png,.pdf"
+                    style={{ display: 'none' }}
+                    onChange={handleAnexoChange}
+                />
+                
                 {/* Header */}
                 <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
@@ -850,21 +859,12 @@ const ContasPagar = () => {
 
                                                 {/* Botões: clipe de anexo à esquerda, editar + lixeira à direita */}
                                                 <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                                                    {/* Input oculto de arquivo */}
-                                                    <input
-                                                        ref={fileInputRef}
-                                                        type="file"
-                                                        accept=".jpg,.jpeg,.png,.pdf"
-                                                        style={{ display: 'none' }}
-                                                        onChange={handleAnexoChange}
-                                                    />
-
                                                     {/* Clipe: envia ou baixa o anexo */}
-                                                    {conta.comprovante_url ? (
+                                                    {(conta.comprovante_url && conta.comprovante_url.trim() !== '') ? (
                                                         <IconButton
                                                             size="small"
                                                             title="Baixar anexo"
-                                                            onClick={() => handleDownloadAnexo(conta.comprovante_url!, conta.descricao)}
+                                                            onClick={(e) => { e.stopPropagation(); handleDownloadAnexo(conta.comprovante_url!, conta.descricao); }}
                                                             sx={{
                                                                 color: '#22c55e',
                                                                 border: '1.5px solid #22c55e',
@@ -878,7 +878,7 @@ const ContasPagar = () => {
                                                         <IconButton
                                                             size="small"
                                                             title="Anexar nota fiscal / comprovante"
-                                                            onClick={() => handleAnexoClick(conta.id)}
+                                                            onClick={(e) => { e.stopPropagation(); handleAnexoClick(conta.id); }}
                                                             disabled={uploadingAnexoId === conta.id}
                                                             sx={{
                                                                 color: '#94a3b8',

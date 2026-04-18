@@ -45,6 +45,7 @@ import {
 import { useNavigate, useParams } from 'react-router-dom';
 import { useSnackbar } from 'notistack';
 import api from '../../services/api';
+import { getSocket, joinAcaoRoom, leaveAcaoRoom } from '../../utils/socket';
 
 interface Instituicao {
     id: string;
@@ -479,6 +480,25 @@ const GerenciarAcao = () => {
         loadFuncionariosAcao();
     }, [loadRecursos, loadInscricoes, loadCustos, loadFuncionariosAcao]);
 
+    // WebSocket for real-time vagas updates
+    useEffect(() => {
+        if (!id) return;
+        
+        const socket = getSocket();
+        joinAcaoRoom(id);
+
+        const handleVagasAtualizadas = () => {
+            loadRecursos();
+        };
+
+        socket.on('vagas_atualizadas', handleVagasAtualizadas);
+
+        return () => {
+            socket.off('vagas_atualizadas', handleVagasAtualizadas);
+            leaveAcaoRoom(id);
+        };
+    }, [id, loadRecursos]);
+
     const handleAddCaminhao = async () => {
         try {
             if (!selectedCaminhaoId) {
@@ -601,11 +621,16 @@ const GerenciarAcao = () => {
     };
 
     const handleBuscaAutocomplete = (q: string) => {
-        const cpfFormatado = formatCPF(q);
-        setCpfBusca(cpfFormatado);
+        const isNumeric = /^\d+$/.test(q.replace(/\D/g, '')) && q.replace(/[^a-zA-Z]/g, '').length === 0;
+        
+        let searchValue = q;
+        if (isNumeric && q.length > 0) {
+            searchValue = formatCPF(q);
+        }
+        
+        setCpfBusca(searchValue);
 
-        const somenteNumeros = cpfFormatado.replace(/\D/g, '');
-        if (somenteNumeros.length < 3) {
+        if (searchValue.length < 3) {
             setCidadaoBuscaOpts([]);
             return;
         }
@@ -614,8 +639,7 @@ const GerenciarAcao = () => {
         cidadaoBuscaRef.current = setTimeout(async () => {
             setCidadaoBuscaLoading(true);
             try {
-                // Busca parcial otimizada por CPF já formatado
-                const r = await api.get('/cidadaos/autocomplete-cpf', { params: { q: cpfFormatado } });
+                const r = await api.get('/cidadaos/autocomplete-cpf', { params: { q: searchValue } });
                 setCidadaoBuscaOpts(Array.isArray(r.data) ? r.data : []);
             } catch {
                 setCidadaoBuscaOpts([]);
@@ -796,13 +820,16 @@ const GerenciarAcao = () => {
                 responseType: 'blob',
             });
 
-            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const blob = new Blob([response.data], { type: 'application/pdf' });
+            const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.setAttribute('download', `inscricoes_${id}.pdf`);
+            // Usa inicio do id pra n truncar a extensao
+            link.setAttribute('download', `inscricoes_acao_${(id || 'acao').substring(0, 8)}.pdf`);
             document.body.appendChild(link);
             link.click();
             link.remove();
+            window.URL.revokeObjectURL(url);
 
             enqueueSnackbar('PDF exportado com sucesso!', { variant: 'success' });
         } catch (error: any) {

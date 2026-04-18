@@ -27,6 +27,7 @@ const createAcaoSchema = Joi.object({
     tipo: Joi.string().valid('curso', 'saude').required(),
     municipio: Joi.string().required(),
     estado: Joi.string().length(2).required(),
+    status: Joi.string().valid('planejada', 'ativa', 'concluida').optional(),
     data_inicio: Joi.date().required(),
     data_fim: Joi.date().required(),
     descricao: Joi.string().optional().allow('').allow(null),
@@ -276,6 +277,32 @@ router.post(
         try {
             const { cursos_exames, ...acaoData } = req.body;
 
+            // Fix timezone: normalize dates to noon (12:00) to avoid UTC offset making day appear -1
+            if (acaoData.data_inicio) {
+                const d = typeof acaoData.data_inicio === 'string'
+                    ? acaoData.data_inicio.split('T')[0]
+                    : new Date(acaoData.data_inicio).toISOString().split('T')[0];
+                acaoData.data_inicio = new Date(d + 'T12:00:00.000Z');
+            }
+            if (acaoData.data_fim) {
+                const d = typeof acaoData.data_fim === 'string'
+                    ? acaoData.data_fim.split('T')[0]
+                    : new Date(acaoData.data_fim).toISOString().split('T')[0];
+                acaoData.data_fim = new Date(d + 'T12:00:00.000Z');
+            }
+
+            // Validar cursos_exames duplicados
+            if (cursos_exames && Array.isArray(cursos_exames)) {
+                const idsUnicos = new Set();
+                for (const ce of cursos_exames) {
+                    if (idsUnicos.has(ce.curso_exame_id)) {
+                        res.status(400).json({ error: 'Não é possível inserir o mesmo Exame/Curso mais de uma vez na mesma Ação.' });
+                        return;
+                    }
+                    if (ce.curso_exame_id) idsUnicos.add(ce.curso_exame_id);
+                }
+            }
+
             // Criar a ação
             const acao = await Acao.create(acaoData);
 
@@ -305,6 +332,7 @@ router.post(
     }
 );
 
+
 /**
  * PUT /api/acoes/:id
  * Atualizar ação (admin)
@@ -321,6 +349,21 @@ router.put('/:id', authenticate, authorizeAdminOrEstrada, async (req: Request, r
         if (typeof updateData.preco_combustivel_referencia === 'string') {
             updateData.preco_combustivel_referencia = parseFloat(updateData.preco_combustivel_referencia.replace(',', '.'));
         }
+
+        // Fix timezone: normalize dates to noon (12:00) to avoid UTC offset making day appear -1
+        if (updateData.data_inicio) {
+            const d = typeof updateData.data_inicio === 'string'
+                ? updateData.data_inicio.split('T')[0]
+                : new Date(updateData.data_inicio).toISOString().split('T')[0];
+            updateData.data_inicio = new Date(d + 'T12:00:00.000Z');
+        }
+        if (updateData.data_fim) {
+            const d = typeof updateData.data_fim === 'string'
+                ? updateData.data_fim.split('T')[0]
+                : new Date(updateData.data_fim).toISOString().split('T')[0];
+            updateData.data_fim = new Date(d + 'T12:00:00.000Z');
+        }
+
 
         const acao = await Acao.findByPk(id);
         if (!acao) {
@@ -705,6 +748,28 @@ router.delete('/:id/funcionarios/:funcionarioId', authenticate, authorizeAdminOr
         if (!link) {
             res.status(404).json({ error: 'Vínculo não encontrado' });
             return;
+        }
+
+        const func = await Funcionario.findByPk(funcionarioId);
+        if (func) {
+            // Tenta encontrar a conta atrelada
+            const conta = await ContaPagar.findOne({
+                where: {
+                    acao_id: id,
+                    tipo_conta: 'funcionario',
+                    descricao: { [Op.like]: `%${func.nome}%` }
+                }
+            });
+
+            if (conta) {
+                if (conta.status === 'paga') {
+                    res.status(409).json({ error: 'Não é possível remover o funcionário pois a sua diária já foi PAGA no financeiro.' });
+                    return;
+                }
+                // Se pendente, deleta a conta junto
+                await conta.destroy();
+                console.log('✅ Conta Pagar deletada pois o funcionário foi removido da ação.');
+            }
         }
 
         await link.destroy();

@@ -22,6 +22,9 @@ import {
     Newspaper,
     ClipboardList,
     MapPin,
+    AlertTriangle,
+    MessageSquare,
+    ShieldCheck,
 } from 'lucide-react';
 
 
@@ -49,8 +52,11 @@ const menuItems: MenuItem[] = [
     { title: 'Exames', icon: Stethoscope, path: '/admin/cursos-exames' },
     { title: 'Central de Alertas', icon: Bell, path: '/admin/alertas' },
     { title: 'Monit. Médicos', icon: HeartPulse, path: '/admin/medicos' },
+    { title: 'Emergências', icon: AlertTriangle, path: '/admin/emergencias' },
+    { title: 'Chat Equipe', icon: MessageSquare, path: '/admin/chat' },
     { title: 'Cidadãos', icon: UserCheck, path: '/admin/cidadaos' },
     { title: 'Notícias', icon: Newspaper, path: '/admin/noticias' },
+    { title: 'Auditoria', icon: ShieldCheck, path: '/admin/auditoria' },
 ];
 
 // Menu exclusivo para admin_estrada — focado em operações de campo
@@ -61,6 +67,8 @@ const menuItemsEstrada: MenuItem[] = [
     { title: 'Cidadãos', icon: UserCheck, path: '/admin/cidadaos' },
     { title: 'Exames', icon: Stethoscope, path: '/admin/cursos-exames' },
     { title: 'Monit. Médicos', icon: HeartPulse, path: '/admin/medicos' },
+    { title: 'Emergências', icon: AlertTriangle, path: '/admin/emergencias' },
+    { title: 'Chat Equipe', icon: MessageSquare, path: '/admin/chat' },
     { title: 'Central de Alertas', icon: Bell, path: '/admin/alertas' },
     { title: 'Estoque', icon: Package, path: '/admin/estoque' },
     { title: 'Notícias', icon: Newspaper, path: '/admin/noticias' },
@@ -204,7 +212,7 @@ export const AdminSidebar: React.FC = () => {
                                     letterSpacing: '0.5px',
                                 }}
                             >
-                                System Truck
+                                Gestão sobre Rodas
                             </Box>
                             <Box sx={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.9)', fontWeight: 500 }}>
                                 Sistema de Gestão
@@ -307,7 +315,7 @@ export const AdminSidebar: React.FC = () => {
                     }}
                 >
                     <Box sx={{ fontSize: '0.75rem', color: systemTruckTheme.colors.textSecondary, mb: 1 }}>
-                        © 2026 System Truck
+                        © 2026 Gestão sobre Rodas
                     </Box>
                     <Box sx={{ fontSize: '0.7rem', color: systemTruckTheme.colors.textLight, mb: 1.5 }}>
                         v1.0.0

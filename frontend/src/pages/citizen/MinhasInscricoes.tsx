@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Typography, Card, CardContent, Grid, Chip, Box, CircularProgress } from '@mui/material';
+import { Container, Typography, Card, CardContent, Grid, Chip, Box, CircularProgress, Button } from '@mui/material';
 import { motion } from 'framer-motion';
-import { ClipboardList, Calendar, MapPin, CheckCircle, Clock, XCircle, AlertCircle } from 'lucide-react';
-import api from '../../services/api';
+import { ClipboardList, Calendar, MapPin, CheckCircle, Clock, XCircle, AlertCircle, AlertTriangle, MessageCircle } from 'lucide-react';
+import api, { BASE_URL } from '../../services/api';
 import { systemTruckTheme } from '../../theme/systemTruckTheme';
+import { useSelector } from 'react-redux';
+import { useSnackbar } from 'notistack';
+import { getSocket } from '../../utils/socket';
+import ChatCidadaoDrawer from '../../components/citizen/ChatCidadaoDrawer';
 
 interface Inscricao {
     id: string;
@@ -14,6 +18,7 @@ interface Inscricao {
         tipo: string;
     };
     acao: {
+        id: string;
         descricao: string;
         local_execucao: string;
         municipio: string;
@@ -21,11 +26,21 @@ interface Inscricao {
         data_inicio: string;
         data_fim: string;
     };
+    resultado_exame?: {
+        arquivo_resultado_url: string;
+        data_emissao_laudo: string;
+    };
 }
 
 const MinhasInscricoes: React.FC = () => {
+    const { enqueueSnackbar } = useSnackbar();
+    const user = useSelector((state: any) => state.auth?.user);
     const [inscricoes, setInscricoes] = useState<Inscricao[]>([]);
     const [loading, setLoading] = useState(true);
+    // B3: Chat drawer + Emergência
+    const [drawerOpen, setDrawerOpen] = useState(false);
+    const [drawerInscricao, setDrawerInscricao] = useState<Inscricao | null>(null);
+    const [emergenciaEnviadaId, setEmergenciaEnviadaId] = useState<string | null>(null);
 
     useEffect(() => {
         fetchInscricoes();
@@ -39,6 +54,17 @@ const MinhasInscricoes: React.FC = () => {
             console.error('Erro ao buscar inscrições', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleCancelarInscricao = async (inscricaoId: string) => {
+        if (!window.confirm('Tem certeza que deseja cancelar esta inscrição? A vaga será liberada imediatamente.')) return;
+        try {
+            await api.delete(`/inscricoes/me/${inscricaoId}`);
+            enqueueSnackbar('Inscrição cancelada com sucesso.', { variant: 'success' });
+            fetchInscricoes();
+        } catch (error: any) {
+            enqueueSnackbar(error.response?.data?.error || 'Erro ao cancelar inscrição', { variant: 'error' });
         }
     };
 
@@ -91,6 +117,29 @@ const MinhasInscricoes: React.FC = () => {
         } catch {
             return 'Data inválida';
         }
+    };
+
+    // B3: Emergência
+    const handleEmergencia = (inscricao: Inscricao) => {
+        if (!user?.id || emergenciaEnviadaId === inscricao.id) return;
+        const socket = getSocket();
+        socket.emit('emergencia', {
+            acao_id: inscricao.acao.id,
+            cidadao_id: user.id,
+            nome: user.nome || 'Cidadão',
+        });
+        setEmergenciaEnviadaId(inscricao.id);
+        enqueueSnackbar('🆘 Sinal de emergência enviado! A equipe foi notificada.', {
+            variant: 'error',
+            autoHideDuration: 8000,
+        });
+        setTimeout(() => setEmergenciaEnviadaId(null), 30000);
+    };
+
+    // B3: Abrir drawer
+    const handleAbrirDrawer = (inscricao: Inscricao) => {
+        setDrawerInscricao(inscricao);
+        setDrawerOpen(true);
     };
 
     if (loading) {
@@ -296,10 +345,89 @@ const MinhasInscricoes: React.FC = () => {
                                                                     </Box>
                                                                 </Box>
                                                             )}
+                                                            {inscricao.resultado_exame?.arquivo_resultado_url && (
+                                                                <Button
+                                                                    variant="contained"
+                                                                    size="small"
+                                                                    startIcon={<ClipboardList size={16} />}
+                                                                    onClick={() => {
+                                                                        const url = inscricao.resultado_exame?.arquivo_resultado_url;
+                                                                        if (url) {
+                                                                            window.open(url.startsWith('http') ? url : `${BASE_URL}${url}`, '_blank');
+                                                                        }
+                                                                    }}
+                                                                    sx={{
+                                                                        mt: 2, width: '100%',
+                                                                        background: systemTruckTheme.gradients.primary,
+                                                                        textTransform: 'none', fontWeight: 600
+                                                                    }}
+                                                                >
+                                                                    Acessar Laudo
+                                                                </Button>
+                                                            )}
                                                         </Box>
                                                     </Grid>
                                                 </Grid>
                                             </CardContent>
+
+                                            {/* B3: Emergência + Chat — abre drawer */}
+                                            {inscricao.status === 'pendente' && (
+                                                <Box sx={{ px: 2, pb: 2 }}>
+                                                    <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+                                                        <Button
+                                                            variant="contained"
+                                                            size="small"
+                                                            startIcon={<AlertTriangle size={14} />}
+                                                            onClick={() => handleAbrirDrawer(inscricao)}
+                                                            sx={{
+                                                                background: '#dc2626',
+                                                                color: 'white',
+                                                                textTransform: 'none',
+                                                                fontWeight: 700,
+                                                                borderRadius: '8px',
+                                                                fontSize: '0.78rem',
+                                                                '&:hover': { background: '#b91c1c' },
+                                                            }}
+                                                        >
+                                                            🆘 Emergência
+                                                        </Button>
+                                                        <Button
+                                                            variant="outlined"
+                                                            size="small"
+                                                            startIcon={<MessageCircle size={14} />}
+                                                            onClick={() => handleAbrirDrawer(inscricao)}
+                                                            sx={{
+                                                                textTransform: 'none',
+                                                                fontWeight: 600,
+                                                                borderRadius: '8px',
+                                                                fontSize: '0.78rem',
+                                                                borderColor: systemTruckTheme.colors.primary,
+                                                                color: systemTruckTheme.colors.primary,
+                                                                '&:hover': { background: 'rgba(37,99,235,0.05)' },
+                                                            }}
+                                                        >
+                                                            💬 Chat
+                                                        </Button>
+                                                        <Button
+                                                            variant="text"
+                                                            size="small"
+                                                            startIcon={<XCircle size={14} />}
+                                                            onClick={() => handleCancelarInscricao(inscricao.id)}
+                                                            sx={{
+                                                                textTransform: 'none',
+                                                                fontWeight: 600,
+                                                                borderRadius: '8px',
+                                                                fontSize: '0.78rem',
+                                                                color: systemTruckTheme.colors.textSecondary,
+                                                                '&:hover': { background: 'rgba(0,0,0,0.05)', color: systemTruckTheme.colors.error },
+                                                                marginLeft: 'auto',
+                                                            }}
+                                                        >
+                                                            Cancelar
+                                                        </Button>
+                                                    </Box>
+                                                </Box>
+                                            )}
                                         </Card>
                                     </motion.div>
                                 </Grid>
@@ -308,6 +436,19 @@ const MinhasInscricoes: React.FC = () => {
                     </Grid>
                 )}
             </Container>
+
+            {/* Chat + Emergência Drawer */}
+            {drawerInscricao && (
+                <ChatCidadaoDrawer
+                    open={drawerOpen}
+                    onClose={() => setDrawerOpen(false)}
+                    acaoId={drawerInscricao.acao.id}
+                    cidadaoId={user?.id || ''}
+                    acaoNome={drawerInscricao.curso_exame?.nome || drawerInscricao.acao?.descricao || 'Ação'}
+                    onEmergencia={() => handleEmergencia(drawerInscricao)}
+                    emergenciaEnviada={emergenciaEnviadaId === drawerInscricao.id}
+                />
+            )}
         </Box>
     );
 };

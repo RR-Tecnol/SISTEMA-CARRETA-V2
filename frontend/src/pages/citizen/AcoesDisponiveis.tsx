@@ -88,7 +88,7 @@ const AcoesDisponiveis: React.FC = () => {
     const loadAcoes = async () => {
         try {
             setLoading(true);
-            const response = await api.get('/acoes');
+            const response = await api.get('/acoes?status=ativa');
             const acoesData = Array.isArray(response.data) ? response.data : (response.data.acoes || response.data.data || []);
             setAcoes(acoesData);
         } catch (error) {
@@ -161,8 +161,7 @@ const AcoesDisponiveis: React.FC = () => {
         try {
             setInscrevendo(true);
             await api.post('/inscricoes', {
-                acao_id: acaoSelecionada.id,
-                curso_exame_id: cursoSelecionado,
+                acao_curso_id: cursoSelecionado,  // ID do vínculo AcaoCursoExame (não do catálogo)
             });
             enqueueSnackbar('Inscrição realizada com sucesso!', { variant: 'success' });
             setOpenInscricao(false);
@@ -493,7 +492,7 @@ const AcoesDisponiveis: React.FC = () => {
                                     }}
                                 >
                                     {acaoSelecionada.cursos_exames?.map((ce) => (
-                                        <MenuItem key={ce.id} value={ce.curso_exame.id}>
+                                        <MenuItem key={ce.id} value={ce.id}>
                                             {ce.curso_exame.nome} ({ce.vagas} vagas)
                                         </MenuItem>
                                     ))}

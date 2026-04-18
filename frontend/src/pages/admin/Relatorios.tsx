@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Typography, Grid, Box, TextField, MenuItem, Button, Collapse, CircularProgress } from '@mui/material';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { Container, Typography, Grid, Box, TextField, MenuItem, Button, Collapse, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { motion } from 'framer-motion';
-import { Filter, X, DollarSign, Users, TrendingUp, BarChart3, Activity, MapPin, RefreshCw, Calendar } from 'lucide-react';
+import { Filter, X, DollarSign, Users, TrendingUp, BarChart3, Activity, MapPin, RefreshCw, Calendar, FileDown } from 'lucide-react';
 import api from '../../services/api';
 // import analyticsService from '../../services/analytics'; // Não usado - usando dados locais
 import { expressoTheme } from '../../theme/expressoTheme';
+import { buscarDadosRelatorio } from '../../services/relatorioExecutivo';
+import { gerarPrestacaoContasPDF } from '../../utils/gerarPrestacaoContas';
+import { useSnackbar } from 'notistack';
 
 const STATUS_COLORS = {
     atendidos: '#10b981',
@@ -16,10 +19,19 @@ const STATUS_COLORS = {
 const CHART_COLORS = [expressoTheme.colors.primary, expressoTheme.colors.primaryDark, expressoTheme.colors.success, expressoTheme.colors.warning, expressoTheme.colors.danger, expressoTheme.colors.info, expressoTheme.colors.primaryLight];
 
 const Relatorios: React.FC = () => {
+    const { enqueueSnackbar } = useSnackbar();
     const [acoes, setAcoes] = useState<any[]>([]);
     const [inscricoes, setInscricoes] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [showFilters, setShowFilters] = useState(false);
+
+    // C1: Estado do Dialog de Prestação de Contas
+    const [dialogPrestacao, setDialogPrestacao] = useState(false);
+    const [prestacaoForm, setPrestacaoForm] = useState({
+        acaoId: '', dataInicio: '', dataFim: '',
+        numeroProcesso: '', loteRegiao: '', intercorrencias: '',
+    });
+    const [gerando, setGerando] = useState(false);
 
     // Estados de Analytics (da BI)
     const [metrics, setMetrics] = useState<any>(null);
@@ -231,6 +243,42 @@ const Relatorios: React.FC = () => {
         setFilterCustoMax('');
     };
 
+    // C1: Handler de geração do PDF de prestação de contas
+    const handleGerarPrestacao = async () => {
+        if (!prestacaoForm.acaoId) {
+            enqueueSnackbar('Selecione uma ação', { variant: 'warning' });
+            return;
+        }
+        setGerando(true);
+        try {
+            const dados = await buscarDadosRelatorio(
+                prestacaoForm.acaoId,
+                prestacaoForm.dataInicio || undefined,
+                prestacaoForm.dataFim || undefined,
+            );
+            dados.acao = {
+                ...dados.acao,
+                numero_processo: prestacaoForm.numeroProcesso || dados.acao?.numero_processo,
+                lote_regiao: prestacaoForm.loteRegiao || dados.acao?.lote_regiao,
+                intercorrencias: prestacaoForm.intercorrencias || dados.acao?.intercorrencias,
+            };
+            await gerarPrestacaoContasPDF(dados, {
+                dataInicio: prestacaoForm.dataInicio || dados.acao?.data_inicio || '',
+                dataFim: prestacaoForm.dataFim || dados.acao?.data_fim || '',
+                numeroProcesso: prestacaoForm.numeroProcesso || dados.acao?.numero_processo,
+                loteRegiao: prestacaoForm.loteRegiao || dados.acao?.lote_regiao,
+                intercorrencias: prestacaoForm.intercorrencias,
+            });
+            enqueueSnackbar('PDF gerado com sucesso!', { variant: 'success' });
+            setDialogPrestacao(false);
+        } catch (err) {
+            console.error('Erro ao gerar relatório:', err);
+            enqueueSnackbar('Erro ao gerar relatório. Verifique os dados da ação.', { variant: 'error' });
+        } finally {
+            setGerando(false);
+        }
+    };
+
     const hasActiveFilters = filterNomeAcao || filterStatus || filterMunicipio || filterEstado ||
         filterDataInicio || filterDataFim || filterCustoMin || filterCustoMax;
 
@@ -296,7 +344,22 @@ const Relatorios: React.FC = () => {
                                 Análise completa de custos, atendimentos e métricas
                             </Typography>
                         </Box>
-                        <Box sx={{ display: 'flex', gap: 2 }}>
+                        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                            {/* C1: Botão Prestação de Contas */}
+                            <Button
+                                variant="contained"
+                                startIcon={gerando ? <CircularProgress size={16} color="inherit" /> : <FileDown size={18} />}
+                                onClick={() => setDialogPrestacao(true)}
+                                disabled={gerando}
+                                sx={{
+                                    background: 'linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)',
+                                    color: 'white', textTransform: 'none', fontWeight: 700,
+                                    borderRadius: '10px', px: 2.5, whiteSpace: 'nowrap',
+                                    '&:hover': { background: 'linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 100%)' },
+                                }}
+                            >
+                                {gerando ? 'Gerando...' : 'Prestação de Contas (PDF)'}
+                            </Button>
                             <TextField
                                 select
                                 size="small"
@@ -628,11 +691,12 @@ const Relatorios: React.FC = () => {
                                 <Typography variant="h6" sx={{ color: expressoTheme.colors.primaryDark, fontWeight: 600, mb: 2 }}>Distribuição de Atendimentos</Typography>
                                 <ResponsiveContainer width="100%" height="85%">
                                     <PieChart>
-                                        <Pie data={dataAtendimentos} cx="50%" cy="50%" labelLine={true} label={({ percent, name }) => `${name}: ${(percent * 100).toFixed(0)}%`} outerRadius={70} dataKey="value">
+                                        <Pie data={dataAtendimentos} cx="50%" cy="50%" labelLine={false} label={false} outerRadius={70} dataKey="value">
                                             {dataAtendimentos.map((entry, index) => (
                                                 <Cell key={`cell-${index}`} fill={entry.color} />
                                             ))}
                                         </Pie>
+                                        <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '12px', fontWeight: 600, color: '#475569' }} iconType="circle" />
                                         <Tooltip
                                             wrapperStyle={{ zIndex: 9999, overflow: 'visible' }}
                                             content={({ active, payload }) => {
@@ -789,11 +853,12 @@ const Relatorios: React.FC = () => {
                                 </Typography>
                                 <ResponsiveContainer width="100%" height="85%">
                                     <PieChart>
-                                        <Pie data={examesPorCidade} cx="50%" cy="50%" labelLine={false} label={({ municipio, percent }) => `${municipio} ${(percent * 100).toFixed(0)}%`} outerRadius={90} dataKey="quantidade">
+                                        <Pie data={examesPorCidade} cx="50%" cy="50%" labelLine={false} label={false} outerRadius={90} dataKey="quantidade" nameKey="municipio">
                                             {examesPorCidade.map((_, index) => (
                                                 <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                                             ))}
                                         </Pie>
+                                        <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '11px', fontWeight: 600, color: '#475569' }} />
                                         <Tooltip
                                             wrapperStyle={{ zIndex: 9999, overflow: 'visible' }}
                                             content={({ active, payload }) => {
@@ -880,11 +945,12 @@ const Relatorios: React.FC = () => {
                                 </Typography>
                                 <ResponsiveContainer width="100%" height="85%">
                                     <PieChart>
-                                        <Pie data={examesPorGenero} cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={5} dataKey="quantidade" label>
+                                        <Pie data={examesPorGenero} cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={5} dataKey="quantidade" nameKey="genero" labelLine={false} label={false}>
                                             {examesPorGenero.map((_, index) => (
                                                 <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                                             ))}
                                         </Pie>
+                                        <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '11px', fontWeight: 600, color: '#475569' }} />
                                         <Tooltip
                                             wrapperStyle={{ zIndex: 9999, overflow: 'visible' }}
                                             content={({ active, payload }) => {
@@ -1028,6 +1094,90 @@ const Relatorios: React.FC = () => {
                     </Grid>
                 </Grid>
             </Container>
+
+            {/* C1: Dialog Prestação de Contas */}
+            <Dialog open={dialogPrestacao} onClose={() => !gerando && setDialogPrestacao(false)} maxWidth="sm" fullWidth
+                PaperProps={{ sx: { borderRadius: '16px' } }}>
+                <DialogTitle sx={{
+                    background: 'linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)',
+                    color: 'white', fontWeight: 700,
+                    display: 'flex', alignItems: 'center', gap: 1.5,
+                }}>
+                    <FileDown size={20} /> Relatório de Prestação de Contas
+                </DialogTitle>
+                <DialogContent sx={{ pt: '24px !important', px: 3 }}>
+                    <Typography sx={{ fontSize: '0.82rem', color: '#64748b', mb: 2 }}>
+                        Gera PDF completo com capa, BPA-I, análise demográfica, custos e relação nominal.
+                    </Typography>
+                    <Grid container spacing={2}>
+                        <Grid item xs={12}>
+                            <TextField select fullWidth size="small" label="Ação *"
+                                value={prestacaoForm.acaoId}
+                                onChange={e => {
+                                    const ac = acoes.find((a: any) => a.id === e.target.value);
+                                    setPrestacaoForm(f => ({
+                                        ...f,
+                                        acaoId: e.target.value,
+                                        dataInicio: ac?.data_inicio ? ac.data_inicio.split('T')[0] : '',
+                                        dataFim: ac?.data_fim ? ac.data_fim.split('T')[0] : '',
+                                        numeroProcesso: ac?.numero_processo || '',
+                                        loteRegiao: ac?.lote_regiao || '',
+                                    }));
+                                }}>
+                                {acoes.map((a: any) => (
+                                    <MenuItem key={a.id} value={a.id}>
+                                        #{a.numero_acao} — {a.nome} ({a.municipio})
+                                    </MenuItem>
+                                ))}
+                            </TextField>
+                        </Grid>
+                        <Grid item xs={6}>
+                            <TextField fullWidth size="small" type="date" label="Período Início"
+                                InputLabelProps={{ shrink: true }}
+                                value={prestacaoForm.dataInicio}
+                                onChange={e => setPrestacaoForm(f => ({ ...f, dataInicio: e.target.value }))} />
+                        </Grid>
+                        <Grid item xs={6}>
+                            <TextField fullWidth size="small" type="date" label="Período Fim"
+                                InputLabelProps={{ shrink: true }}
+                                value={prestacaoForm.dataFim}
+                                onChange={e => setPrestacaoForm(f => ({ ...f, dataFim: e.target.value }))} />
+                        </Grid>
+                        <Grid item xs={12}>
+                            <TextField fullWidth size="small" label="Nº do Processo/Contrato"
+                                value={prestacaoForm.numeroProcesso}
+                                onChange={e => setPrestacaoForm(f => ({ ...f, numeroProcesso: e.target.value }))}
+                                placeholder="Ex: 001/2026" />
+                        </Grid>
+                        <Grid item xs={12}>
+                            <TextField fullWidth size="small" label="Lote / Região"
+                                value={prestacaoForm.loteRegiao}
+                                onChange={e => setPrestacaoForm(f => ({ ...f, loteRegiao: e.target.value }))}
+                                placeholder="Ex: Lote 3 — Interior MA" />
+                        </Grid>
+                        <Grid item xs={12}>
+                            <TextField fullWidth size="small" multiline rows={2} label="Intercorrências (opcional)"
+                                value={prestacaoForm.intercorrencias}
+                                onChange={e => setPrestacaoForm(f => ({ ...f, intercorrencias: e.target.value }))}
+                                placeholder="Registre qualquer ocorrência relevante do período..." />
+                        </Grid>
+                    </Grid>
+                </DialogContent>
+                <DialogActions sx={{ p: 3, gap: 1.5 }}>
+                    <Button onClick={() => setDialogPrestacao(false)} disabled={gerando}
+                        sx={{ color: '#64748b', textTransform: 'none' }}>Cancelar</Button>
+                    <Button variant="contained" onClick={handleGerarPrestacao}
+                        disabled={!prestacaoForm.acaoId || gerando}
+                        startIcon={gerando ? <CircularProgress size={16} color="inherit" /> : <FileDown size={16} />}
+                        sx={{
+                            background: 'linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)',
+                            color: 'white', fontWeight: 700, textTransform: 'none',
+                            borderRadius: '10px', px: 3,
+                        }}>
+                        {gerando ? 'Gerando PDF...' : 'Gerar PDF'}
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </Box>
     );
 };

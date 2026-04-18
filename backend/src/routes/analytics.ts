@@ -259,10 +259,32 @@ router.get('/dashboard', authenticate, async (req: Request, res: Response) => {
             WHERE re.data_realizacao BETWEEN :dataInicio AND :dataFim
         `, { type: 'SELECT', replacements: { dataInicio: dataInicio.toISOString(), dataFim: dataFim.toISOString() } });
 
+        // L2-46: Comparativo Financeiro SUS vs Custo Real
+        const sqlEconomia = `
+            SELECT SUM(ce.valor_unitario) as total_sus
+            FROM inscricoes i
+            INNER JOIN cursos_exames ce ON i.curso_exame_id = ce.id
+            WHERE i.status = 'atendido'
+              AND i.created_at BETWEEN :dataInicio AND :dataFim
+        `;
+        const resultEconomia = await sequelize.query(sqlEconomia, { type: 'SELECT', replacements: { dataInicio: dataInicio.toISOString(), dataFim: dataFim.toISOString() } });
+        const totalSusEstimado = Number((resultEconomia as any)[0]?.total_sus || 0);
+
+        const sqlCusto = `
+            SELECT SUM(a.custo_total) as total_custo
+            FROM acoes a
+            WHERE a.data_inicio BETWEEN :dataInicio AND :dataFim
+        `;
+        const resultCusto = await sequelize.query(sqlCusto, { type: 'SELECT', replacements: { dataInicio: dataInicio.toISOString(), dataFim: dataFim.toISOString() } });
+        const totalCustoReal = Number((resultCusto as any)[0]?.total_custo || 0);
+
         res.json({
             totalExames,
             examesMes,
             cidadesAtendidas: (cidadesAtendidas as any)[0]?.total || 0,
+            economiaEstimada: totalSusEstimado - totalCustoReal,
+            totalSusEstimado,
+            totalCustoReal,
             periodo: {
                 inicio: dataInicio,
                 fim: dataFim,

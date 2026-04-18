@@ -5,6 +5,7 @@ import { LogOut, Stethoscope } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../../store/slices/authSlice';
 import { expressoTheme } from '../../theme/expressoTheme';
+import NotificacaoSino from '../shared/NotificacaoSino';
 
 const MedicoLayout: React.FC = () => {
     const navigate = useNavigate();
@@ -88,6 +89,7 @@ const MedicoLayout: React.FC = () => {
                                 },
                             }}
                         />
+                        <NotificacaoSino />
                         <Tooltip title="Sair do sistema">
                             <IconButton
                                 onClick={handleLogout}

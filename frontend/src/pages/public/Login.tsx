@@ -10,9 +10,18 @@ import {
     Link,
     InputAdornment,
     IconButton,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    List,
+    ListItem,
+    ListItemButton,
+    ListItemIcon,
+    ListItemText,
 } from '@mui/material';
 import { motion } from 'framer-motion';
-import { Lock, User, Eye, EyeOff, Truck } from 'lucide-react';
+import { Lock, User, Eye, EyeOff, Globe, Shield, Users } from 'lucide-react';
 import { useSnackbar } from 'notistack';
 import api from '../../services/api';
 import { formatCPF } from '../../utils/formatters';
@@ -27,6 +36,10 @@ const Login: React.FC = () => {
     const [senha, setSenha] = useState('');
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+    
+    // Multi-profile auth state
+    const [openProfileModal, setOpenProfileModal] = useState(false);
+    const [availableProfiles, setAvailableProfiles] = useState<any[]>([]);
 
     const handleCpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
@@ -35,23 +48,17 @@ const Login: React.FC = () => {
         setCpf(formatted);
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-
-        if (!cpf) {
-            enqueueSnackbar('Informe o CPF', { variant: 'error' });
-            return;
-        }
-
-        if (!senha) {
-            enqueueSnackbar('Informe a senha', { variant: 'error' });
-            return;
-        }
-
+    const performLogin = async (perfilSelecionado?: string) => {
         setLoading(true);
         try {
             const cpfLimpo = cpf.replace(/\D/g, '');
-            const response = await api.post('/auth/login', { cpf: cpfLimpo, senha });
+            const response = await api.post('/auth/login', { cpf: cpfLimpo, senha, perfilSelecionado });
+
+            if (response.data.requireProfileSelection) {
+                setAvailableProfiles(response.data.profiles);
+                setOpenProfileModal(true);
+                return;
+            }
 
             dispatch(loginSuccess({
                 user: response.data.user,
@@ -59,6 +66,8 @@ const Login: React.FC = () => {
             }));
 
             enqueueSnackbar('Login realizado com sucesso!', { variant: 'success' });
+
+            setOpenProfileModal(false);
 
             setTimeout(() => {
                 if (response.data.user.tipo === 'admin') {
@@ -79,6 +88,22 @@ const Login: React.FC = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (!cpf) {
+            enqueueSnackbar('Informe o CPF', { variant: 'error' });
+            return;
+        }
+
+        if (!senha) {
+            enqueueSnackbar('Informe a senha', { variant: 'error' });
+            return;
+        }
+
+        await performLogin();
     };
 
     return (
@@ -139,7 +164,7 @@ const Login: React.FC = () => {
                                         boxShadow: `0 8px 24px ${systemTruckTheme.colors.primary}40`,
                                     }}
                                 >
-                                    <Truck size={40} color="#fff" />
+                                    <Globe size={40} color="#fff" />
                                 </Box>
                             </motion.div>
 
@@ -154,7 +179,7 @@ const Login: React.FC = () => {
                                     mb: 1,
                                 }}
                             >
-                                System Truck
+                                Gestão sobre Rodas
                             </Typography>
 
                             <Typography
@@ -339,6 +364,59 @@ const Login: React.FC = () => {
                     </Box>
                 </motion.div>
             </Container>
+
+            {/* Profile Selection Modal */}
+            <Dialog 
+                open={openProfileModal} 
+                onClose={() => setOpenProfileModal(false)}
+                PaperProps={{
+                    sx: { borderRadius: '16px', p: 1, minWidth: '350px' }
+                }}
+            >
+                <DialogTitle sx={{ fontWeight: 700, color: systemTruckTheme.colors.primaryDark, textAlign: 'center' }}>
+                    Selecione o seu Perfil
+                </DialogTitle>
+                <DialogContent>
+                    <Typography variant="body2" sx={{ mb: 2, textAlign: 'center', color: 'text.secondary' }}>
+                        Identificamos múltiplos vínculos para este CPF. Como deseja acessar o Gestão sobre Rodas agora?
+                    </Typography>
+                    <List>
+                        {availableProfiles.map((p, index) => {
+                            const isStaff = p.tipo !== 'cidadao';
+                            return (
+                                <ListItem disablePadding key={index} sx={{ mb: 1 }}>
+                                    <ListItemButton
+                                        onClick={() => performLogin(p.tipo)}
+                                        sx={{
+                                            borderRadius: '12px',
+                                            border: '1px solid',
+                                            borderColor: isStaff ? systemTruckTheme.colors.primary : '#e2e8f0',
+                                            background: isStaff ? 'rgba(17, 153, 142, 0.05)' : '#fff',
+                                            '&:hover': {
+                                                background: isStaff ? 'rgba(17, 153, 142, 0.1)' : '#f8fafc',
+                                            }
+                                        }}
+                                    >
+                                        <ListItemIcon>
+                                            {isStaff ? <Shield color={systemTruckTheme.colors.primary} /> : <Users color="#64748b" />}
+                                        </ListItemIcon>
+                                        <ListItemText 
+                                            primary={p.nome} 
+                                            secondary={isStaff ? `Acesso de Equipe (${p.tipo})` : 'Acesso de Paciente'} 
+                                            primaryTypographyProps={{ fontWeight: 600, color: isStaff ? systemTruckTheme.colors.primaryDark : 'text.primary' }}
+                                        />
+                                    </ListItemButton>
+                                </ListItem>
+                            );
+                        })}
+                    </List>
+                </DialogContent>
+                <DialogActions sx={{ justifyContent: 'center', pb: 2 }}>
+                    <Button onClick={() => setOpenProfileModal(false)} sx={{ color: 'text.secondary', textTransform: 'none' }}>
+                        Cancelar
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </Box>
     );
 };

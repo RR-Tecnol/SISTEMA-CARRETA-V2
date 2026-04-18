@@ -8,6 +8,7 @@ import path from 'path';
 import fs from 'fs';
 import bcrypt from 'bcrypt';
 import { sendWelcomeEmail, sendResultadoComAnexo } from '../utils/email';
+import { registrarAuditoria, extrairDadosUsuario } from '../utils/auditoria';
 
 
 const router = Router();
@@ -61,7 +62,10 @@ router.get('/autocomplete-cpf', authenticate, async (req: AuthRequest, res: Resp
 
         const cidadaos = await Cidadao.findAll({
             where: {
-                cpf: { [Op.like]: `${q}%` }
+                [Op.or]: [
+                    { cpf: { [Op.like]: `%${q}%` } },
+                    { nome_completo: { [Op.like]: `%${q}%` } }
+                ]
             },
             limit: 10,
             attributes: ['id', 'nome_completo', 'cpf', 'email']
@@ -236,6 +240,14 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
         const cidadaoData = novoCidadao.toJSON();
         delete cidadaoData.senha;
 
+        registrarAuditoria({
+            ...extrairDadosUsuario(req),
+            acao: 'CIDADAO_CRIADO',
+            tabela_afetada: 'cidadaos',
+            registro_id: novoCidadao.id,
+            descricao: `Cidadão criado: ${nome_completo} (${formattedCPF})`,
+        }).catch(() => {});
+
         res.status(201).json({
             message: 'Cidadão criado com sucesso',
             id: novoCidadao.id,
@@ -281,6 +293,14 @@ router.patch('/:id/redefinir-senha', authenticate, async (req: AuthRequest, res:
             );
             emailEnviado = !!result;
         }
+
+        registrarAuditoria({
+            ...extrairDadosUsuario(req),
+            acao: 'SENHA_REDEFINIDA',
+            tabela_afetada: 'cidadaos',
+            registro_id: cidadao.id,
+            descricao: `Senha redefinida pelo admin para cidadão ${(cidadao as any).nome_completo}`,
+        }).catch(() => {});
 
         res.json({
             message: 'Senha redefinida com sucesso',
@@ -396,6 +416,7 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
             municipio,
             estado,
             cartao_sus,
+            senha,
         } = req.body;
 
         // Find cidadao
@@ -410,8 +431,7 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
             ? (cartao_sus ? cartao_sus.replace(/\D/g, '').slice(0, 15) || null : null)
             : cidadao.cartao_sus;
 
-        // Update cidadao data
-        await cidadao.update({
+        const updateData: any = {
             nome_completo: nome_completo || cidadao.nome_completo,
             nome_mae: nome_mae !== undefined ? nome_mae : cidadao.nome_mae,
             data_nascimento: data_nascimento || cidadao.data_nascimento,
@@ -427,11 +447,25 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
             municipio: municipio || cidadao.municipio,
             estado: estado || cidadao.estado,
             cartao_sus: cartaoSusAtualizado,
-        });
+        };
+
+        if (senha && senha.trim() !== '') {
+            updateData.senha = await bcrypt.hash(senha.trim(), 10);
+        }
+
+        await cidadao.update(updateData);
 
         // Return updated cidadao without senha
         const cidadaoData = cidadao.toJSON();
         delete cidadaoData.senha;
+
+        registrarAuditoria({
+            ...extrairDadosUsuario(req),
+            acao: 'CIDADAO_EDITADO',
+            tabela_afetada: 'cidadaos',
+            registro_id: cidadao.id,
+            descricao: `Cidadão editado: ${cidadao.nome_completo}`,
+        }).catch(() => {});
 
         res.json({
             message: 'Cidadão atualizado com sucesso',
@@ -440,6 +474,56 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
     } catch (error) {
         console.error('Error updating cidadao:', error);
         res.status(500).json({ error: 'Erro ao atualizar cidadão' });
+    }
+});
+
+/**
+ * GET /api/cidadaos/check-duplicidade
+ * Verificar se CPF ou Nome já existem (para prevenção de duplicados no cadastro)
+ */
+router.get('/check-duplicidade', authenticate, async (req: AuthRequest, res: Response) => {
+    try {
+        if (!isAdminOrEstrada(req)) {
+            res.status(403).json({ error: 'Acesso negado' });
+            return;
+        }
+
+        const { cpf, nome } = req.query;
+        let whereCondition: any = {};
+        const conditions = [];
+
+        if (cpf && typeof cpf === 'string') {
+            const cleanCPF = cpf.replace(/\D/g, '');
+            const formattedCPF = cleanCPF.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4');
+            conditions.push({ cpf: cleanCPF }, { cpf: formattedCPF });
+        }
+
+        if (nome && typeof nome === 'string') {
+            conditions.push({ nome_completo: { [Op.iLike]: nome.trim() } });
+        }
+
+        if (conditions.length === 0) {
+            res.json({ duplicado: false });
+            return;
+        }
+
+        whereCondition[Op.or] = conditions;
+
+        const cidadao = await Cidadao.findOne({ where: whereCondition });
+
+        if (cidadao) {
+            const motivo = [];
+            let cCpf = cpf ? (cpf as string).replace(/\D/g,'') : '';
+            if (cCpf && cidadao.cpf.replace(/\D/g,'') === cCpf) motivo.push('CPF');
+            if (nome && cidadao.nome_completo.toLowerCase() === (nome as string).trim().toLowerCase()) motivo.push('Nome Completo');
+            
+            res.json({ duplicado: true, motivo: motivo.join(' e ') });
+        } else {
+            res.json({ duplicado: false });
+        }
+    } catch (error) {
+        console.error('Error checking duplicidade:', error);
+        res.status(500).json({ error: 'Erro ao verificar duplicidade' });
     }
 });
 

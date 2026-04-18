@@ -58,6 +58,7 @@
 | F7 | Médico vê apenas exames do seu tipo/especialidade | ✨ Feature | 🟡 Médio | 2 | ✅ Implementado |
 | F8 | Atualização automática das listas sem refresh | ✨ Feature | 🟢 Fácil | 2 | ✅ Implementado |
 | F9 | Cadastrar equipamentos eletrônicos por carreta | ✨ Feature | 🔴 Complexo | 4 | ⏳ Pendente |
+| F10 | Integração CADSUS/SERPRO (Autopreencher CPF) | ✨ Feature | 🔴 Complexo | 5 | ⏸️ Aguarda alinhamento |
 
 ---
 
@@ -837,6 +838,22 @@ npm install react-to-print
 
 ---
 
+### 5.4 — Integração CADSUS/SERPRO (Autopreenchimento de CPF) [F10] 🆕
+
+> ⚠️ **STATUS: AGUARDA ALINHAMENTO COM A GESTÃO** — Não implementar código ainda.
+
+**O que é:** Puxar automaticamente dados (Nome, Data Nasc., Mãe) ao digitar um CPF virgem (não cadastrado), consultando bases externas para agilizar o atendimento na carreta.
+
+**Opções possíveis:**
+1. **CADSUS (Ministério da Saúde):** Totalmente gratuito, mas burocrático. Requer e-CNPJ, código CNES das carretas e homologação formal no RNDS/Governo Federam.
+2. **SERPRO (Receita Federal):** Pago por milheiro de consultas. Tecnologicamente mais rápido de conseguir chave, mas custo contínuo.
+
+**Nota LGPD:** É 100% legal, desde que restrito à área administrativa (acesso por profissional da equipe logado) com finalidade de assistência à saúde, gerando log de auditoria. **Nunca habilitar no portal aberto ao cidadão.**
+
+**Onde mexer (quando liberado):** Nova rota no backend que integra via API KEY/Certificado, atrelada à tela de cadastro manual.
+
+---
+
 ## 📦 RESUMO DE DEPENDÊNCIAS GRATUITAS
 
 | Biblioteca | Uso | Instalação |
@@ -965,6 +982,7 @@ backend/src/
   ⏸️ #8  Botão imprimir — aguardando modelos
   ⏸️     Criar templates de fichas digitais
   ⏸️     Instalar react-to-print
+  ⏸️ F10 Integração CADSUS/SERPRO — aguarda alinhamento
 ```
 
 ---
@@ -992,4 +1010,4 @@ node backend/create-backup.js
 
 ---
 
-*Documento atualizado em 06/04/2026 — v2.0 com 30 melhorias planejadas (16 originais + 14 novas)*
+*Documento atualizado em 10/04/2026 — v2.1 com 31 melhorias planejadas (16 originais + 15 novas)*

@@ -10,6 +10,10 @@ import {
     Chip,
     Button,
     Paper,
+    Dialog,
+    DialogContent,
+    DialogActions,
+    Fab
 } from '@mui/material';
 import {
     Favorite,
@@ -22,6 +26,11 @@ import {
     ArrowForward,
 } from '@mui/icons-material';
 import { Link as RouterLink } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { AlertTriangle, MapPin } from 'lucide-react';
+import { useSelector } from 'react-redux';
+import { useSnackbar } from 'notistack';
+import { getSocket } from '../../utils/socket';
 import api, { BASE_URL } from '../../services/api';
 
 interface NoticiaAPI {
@@ -38,8 +47,17 @@ interface NoticiaAPI {
 }
 
 const Portal: React.FC = () => {
+    const user = useSelector((state: any) => state.auth?.user);
+    const { enqueueSnackbar } = useSnackbar();
+
     const [noticias, setNoticias] = useState<NoticiaAPI[]>([]);
     const [youtubeVideo, setYoutubeVideo] = useState<{ id: string; title: string } | null>(null);
+
+    const [inscricoesAtivas, setInscricoesAtivas] = useState<any[]>([]);
+    const [inscricaoSelecionada, setInscricaoSelecionada] = useState<any | null>(null);
+    const [sosModalOpen, setSosModalOpen] = useState(false);
+    const [enviandoSos, setEnviandoSos] = useState(false);
+    const [emergenciaEnviadaId, setEmergenciaEnviadaId] = useState<string | null>(null);
 
     useEffect(() => {
         api.get('/noticias?limit=3')
@@ -53,7 +71,46 @@ const Portal: React.FC = () => {
                 if (id) setYoutubeVideo({ id, title });
             })
             .catch(() => { });
+
+        api.get('/inscricoes/me')
+            .then(res => {
+                if (res.data && res.data.length > 0) {
+                    const ativas = res.data.filter((i: any) => i.status === 'pendente' || i.status === 'em_andamento');
+                    
+                    if (ativas.length > 0) {
+                        setInscricoesAtivas(ativas);
+                        setInscricaoSelecionada(ativas[0]);
+                    } else {
+                        setInscricoesAtivas([res.data[0]]);
+                        setInscricaoSelecionada(res.data[0]);
+                    }
+                }
+            })
+            .catch(() => { });
     }, []);
+
+    const handleTriggerEmergency = () => {
+        if (!user?.id || !inscricaoSelecionada || emergenciaEnviadaId) return;
+
+        setEnviandoSos(true);
+        const socket = getSocket();
+        socket.emit('emergencia', {
+            acao_id: inscricaoSelecionada.acao.id,
+            cidadao_id: user.id,
+            nome: user.nome || user.nome_completo || 'Cidadão',
+        });
+        
+        setTimeout(() => {
+            setEnviandoSos(false);
+            setSosModalOpen(false);
+            setEmergenciaEnviadaId(inscricaoSelecionada.id);
+            enqueueSnackbar('🚨 SINAL DE EMERGÊNCIA ENVIADO! Fique calmo, a equipe médica foi notificada.', {
+                variant: 'error',
+                autoHideDuration: 10000,
+            });
+            setTimeout(() => setEmergenciaEnviadaId(null), 60000);
+        }, 800);
+    };
 
     const getImgSrc = (url?: string) => {
         if (!url) return '';
@@ -444,6 +501,116 @@ const Portal: React.FC = () => {
                     </Box>
                 )}
             </Container>
+
+            {/* BOTAO SOS FLOAT */}
+            {inscricaoSelecionada && !emergenciaEnviadaId && (
+                <Box sx={{ position: 'fixed', bottom: 40, right: 40, zIndex: 9999 }}>
+                    <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ repeat: Infinity, duration: 1.8 }}>
+                        <Fab 
+                            aria-label="Emergência SOS"
+                            onClick={() => setSosModalOpen(true)}
+                            sx={{ 
+                                width: 85, height: 85, 
+                                background: 'radial-gradient(circle, #ff4b2b 0%, #dc2626 100%)',
+                                color: '#fff',
+                                boxShadow: '0 0 25px rgba(220, 38, 38, 0.7)',
+                                '&:hover': { background: '#b91c1c' }
+                            }}
+                        >
+                            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mt: 0.5 }}>
+                                <AlertTriangle size={32} color="#fff" />
+                                <Typography sx={{ color: '#fff', fontWeight: 900, fontSize: '0.85rem', mt: 0.3, letterSpacing: '0.5px' }}>SOS</Typography>
+                            </Box>
+                        </Fab>
+                    </motion.div>
+                </Box>
+            )}
+
+            {/* Modal de Confirmação do SOS */}
+            {inscricaoSelecionada && (
+                <Dialog 
+                    open={sosModalOpen} 
+                    onClose={() => !enviandoSos && setSosModalOpen(false)}
+                    PaperProps={{ sx: { borderRadius: '24px', p: 1, maxWidth: '400px' } }}
+                >
+                    <DialogContent sx={{ textAlign: 'center', p: 4 }}>
+                        <motion.div animate={{ rotate: [0, -10, 10, -10, 10, 0] }} transition={{ duration: 0.5 }}>
+                            <Box sx={{ width: 80, height: 80, background: '#fee2e2', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 3 }}>
+                                <AlertTriangle size={44} color="#dc2626" />
+                            </Box>
+                        </motion.div>
+                        <Typography variant="h5" sx={{ fontWeight: 900, color: '#dc2626', mb: 2 }}>
+                            Emergência Médica
+                        </Typography>
+                        <Typography sx={{ color: '#475569', fontSize: '0.95rem', mb: 3, px: 1 }}>
+                            Você está solicitando <strong>assistência imediata</strong>. A equipe da ação estruturada será alertada.
+                        </Typography>
+                        
+                        {inscricoesAtivas.length > 1 ? (
+                            <Box sx={{ mb: 3, textAlign: 'left' }}>
+                                <Typography sx={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 700, mb: 1, textTransform: 'uppercase' }}>
+                                    Em qual local você precisa de ajuda?
+                                </Typography>
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                    {inscricoesAtivas.map((insc: any) => (
+                                        <Box 
+                                            key={insc.id}
+                                            onClick={() => setInscricaoSelecionada(insc)}
+                                            sx={{ 
+                                                p: 1.5, borderRadius: '10px', 
+                                                border: inscricaoSelecionada.id === insc.id ? '2px solid #dc2626' : '1px solid #cbd5e1',
+                                                background: inscricaoSelecionada.id === insc.id ? '#fef2f2' : '#fff',
+                                                cursor: 'pointer',
+                                                display: 'flex', alignItems: 'center', gap: 1.5
+                                            }}
+                                        >
+                                            <MapPin size={20} color={inscricaoSelecionada.id === insc.id ? '#dc2626' : '#64748b'} />
+                                            <Typography sx={{ fontSize: '0.85rem', fontWeight: inscricaoSelecionada.id === insc.id ? 700 : 500, color: '#334155' }}>
+                                                {insc.acao?.nome || 'Unidade'}
+                                            </Typography>
+                                        </Box>
+                                    ))}
+                                </Box>
+                            </Box>
+                        ) : (
+                            <Box sx={{ background: '#f8fafc', p: 2, borderRadius: '12px', mb: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, border: '1px solid #e2e8f0' }}>
+                                <MapPin size={18} color="#64748b" />
+                                <Box>
+                                    <Typography sx={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase' }}>Unidade / Ação Vinculada</Typography>
+                                    <Typography sx={{ fontSize: '0.9rem', color: '#334155', fontWeight: 700 }}>
+                                        {inscricaoSelecionada.acao?.nome || 'Posto Médico Base'}
+                                    </Typography>
+                                </Box>
+                            </Box>
+                        )}
+                        
+                        <Typography sx={{ fontSize: '0.75rem', color: '#94a3b8', fontStyle: 'italic' }}>
+                            Use este botão APENAS em casos de necessidade médica urgente.
+                        </Typography>
+                    </DialogContent>
+                    <DialogActions sx={{ justifyContent: 'center', pb: 4, px: 3, gap: 2 }}>
+                        <Button 
+                            variant="outlined" 
+                            color="inherit" 
+                            onClick={() => setSosModalOpen(false)}
+                            disabled={enviandoSos}
+                            sx={{ borderRadius: '12px', px: 3, fontWeight: 700 }}
+                        >
+                            Cancelar
+                        </Button>
+                        <Button 
+                            variant="contained" 
+                            color="error" 
+                            onClick={handleTriggerEmergency}
+                            disabled={enviandoSos}
+                            sx={{ borderRadius: '12px', px: 3, fontWeight: 800, background: '#dc2626', boxShadow: '0 8px 20px rgba(220, 38, 38, 0.4)' }}
+                        >
+                            {enviandoSos ? 'Enviando Alerta...' : 'CONFIRMAR EMERGÊNCIA'}
+                        </Button>
+                    </DialogActions>
+                </Dialog>
+            )}
+
         </Box>
     );
 };

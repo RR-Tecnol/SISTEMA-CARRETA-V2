@@ -1,4 +1,4 @@
-// Tema corporativo System Truck
+// Tema corporativo Gestão sobre Rodas
 export const systemTruckTheme = {
     colors: {
         // Cores principais

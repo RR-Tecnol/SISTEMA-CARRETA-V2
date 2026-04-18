@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     BarChart, Bar, PieChart, Pie, Cell,
-    XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
+    XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
 import {
-    Activity, TrendingUp, Users, MapPin, RefreshCw
+    Activity, TrendingUp, MapPin, RefreshCw
 } from 'lucide-react';
 import analyticsService from '../../services/analytics';
 import './BI.css';
@@ -195,11 +195,12 @@ const BI: React.FC = () => {
                         gradient: 'linear-gradient(135deg, #F59E0B 0%, #EF4444 100%)'
                     },
                     {
-                        icon: Users,
-                        label: 'Crescimento',
-                        value: '+12%',
+                        icon: TrendingUp,
+                        label: 'Economia ao Estado (R$)',
+                        value: (metrics.economiaEstimada || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
                         color: '#EC4899',
-                        gradient: 'linear-gradient(135deg, #EC4899 0%, #8B5CF6 100%)'
+                        gradient: 'linear-gradient(135deg, #EC4899 0%, #8B5CF6 100%)',
+                        title: `Custo SUS Estimado: ${(metrics.totalSusEstimado || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL'})} | Custo Real: ${(metrics.totalCustoReal || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL'})}`
                     },
                 ].map((metric, index) => {
                     const Icon = metric.icon;
@@ -207,6 +208,7 @@ const BI: React.FC = () => {
                         <motion.div
                             key={index}
                             className="metric-card"
+                            title={metric.title}
                             variants={itemVariants}
                             whileHover={{
                                 y: -10,
@@ -277,15 +279,17 @@ const BI: React.FC = () => {
                                 cx="50%"
                                 cy="50%"
                                 labelLine={false}
-                                label={({ municipio, percent }) => `${municipio} ${(percent * 100).toFixed(0)}% `}
+                                label={false}
                                 outerRadius={100}
                                 fill="#8884d8"
                                 dataKey="quantidade"
+                                nameKey="municipio"
                             >
                                 {examesPorCidade.map((_, index) => (
                                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                 ))}
                             </Pie>
+                            <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '11px', color: '#cbd5e1' }} iconType="circle" />
                             <Tooltip
                                 contentStyle={{
                                     background: 'rgba(15, 23, 42, 0.9)',
@@ -313,12 +317,15 @@ const BI: React.FC = () => {
                                 fill="#8884d8"
                                 paddingAngle={5}
                                 dataKey="quantidade"
-                                label
+                                nameKey="genero"
+                                labelLine={false}
+                                label={false}
                             >
                                 {examesPorGenero.map((_, index) => (
                                     <Cell key={`cell - ${index} `} fill={COLORS[index % COLORS.length]} />
                                 ))}
                             </Pie>
+                            <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '11px', color: '#cbd5e1' }} iconType="circle" />
                             <Tooltip
                                 contentStyle={{
                                     background: 'rgba(15, 23, 42, 0.9)',

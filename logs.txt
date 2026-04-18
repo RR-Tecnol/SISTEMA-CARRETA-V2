@@ -1,0 +1,201 @@
+﻿      at parseErrorMessage (/app/node_modules/pg-protocol/dist/parser.js:305:11)
+      at Parser.handlePacket (/app/node_modules/pg-protocol/dist/parser.js:143:27)
+      at Parser.parse (/app/node_modules/pg-protocol/dist/parser.js:37:38)
+      at Socket.<anonymous> (/app/node_modules/pg-protocol/dist/index.js:11:42)
+      at Socket.emit (node:events:517:28)
+      at addChunk (node:internal/streams/readable:368:12)
+      at readableAddChunk (node:internal/streams/readable:341:9)
+      at Readable.push (node:internal/streams/readable:278:10)
+      at TCP.onStreamRead (node:internal/stream_base_commons:190:23) {
+    length: 118,
+    severity: 'ERROR',
+    code: '42703',
+    detail: undefined,
+    hint: undefined,
+    position: '25',
+    internalPosition: undefined,
+    internalQuery: undefined,
+    where: undefined,
+    schema: undefined,
+    table: undefined,
+    column: undefined,
+    dataType: undefined,
+    constraint: undefined,
+    file: 'parse_relation.c',
+    line: '3665',
+    routine: 'errorMissingColumn',
+    sql: `SELECT "id", "acao_id", "usar_ficha_digital", "permitir_impressao", "usar_painel_tv", "notif_email", "notif_sms", "notif_whatsapp", "notif_ao_gerar_ficha", "notif_chegando", "notif_quantidade_aviso", "notif_chamado", "notif_retorno_estacao", "sms_provider", "whatsapp_provider", "created_at" AS "createdAt", "updated_at" AS "updatedAt" FROM "configuracoes_fila_acao" AS "ConfiguracaoFilaAcao" WHERE "ConfiguracaoFilaAcao"."acao_id" = 'f95f91ed-a679-4d12-91b8-c309e4797243';`,
+    parameters: undefined
+  },
+  sql: `SELECT "id", "acao_id", "usar_ficha_digital", "permitir_impressao", "usar_painel_tv", "notif_email", "notif_sms", "notif_whatsapp", "notif_ao_gerar_ficha", "notif_chegando", "notif_quantidade_aviso", "notif_chamado", "notif_retorno_estacao", "sms_provider", "whatsapp_provider", "created_at" AS "createdAt", "updated_at" AS "updatedAt" FROM "configuracoes_fila_acao" AS "ConfiguracaoFilaAcao" WHERE "ConfiguracaoFilaAcao"."acao_id" = 'f95f91ed-a679-4d12-91b8-c309e4797243';`,
+  parameters: {}
+}
+Erro ao finalizar atendimento: Error
+    at Query.run (/app/node_modules/sequelize/lib/dialects/postgres/query.js:50:25)
+    at /app/node_modules/sequelize/lib/sequelize.js:315:28
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async PostgresQueryInterface.select (/app/node_modules/sequelize/lib/dialects/abstract/query-interface.js:407:12)
+    at async ConfiguracaoFilaAcao.findAll (/app/node_modules/sequelize/lib/model.js:1140:21)
+    at async ConfiguracaoFilaAcao.findOne (/app/node_modules/sequelize/lib/model.js:1240:12)
+    at async /app/dist/routes/medicoMonitoring.js:343:36 {
+  name: 'SequelizeDatabaseError',
+  parent: error: column "usar_ficha_digital" does not exist
+      at parseErrorMessage (/app/node_modules/pg-protocol/dist/parser.js:305:11)
+      at Parser.handlePacket (/app/node_modules/pg-protocol/dist/parser.js:143:27)
+      at Parser.parse (/app/node_modules/pg-protocol/dist/parser.js:37:38)
+      at Socket.<anonymous> (/app/node_modules/pg-protocol/dist/index.js:11:42)
+      at Socket.emit (node:events:517:28)
+      at addChunk (node:internal/streams/readable:368:12)
+      at readableAddChunk (node:internal/streams/readable:341:9)
+      at Readable.push (node:internal/streams/readable:278:10)
+      at TCP.onStreamRead (node:internal/stream_base_commons:190:23) {
+    length: 118,
+    severity: 'ERROR',
+    code: '42703',
+    detail: undefined,
+    hint: undefined,
+    position: '25',
+    internalPosition: undefined,
+    internalQuery: undefined,
+    where: undefined,
+    schema: undefined,
+    table: undefined,
+    column: undefined,
+    dataType: undefined,
+    constraint: undefined,
+    file: 'parse_relation.c',
+    line: '3665',
+    routine: 'errorMissingColumn',
+    sql: `SELECT "id", "acao_id", "usar_ficha_digital", "permitir_impressao", "usar_painel_tv", "notif_email", "notif_sms", "notif_whatsapp", "notif_ao_gerar_ficha", "notif_chegando", "notif_quantidade_aviso", "notif_chamado", "notif_retorno_estacao", "sms_provider", "whatsapp_provider", "created_at" AS "createdAt", "updated_at" AS "updatedAt" FROM "configuracoes_fila_acao" AS "ConfiguracaoFilaAcao" WHERE "ConfiguracaoFilaAcao"."acao_id" = 'f95f91ed-a679-4d12-91b8-c309e4797243';`,
+    parameters: undefined
+  },
+  original: error: column "usar_ficha_digital" does not exist
+      at parseErrorMessage (/app/node_modules/pg-protocol/dist/parser.js:305:11)
+      at Parser.handlePacket (/app/node_modules/pg-protocol/dist/parser.js:143:27)
+      at Parser.parse (/app/node_modules/pg-protocol/dist/parser.js:37:38)
+      at Socket.<anonymous> (/app/node_modules/pg-protocol/dist/index.js:11:42)
+      at Socket.emit (node:events:517:28)
+      at addChunk (node:internal/streams/readable:368:12)
+      at readableAddChunk (node:internal/streams/readable:341:9)
+      at Readable.push (node:internal/streams/readable:278:10)
+      at TCP.onStreamRead (node:internal/stream_base_commons:190:23) {
+    length: 118,
+    severity: 'ERROR',
+    code: '42703',
+    detail: undefined,
+    hint: undefined,
+    position: '25',
+    internalPosition: undefined,
+    internalQuery: undefined,
+    where: undefined,
+    schema: undefined,
+    table: undefined,
+    column: undefined,
+    dataType: undefined,
+    constraint: undefined,
+    file: 'parse_relation.c',
+    line: '3665',
+    routine: 'errorMissingColumn',
+    sql: `SELECT "id", "acao_id", "usar_ficha_digital", "permitir_impressao", "usar_painel_tv", "notif_email", "notif_sms", "notif_whatsapp", "notif_ao_gerar_ficha", "notif_chegando", "notif_quantidade_aviso", "notif_chamado", "notif_retorno_estacao", "sms_provider", "whatsapp_provider", "created_at" AS "createdAt", "updated_at" AS "updatedAt" FROM "configuracoes_fila_acao" AS "ConfiguracaoFilaAcao" WHERE "ConfiguracaoFilaAcao"."acao_id" = 'f95f91ed-a679-4d12-91b8-c309e4797243';`,
+    parameters: undefined
+  },
+  sql: `SELECT "id", "acao_id", "usar_ficha_digital", "permitir_impressao", "usar_painel_tv", "notif_email", "notif_sms", "notif_whatsapp", "notif_ao_gerar_ficha", "notif_chegando", "notif_quantidade_aviso", "notif_chamado", "notif_retorno_estacao", "sms_provider", "whatsapp_provider", "created_at" AS "createdAt", "updated_at" AS "updatedAt" FROM "configuracoes_fila_acao" AS "ConfiguracaoFilaAcao" WHERE "ConfiguracaoFilaAcao"."acao_id" = 'f95f91ed-a679-4d12-91b8-c309e4797243';`,
+  parameters: {}
+}
+Erro ao finalizar atendimento: Error
+    at Query.run (/app/node_modules/sequelize/lib/dialects/postgres/query.js:50:25)
+    at /app/node_modules/sequelize/lib/sequelize.js:315:28
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async PostgresQueryInterface.select (/app/node_modules/sequelize/lib/dialects/abstract/query-interface.js:407:12)
+    at async ConfiguracaoFilaAcao.findAll (/app/node_modules/sequelize/lib/model.js:1140:21)
+    at async ConfiguracaoFilaAcao.findOne (/app/node_modules/sequelize/lib/model.js:1240:12)
+    at async /app/dist/routes/medicoMonitoring.js:343:36 {
+  name: 'SequelizeDatabaseError',
+  parent: error: column "usar_ficha_digital" does not exist
+      at parseErrorMessage (/app/node_modules/pg-protocol/dist/parser.js:305:11)
+      at Parser.handlePacket (/app/node_modules/pg-protocol/dist/parser.js:143:27)
+      at Parser.parse (/app/node_modules/pg-protocol/dist/parser.js:37:38)
+      at Socket.<anonymous> (/app/node_modules/pg-protocol/dist/index.js:11:42)
+      at Socket.emit (node:events:517:28)
+      at addChunk (node:internal/streams/readable:368:12)
+      at readableAddChunk (node:internal/streams/readable:341:9)
+      at Readable.push (node:internal/streams/readable:278:10)
+      at TCP.onStreamRead (node:internal/stream_base_commons:190:23) {
+    length: 118,
+    severity: 'ERROR',
+    code: '42703',
+    detail: undefined,
+    hint: undefined,
+    position: '25',
+    internalPosition: undefined,
+    internalQuery: undefined,
+    where: undefined,
+    schema: undefined,
+    table: undefined,
+    column: undefined,
+    dataType: undefined,
+    constraint: undefined,
+    file: 'parse_relation.c',
+    line: '3665',
+    routine: 'errorMissingColumn',
+    sql: `SELECT "id", "acao_id", "usar_ficha_digital", "permitir_impressao", "usar_painel_tv", "notif_email", "notif_sms", "notif_whatsapp", "notif_ao_gerar_ficha", "notif_chegando", "notif_quantidade_aviso", "notif_chamado", "notif_retorno_estacao", "sms_provider", "whatsapp_provider", "created_at" AS "createdAt", "updated_at" AS "updatedAt" FROM "configuracoes_fila_acao" AS "ConfiguracaoFilaAcao" WHERE "ConfiguracaoFilaAcao"."acao_id" = 'f95f91ed-a679-4d12-91b8-c309e4797243';`,
+    parameters: undefined
+  },
+  original: error: column "usar_ficha_digital" does not exist
+      at parseErrorMessage (/app/node_modules/pg-protocol/dist/parser.js:305:11)
+      at Parser.handlePacket (/app/node_modules/pg-protocol/dist/parser.js:143:27)
+      at Parser.parse (/app/node_modules/pg-protocol/dist/parser.js:37:38)
+      at Socket.<anonymous> (/app/node_modules/pg-protocol/dist/index.js:11:42)
+      at Socket.emit (node:events:517:28)
+      at addChunk (node:internal/streams/readable:368:12)
+      at readableAddChunk (node:internal/streams/readable:341:9)
+      at Readable.push (node:internal/streams/readable:278:10)
+      at TCP.onStreamRead (node:internal/stream_base_commons:190:23) {
+    length: 118,
+    severity: 'ERROR',
+    code: '42703',
+    detail: undefined,
+    hint: undefined,
+    position: '25',
+    internalPosition: undefined,
+    internalQuery: undefined,
+    where: undefined,
+    schema: undefined,
+    table: undefined,
+    column: undefined,
+    dataType: undefined,
+    constraint: undefined,
+    file: 'parse_relation.c',
+    line: '3665',
+    routine: 'errorMissingColumn',
+    sql: `SELECT "id", "acao_id", "usar_ficha_digital", "permitir_impressao", "usar_painel_tv", "notif_email", "notif_sms", "notif_whatsapp", "notif_ao_gerar_ficha", "notif_chegando", "notif_quantidade_aviso", "notif_chamado", "notif_retorno_estacao", "sms_provider", "whatsapp_provider", "created_at" AS "createdAt", "updated_at" AS "updatedAt" FROM "configuracoes_fila_acao" AS "ConfiguracaoFilaAcao" WHERE "ConfiguracaoFilaAcao"."acao_id" = 'f95f91ed-a679-4d12-91b8-c309e4797243';`,
+    parameters: undefined
+  },
+  sql: `SELECT "id", "acao_id", "usar_ficha_digital", "permitir_impressao", "usar_painel_tv", "notif_email", "notif_sms", "notif_whatsapp", "notif_ao_gerar_ficha", "notif_chegando", "notif_quantidade_aviso", "notif_chamado", "notif_retorno_estacao", "sms_provider", "whatsapp_provider", "created_at" AS "createdAt", "updated_at" AS "updatedAt" FROM "configuracoes_fila_acao" AS "ConfiguracaoFilaAcao" WHERE "ConfiguracaoFilaAcao"."acao_id" = 'f95f91ed-a679-4d12-91b8-c309e4797243';`,
+  parameters: {}
+}
+[inscricoes] acao_id=f95f91ed-a679-4d12-91b8-c309e4797243 status=todos limit=200
+[inscricoes] Total de inscriÃ§Ãµes na aÃ§Ã£o (sem filtro de status): 1
+[inscricoes] Encontrados: 1 inscrições com filtro status=todos
+[inscricoes] acao_id=f95f91ed-a679-4d12-91b8-c309e4797243 status=todos limit=200
+[inscricoes] Total de inscriÃ§Ãµes na aÃ§Ã£o (sem filtro de status): 1
+[inscricoes] Encontrados: 1 inscrições com filtro status=todos
+[inscricoes] acao_id=f95f91ed-a679-4d12-91b8-c309e4797243 status=todos limit=200
+[inscricoes] Total de inscriÃ§Ãµes na aÃ§Ã£o (sem filtro de status): 1
+[inscricoes] Encontrados: 1 inscrições com filtro status=todos
+[inscricoes] acao_id=f95f91ed-a679-4d12-91b8-c309e4797243 status=todos limit=200
+[inscricoes] Total de inscriÃ§Ãµes na aÃ§Ã£o (sem filtro de status): 1
+[inscricoes] Encontrados: 1 inscrições com filtro status=todos
+[inscricoes] acao_id=f95f91ed-a679-4d12-91b8-c309e4797243 status=todos limit=200
+[inscricoes] Total de inscriÃ§Ãµes na aÃ§Ã£o (sem filtro de status): 1
+[inscricoes] Encontrados: 1 inscrições com filtro status=todos
+[inscricoes] acao_id=f95f91ed-a679-4d12-91b8-c309e4797243 status=todos limit=200
+[inscricoes] Total de inscriÃ§Ãµes na aÃ§Ã£o (sem filtro de status): 1
+[inscricoes] Encontrados: 1 inscrições com filtro status=todos
+[inscricoes] acao_id=f95f91ed-a679-4d12-91b8-c309e4797243 status=todos limit=200
+[inscricoes] Total de inscriÃ§Ãµes na aÃ§Ã£o (sem filtro de status): 1
+[inscricoes] Encontrados: 1 inscrições com filtro status=todos
+[inscricoes] acao_id=f95f91ed-a679-4d12-91b8-c309e4797243 status=todos limit=200
+[inscricoes] Total de inscriÃ§Ãµes na aÃ§Ã£o (sem filtro de status): 1
+[inscricoes] Encontrados: 1 inscrições com filtro status=todos
+

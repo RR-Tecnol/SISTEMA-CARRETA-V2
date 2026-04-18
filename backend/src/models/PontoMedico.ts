@@ -1,7 +1,8 @@
 import { Model, DataTypes, UUIDV4, Optional } from 'sequelize';
 import { sequelize } from '../config/database';
 
-export type PontoMedicoStatus = 'trabalhando' | 'saiu';
+// B5: adicionado 'intervalo' para pausas de almoço
+export type PontoMedicoStatus = 'trabalhando' | 'saiu' | 'intervalo';
 
 export interface PontoMedicoAttributes {
     id: string;
@@ -12,9 +13,14 @@ export interface PontoMedicoAttributes {
     horas_trabalhadas?: number;
     status: PontoMedicoStatus;
     observacoes?: string;
+    sala?: string;
+    // B5: campos de intervalo de almoço
+    inicio_almoco?: Date;
+    fim_almoco?: Date;
+    duracao_almoco_minutos?: number;
 }
 
-export interface PontoMedicoCreationAttributes extends Optional<PontoMedicoAttributes, 'id' | 'data_hora_saida' | 'horas_trabalhadas' | 'status'> { }
+export interface PontoMedicoCreationAttributes extends Optional<PontoMedicoAttributes, 'id' | 'data_hora_saida' | 'horas_trabalhadas' | 'status' | 'sala' | 'inicio_almoco' | 'fim_almoco' | 'duracao_almoco_minutos'> { }
 
 export class PontoMedico extends Model<PontoMedicoAttributes, PontoMedicoCreationAttributes> implements PontoMedicoAttributes {
     public id!: string;
@@ -25,6 +31,12 @@ export class PontoMedico extends Model<PontoMedicoAttributes, PontoMedicoCreatio
     public horas_trabalhadas?: number;
     public status!: PontoMedicoStatus;
     public observacoes?: string;
+    public sala?: string;
+
+    // B5: intervalos de almoço
+    public inicio_almoco?: Date;
+    public fim_almoco?: Date;
+    public duracao_almoco_minutos?: number;
 
     public readonly created_at!: Date;
     public readonly updated_at!: Date;
@@ -62,13 +74,31 @@ PontoMedico.init(
             comment: 'Total de horas trabalhadas no turno (calculado na saída)',
         },
         status: {
-            type: DataTypes.ENUM('trabalhando', 'saiu'),
+            type: DataTypes.ENUM('trabalhando', 'saiu', 'intervalo'),
             allowNull: false,
             defaultValue: 'trabalhando',
         },
         observacoes: {
             type: DataTypes.TEXT,
             allowNull: true,
+        },
+        sala: {
+            type: DataTypes.STRING(50),
+            allowNull: true,
+        },
+        // B5: almoço
+        inicio_almoco: {
+            type: DataTypes.DATE,
+            allowNull: true,
+        },
+        fim_almoco: {
+            type: DataTypes.DATE,
+            allowNull: true,
+        },
+        duracao_almoco_minutos: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+            defaultValue: 0,
         },
     },
     {

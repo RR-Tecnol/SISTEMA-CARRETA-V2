@@ -4,11 +4,8 @@ import { AcaoCursoExame } from '../models/AcaoCursoExame';
 import { Cidadao } from '../models/Cidadao';
 import { CursoExame } from '../models/CursoExame';
 import { Acao } from '../models/Acao';
-import { authenticate, authorizeAdmin, authorizeAdminOrEstrada } from '../middlewares/auth';
+import { authenticate, authorizeAdminOrEstrada } from '../middlewares/auth';
 import PDFDocument from 'pdfkit';
-import { createObjectCsvWriter } from 'csv-writer';
-import { promises as fs } from 'fs';
-import path from 'path';
 
 const router = Router();
 
@@ -21,21 +18,16 @@ router.get('/acoes/:acaoId/export/inscritos', authenticate, authorizeAdminOrEstr
         const { acaoId } = req.params;
         const format = (req.query.format as string) || 'pdf';
 
-        // Buscar ação
         const acao = await Acao.findByPk(acaoId);
         if (!acao) {
             res.status(404).json({ error: 'Ação não encontrada' });
             return;
         }
 
-        // Buscar inscrições da ação
         const inscricoes = await Inscricao.findAll({
             where: { acao_id: acaoId },
             include: [
-                {
-                    model: CursoExame,
-                    as: 'curso_exame',
-                },
+                { model: CursoExame, as: 'curso_exame' },
                 {
                     model: Cidadao,
                     as: 'cidadao',
@@ -45,33 +37,23 @@ router.get('/acoes/:acaoId/export/inscritos', authenticate, authorizeAdminOrEstr
             order: [['created_at', 'ASC']],
         });
 
-        // Descriptografar CPF e telefone
         const formatCPF = (cpf: string): string => {
             const cleaned = cpf.replace(/\D/g, '');
             if (cleaned.length !== 11) return cpf;
             return cleaned.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
         };
-
         const formatPhone = (phone: string): string => {
             const cleaned = phone.replace(/\D/g, '');
-            if (cleaned.length === 11) {
-                return cleaned.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
-            } else if (cleaned.length === 10) {
-                return cleaned.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
-            }
+            if (cleaned.length === 11) return cleaned.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+            if (cleaned.length === 10) return cleaned.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
             return phone;
         };
 
         const inscricoesDecrypted = inscricoes.map(inscricao => {
             const inscricaoJSON = inscricao.toJSON() as any;
             if (inscricaoJSON.cidadao) {
-                // CPF já está legível no banco
-                if (inscricaoJSON.cidadao.cpf) {
-                    inscricaoJSON.cidadao.cpf = formatCPF(inscricaoJSON.cidadao.cpf);
-                }
-                if (inscricaoJSON.cidadao.telefone) {
-                    inscricaoJSON.cidadao.telefone = formatPhone(inscricaoJSON.cidadao.telefone);
-                }
+                if (inscricaoJSON.cidadao.cpf) inscricaoJSON.cidadao.cpf = formatCPF(inscricaoJSON.cidadao.cpf);
+                if (inscricaoJSON.cidadao.telefone) inscricaoJSON.cidadao.telefone = formatPhone(inscricaoJSON.cidadao.telefone);
             }
             return inscricaoJSON;
         });
@@ -79,10 +61,7 @@ router.get('/acoes/:acaoId/export/inscritos', authenticate, authorizeAdminOrEstr
         if (format === 'csv') {
             await exportInscritosCSV(acao, inscricoesDecrypted, res);
         } else {
-            // PDF: filtrar apenas pendente e atendido (excluir faltou)
-            const inscricoesFiltradas = inscricoesDecrypted.filter((insc: any) => {
-                return insc.status !== 'faltou';
-            });
+            const inscricoesFiltradas = inscricoesDecrypted.filter((insc: any) => insc.status !== 'faltou');
             await exportInscritosPDF(acao, inscricoesFiltradas, res);
         }
     } catch (error) {
@@ -100,31 +79,23 @@ router.get('/acoes/:acaoId/export/atendidos', authenticate, authorizeAdminOrEstr
         const { acaoId } = req.params;
         const format = (req.query.format as string) || 'pdf';
 
-        // Buscar ação
         const acao = await Acao.findByPk(acaoId);
         if (!acao) {
             res.status(404).json({ error: 'Ação não encontrada' });
             return;
         }
 
-        // Buscar apenas atendidos (status = 'atendido')
         const inscricoes = await Inscricao.findAll({
-            where: {
-                acao_id: acaoId,
-                status: 'atendido',
-            },
+            where: { acao_id: acaoId, status: 'atendido' },
             include: [
-                {
-                    model: CursoExame,
-                    as: 'curso_exame',
-                },
+                { model: CursoExame, as: 'curso_exame' },
                 {
                     model: Cidadao,
                     as: 'cidadao',
                     attributes: ['id', 'nome_completo', 'cpf', 'telefone', 'email'],
                 },
             ],
-            order: [['updated_at', 'ASC']], // updated_at geralmente reflete data de atendimento se mudou status
+            order: [['updated_at', 'ASC']],
         });
 
         if (format === 'csv') {
@@ -138,219 +109,198 @@ router.get('/acoes/:acaoId/export/atendidos', authenticate, authorizeAdminOrEstr
     }
 });
 
-// Funções auxiliares (Stub para manter compatibilidade - assumindo que existem no arquivo original ou podem ser simplificadas)
-// Como não li o arquivo todo (partes de baixo), vou assumir que as funções export* existem na parte inferior.
-// Mas péra, eu li 1-150 e 150-340? Não. Vou ler o resto ou incluir mocks simples se não forem essenciais para o build
-// O arquivo original tem 340 linhas. Vou incluir o resto do arquivo assumindo que está intacto ou precisa de updates pequenos.
-// Melhor ler o resto do arquivo para garantir integridade.
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
+const fmtDate = (date: any): string => {
+    if (!date) return 'N/A';
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return 'N/A';
+    return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+};
+
+// ── A9: exportInscritosPDF — capa de resumo + quebra de página corrigida ──────
 async function exportInscritosPDF(acao: any, inscricoes: any[], res: Response) {
-    const doc = new PDFDocument({
-        margin: 50,
-        size: 'A4',
-        bufferPages: true
-    });
+    const doc = new PDFDocument({ margin: 50, size: 'A4', bufferPages: true });
 
-    // Configurar cabeçalhos de resposta
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename=inscritos_acao_${acao.numero_acao}.pdf`);
-
     doc.pipe(res);
 
-    // Função para formatar data
-    const formatDate = (date: any): string => {
-        if (!date) return 'N/A';
-        const d = new Date(date);
-        const day = String(d.getDate()).padStart(2, '0');
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const year = d.getFullYear();
-        return `${day}/${month}/${year}`;
-    };
+    const azulStr = '#4682b4';
+    const pageH = doc.page.height;
+    const MARGIN_BOTTOM = 50;
+    const ROW_H = 18;
 
-    // Agrupar inscrições por curso/exame
-    const inscricoesPorCurso: Record<string, any[]> = {};
-    inscricoes.forEach((insc) => {
-        const cursoNome = insc.curso_exame?.nome || 'Sem Curso/Exame';
-        if (!inscricoesPorCurso[cursoNome]) {
-            inscricoesPorCurso[cursoNome] = [];
-        }
-        inscricoesPorCurso[cursoNome].push(insc);
+    // Totais por status
+    const totalPendente = inscricoes.filter((i: any) => i.status === 'pendente' || !i.status).length;
+    const totalAtendido = inscricoes.filter((i: any) => i.status === 'atendido').length;
+    const totalCancelado = inscricoes.filter((i: any) => i.status === 'cancelado').length;
+    const totalGeral = inscricoes.length;
+
+    // ─── PÁGINA 1: CAPA / RESUMO ───────────────────────────────────────────────
+    doc.rect(0, 0, doc.page.width, 180).fill(azulStr);
+
+    doc.fontSize(22).font('Helvetica-Bold').fillColor('white')
+        .text('LISTA DE INSCRITOS', 50, 50, { align: 'center', width: doc.page.width - 100 });
+    doc.fontSize(14).font('Helvetica')
+        .text(`Ação ${acao.numero_acao} - ${acao.nome}`, 50, 88, { align: 'center', width: doc.page.width - 100 });
+    doc.fontSize(11)
+        .text(`${(acao.tipo || '').toUpperCase()} • ${acao.municipio || ''}/${acao.estado || ''}`, 50, 114, { align: 'center', width: doc.page.width - 100 });
+    doc.fontSize(10)
+        .text(`Período: ${fmtDate(acao.data_inicio)} a ${fmtDate(acao.data_fim)}`, 50, 136, { align: 'center', width: doc.page.width - 100 });
+
+    // Caixas de resumo (4 boxes azul/âmbar/verde/vermelho)
+    doc.fillColor('#000000');
+    const boxY = 200;
+    const boxW = 110;
+    const boxes = [
+        { label: 'TOTAL GERAL', value: String(totalGeral), color: azulStr },
+        { label: 'PENDENTES', value: String(totalPendente), color: '#f59e0b' },
+        { label: 'ATENDIDOS', value: String(totalAtendido), color: '#10b981' },
+        { label: 'CANCELADOS', value: String(totalCancelado), color: '#ef4444' },
+    ];
+    boxes.forEach((b, i) => {
+        const bx = 50 + i * (boxW + 16);
+        doc.roundedRect(bx, boxY, boxW, 70, 6).fillAndStroke(b.color, b.color);
+        doc.fillColor('white').fontSize(28).font('Helvetica-Bold')
+            .text(b.value, bx, boxY + 12, { width: boxW, align: 'center' });
+        doc.fontSize(8).font('Helvetica')
+            .text(b.label, bx, boxY + 46, { width: boxW, align: 'center' });
     });
 
-    // Ordenar grupos alfabeticamente
+    const now = new Date();
+    doc.fillColor('#555555').fontSize(9).font('Helvetica')
+        .text(`Gerado em: ${fmtDate(now)} às ${now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`,
+            50, boxY + 90, { align: 'center', width: doc.page.width - 100 });
+
+    // Agrupar por curso/exame
+    const inscricoesPorCurso: Record<string, any[]> = {};
+    inscricoes.forEach((insc: any) => {
+        const nome = insc.curso_exame?.nome || 'Sem Curso/Exame';
+        if (!inscricoesPorCurso[nome]) inscricoesPorCurso[nome] = [];
+        inscricoesPorCurso[nome].push(insc);
+    });
     const gruposOrdenados = Object.keys(inscricoesPorCurso).sort();
 
-    // Cabeçalho principal
-    doc.fontSize(20).font('Helvetica-Bold').text('LISTA DE INSCRITOS', { align: 'center' });
-    doc.fontSize(14).font('Helvetica').text(`Ação ${acao.numero_acao} - ${acao.nome}`, { align: 'center' });
-    doc.fontSize(11).text(`${acao.tipo.toUpperCase()} - ${acao.municipio}/${acao.estado}`, { align: 'center' });
-    doc.fontSize(10).text(`Período: ${formatDate(acao.data_inicio)} a ${formatDate(acao.data_fim)}`, { align: 'center' });
-    doc.moveDown(2);
+    // ─── DADOS: começa em nova página ─────────────────────────────────────────
+    doc.addPage();
 
-    let totalGeral = 0;
+    const drawHeader = (y: number) => {
+        doc.fillColor('#f0f4f8').rect(50, y - 2, 495, 15).fill();
+        doc.fillColor('#000000').fontSize(9).font('Helvetica-Bold');
+        doc.text('Nº', 55, y, { width: 25, align: 'left' });
+        doc.text('Nome', 85, y, { width: 150, align: 'left' });
+        doc.text('CPF', 240, y, { width: 100, align: 'left' });
+        doc.text('Data Nasc.', 345, y, { width: 70, align: 'left' });
+        doc.text('Status', 420, y, { width: 125, align: 'left' });
+        return y + 15;
+    };
 
-    // Para cada grupo de curso/exame
-    gruposOrdenados.forEach((cursoNome, grupoIndex) => {
+    gruposOrdenados.forEach((cursoNome) => {
         const lista = inscricoesPorCurso[cursoNome];
-        totalGeral += lista.length;
 
-        // Cabeçalho da seção
-        const y = doc.y;
-
-        // Verificar se precisa de nova página
-        if (y > 650) {
+        // A9 FIX 2: só addPage quando não couber cabeçalho do grupo (60px)
+        if (doc.y + 60 > pageH - MARGIN_BOTTOM) {
             doc.addPage();
         }
 
-        // Linha separadora superior
-        doc.strokeColor('#4682b4').lineWidth(2);
-        doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke();
+        doc.strokeColor(azulStr).lineWidth(2)
+            .moveTo(50, doc.y).lineTo(545, doc.y).stroke();
         doc.moveDown(0.5);
 
-        // Título da seção com fundo
-        doc.fontSize(12).font('Helvetica-Bold');
-        doc.fillColor('#4682b4').text(`${cursoNome.toUpperCase()} (${lista.length} inscritos)`, 50, doc.y);
-        doc.fillColor('#000000');
-        doc.moveDown(0.5);
+        doc.fontSize(12).font('Helvetica-Bold').fillColor(azulStr)
+            .text(`${cursoNome.toUpperCase()} (${lista.length} inscritos)`, 50, doc.y);
+        doc.fillColor('#000000').moveDown(0.5);
 
-        // Linha separadora inferior
-        doc.strokeColor('#4682b4').lineWidth(1);
-        doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke();
+        doc.strokeColor(azulStr).lineWidth(1)
+            .moveTo(50, doc.y).lineTo(545, doc.y).stroke();
         doc.moveDown(1);
 
-        // Cabeçalho da tabela
-        let tableY = doc.y;
-        doc.fontSize(9).font('Helvetica-Bold');
-
-        // Fundo do cabeçalho
-        doc.fillColor('#f0f4f8').rect(50, tableY - 2, 495, 15).fill();
-        doc.fillColor('#000000');
-
-        doc.text('Nº', 55, tableY, { width: 25, align: 'left' });
-        doc.text('Nome', 85, tableY, { width: 150, align: 'left' });
-        doc.text('CPF', 240, tableY, { width: 100, align: 'left' });
-        doc.text('Data Nasc.', 345, tableY, { width: 70, align: 'left' });
-        doc.text('Status', 420, tableY, { width: 125, align: 'left' });
-
-        tableY += 15;
-
-        // Linha abaixo do cabeçalho
-        doc.strokeColor('#cccccc').lineWidth(0.5);
-        doc.moveTo(50, tableY).lineTo(545, tableY).stroke();
+        let tableY = drawHeader(doc.y);
+        doc.strokeColor('#cccccc').lineWidth(0.5)
+            .moveTo(50, tableY).lineTo(545, tableY).stroke();
         tableY += 5;
 
-        // Dados da tabela
         doc.font('Helvetica').fontSize(9);
-        lista.forEach((insc, index) => {
-            // Verificar se precisa de nova página
-            if (tableY > 720) {
+        lista.forEach((insc: any, index: number) => {
+            // A9 FIX 2: nova página somente quando não couber a próxima linha
+            if (tableY + ROW_H > pageH - MARGIN_BOTTOM) {
                 doc.addPage();
-
-                // Repetir cabeçalho da tabela na nova página
-                tableY = 50;
-                doc.fontSize(9).font('Helvetica-Bold');
-
-                // Fundo do cabeçalho
-                doc.fillColor('#f0f4f8').rect(50, tableY - 2, 495, 15).fill();
-                doc.fillColor('#000000');
-
-                doc.text('Nº', 55, tableY, { width: 25, align: 'left' });
-                doc.text('Nome', 85, tableY, { width: 150, align: 'left' });
-                doc.text('CPF', 240, tableY, { width: 100, align: 'left' });
-                doc.text('Data Nasc.', 345, tableY, { width: 70, align: 'left' });
-                doc.text('Status', 420, tableY, { width: 125, align: 'left' });
-                tableY += 15;
-                doc.strokeColor('#cccccc').lineWidth(0.5);
-                doc.moveTo(50, tableY).lineTo(545, tableY).stroke();
+                tableY = drawHeader(50);
+                doc.strokeColor('#cccccc').lineWidth(0.5)
+                    .moveTo(50, tableY).lineTo(545, tableY).stroke();
                 tableY += 5;
                 doc.font('Helvetica').fontSize(9);
             }
 
-            // Linhas zebradas
             if (index % 2 === 0) {
-                doc.fillColor('#f8f9fa').rect(50, tableY - 2, 495, 18).fill();
+                doc.fillColor('#f8f9fa').rect(50, tableY - 2, 495, ROW_H).fill();
                 doc.fillColor('#000000');
             }
 
             const numero = String(index + 1).padStart(2, '0');
-            const nome = insc.cidadao?.nome_completo || 'N/A';
+            const nome = (insc.cidadao?.nome_completo || 'N/A').substring(0, 25);
             const cpf = insc.cidadao?.cpf || 'N/A';
-            const dataNasc = formatDate(insc.cidadao?.data_nascimento);
-            const status = insc.status === 'atendido' ? 'Atendido' : 'Pendente';
+            const dataNasc = fmtDate(insc.cidadao?.data_nascimento);
+            const statusLabel = insc.status === 'atendido' ? 'Atendido'
+                : insc.status === 'cancelado' ? 'Cancelado' : 'Pendente';
+            const statusColor = insc.status === 'atendido' ? '#10b981'
+                : insc.status === 'cancelado' ? '#ef4444' : '#f59e0b';
 
-            // Desenhar bordas verticais das colunas
             doc.strokeColor('#e5e7eb').lineWidth(0.3);
-            doc.moveTo(80, tableY - 2).lineTo(80, tableY + 16).stroke();
-            doc.moveTo(235, tableY - 2).lineTo(235, tableY + 16).stroke();
-            doc.moveTo(340, tableY - 2).lineTo(340, tableY + 16).stroke();
-            doc.moveTo(415, tableY - 2).lineTo(415, tableY + 16).stroke();
+            [80, 235, 340, 415].forEach(x => {
+                doc.moveTo(x, tableY - 2).lineTo(x, tableY + ROW_H - 2).stroke();
+            });
 
-            doc.text(numero, 55, tableY, { width: 25, align: 'left' });
-            doc.text(nome.substring(0, 25), 85, tableY, { width: 145, align: 'left' });
-            doc.text(cpf, 240, tableY, { width: 95, align: 'left' });
-            doc.text(dataNasc, 345, tableY, { width: 65, align: 'left' });
+            doc.fillColor('#000000');
+            doc.text(numero, 55, tableY, { width: 25 });
+            doc.text(nome, 85, tableY, { width: 145 });
+            doc.text(cpf, 240, tableY, { width: 95 });
+            doc.text(dataNasc, 345, tableY, { width: 65 });
+            doc.fillColor(statusColor).text(statusLabel, 420, tableY, { width: 125 });
+            doc.fillColor('#000000');
 
-            // Status com cor
-            if (status === 'Atendido') {
-                doc.fillColor('#10b981').text(status, 420, tableY, { width: 125, align: 'left' });
-                doc.fillColor('#000000');
-            } else {
-                doc.fillColor('#f59e0b').text(status, 420, tableY, { width: 125, align: 'left' });
-                doc.fillColor('#000000');
-            }
-
-            tableY += 18;
+            tableY += ROW_H;
         });
 
-        doc.moveDown(2);
+        doc.y = tableY + 16;
     });
 
-    // Rodapé com total geral
-    const finalY = doc.y;
-    if (finalY > 700) {
+    // ─── TOTAL GERAL — só addPage se necessário (evita página em branco) ───────
+    if (doc.y + 60 > pageH - MARGIN_BOTTOM) {
         doc.addPage();
     }
 
-    doc.strokeColor('#4682b4').lineWidth(2);
-    doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke();
+    doc.strokeColor(azulStr).lineWidth(2)
+        .moveTo(50, doc.y).lineTo(545, doc.y).stroke();
     doc.moveDown(0.5);
 
-    doc.fontSize(12).font('Helvetica-Bold').fillColor('#4682b4');
-    doc.text(`TOTAL GERAL: ${totalGeral} inscritos`, { align: 'center' });
-    doc.fillColor('#000000');
+    doc.fontSize(13).font('Helvetica-Bold').fillColor(azulStr)
+        .text(`TOTAL GERAL: ${totalGeral} inscritos  (${totalAtendido} atendidos · ${totalPendente} pendentes · ${totalCancelado} cancelados)`,
+            50, doc.y, { align: 'center', width: 495 });
+    doc.fillColor('#000000').moveDown(0.5);
+    doc.fontSize(9).font('Helvetica')
+        .text(`Gerado em: ${fmtDate(now)} às ${now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`,
+            { align: 'center' });
 
-    // Informações de geração
-    const now = new Date();
-    const dataGeracao = formatDate(now);
-    const horaGeracao = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-
-    doc.moveDown(1);
-    doc.fontSize(9).font('Helvetica');
-    doc.text(`Gerado em: ${dataGeracao} às ${horaGeracao}`, { align: 'center' });
-
-    // Adicionar números de página
+    // Numeração de páginas
     const range = doc.bufferedPageRange();
     for (let i = 0; i < range.count; i++) {
         doc.switchToPage(i);
-        doc.fontSize(9).font('Helvetica');
-        doc.text(
-            `Página ${i + 1} de ${range.count}`,
-            50,
-            doc.page.height - 50,
-            { align: 'center' }
-        );
+        doc.fontSize(8).font('Helvetica').fillColor('#888888')
+            .text(`Gestão Sobre Rodas  |  Página ${i + 1} de ${range.count}`,
+                50, pageH - 30, { align: 'center', width: 495 });
     }
 
     doc.end();
 }
 
 async function exportInscritosCSV(acao: any, inscricoes: any[], res: Response) {
-    // Implementação simplificada CSV
     const csvString = [
         'Nome,CPF,Telefone,Email,Curso/Exame,Data Inscricao,Status',
-        ...inscricoes.map((i: any) => {
-            return `"${i.cidadao?.nome_completo}","${i.cidadao?.cpf}","${i.cidadao?.telefone}","${i.cidadao?.email}","${i.curso_exame?.nome}","${i.data_inscricao}","${i.status}"`;
-        })
+        ...inscricoes.map((i: any) =>
+            `"${i.cidadao?.nome_completo}","${i.cidadao?.cpf}","${i.cidadao?.telefone}","${i.cidadao?.email}","${i.curso_exame?.nome}","${i.data_inscricao}","${i.status}"`
+        ),
     ].join('\n');
 
     res.setHeader('Content-Type', 'text/csv');
@@ -358,17 +308,18 @@ async function exportInscritosCSV(acao: any, inscricoes: any[], res: Response) {
     res.send(csvString);
 }
 
-
 async function exportAtendidosPDF(acao: any, inscricoes: any[], res: Response) {
-    const doc = new PDFDocument();
+    const doc = new PDFDocument({ margin: 50, size: 'A4' });
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename=atendidos_acao_${acao.numero_acao}.pdf`);
     doc.pipe(res);
 
-    doc.fontSize(18).text(`Lista de Atendidos - Ação ${acao.numero_acao}`, { align: 'center' });
+    doc.fontSize(18).font('Helvetica-Bold')
+        .text(`Lista de Atendidos — Ação ${acao.numero_acao}`, { align: 'center' });
+    doc.fontSize(12).font('Helvetica').text(acao.nome, { align: 'center' });
     doc.moveDown();
 
-    let y = 100;
+    let y = 120;
     doc.font('Helvetica-Bold').fontSize(10);
     doc.text('Nome', 50, y);
     doc.text('Curso/Exame', 250, y);
@@ -376,11 +327,14 @@ async function exportAtendidosPDF(acao: any, inscricoes: any[], res: Response) {
     y += 20;
 
     doc.font('Helvetica');
-    inscricoes.forEach((insc: any) => {
+    (inscricoes as any[]).forEach((insc: any) => {
+        if (y > doc.page.height - 80) {
+            doc.addPage();
+            y = 50;
+        }
         const nome = insc.cidadao?.nome_completo || 'N/A';
         const curso = insc.curso_exame?.nome || 'N/A';
-        const data = insc.updated_at ? new Date(insc.updated_at).toLocaleDateString() : 'N/A';
-
+        const data = insc.updated_at ? new Date(insc.updated_at).toLocaleDateString('pt-BR') : 'N/A';
         doc.text(nome, 50, y);
         doc.text(curso, 250, y);
         doc.text(data, 450, y);
@@ -392,9 +346,9 @@ async function exportAtendidosPDF(acao: any, inscricoes: any[], res: Response) {
 async function exportAtendidosCSV(acao: any, inscricoes: any[], res: Response) {
     const csvString = [
         'Nome,CPF,Curso/Exame,Data Atendimento,Observacoes',
-        ...inscricoes.map((i: any) => {
-            return `"${i.cidadao?.nome_completo}","${i.cidadao?.cpf}","${i.curso_exame?.nome}","${i.updated_at}","${i.observacoes || ''}"`;
-        })
+        ...(inscricoes as any[]).map((i: any) =>
+            `"${i.cidadao?.nome_completo}","${i.cidadao?.cpf}","${i.curso_exame?.nome}","${i.updated_at}","${i.observacoes || ''}"`
+        ),
     ].join('\n');
 
     res.setHeader('Content-Type', 'text/csv');

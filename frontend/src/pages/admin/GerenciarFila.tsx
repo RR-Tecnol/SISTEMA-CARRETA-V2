@@ -79,6 +79,7 @@ export default function GerenciarFila() {
     const aguardando = fila.filter(f => f.status === 'aguardando').length;
     const emAtendimento = fila.filter(f => f.status === 'em_atendimento').length;
     const chamado = fila.filter(f => f.status === 'chamado').length;
+    const concluidos = fila.filter(f => f.status === 'concluido').length;
 
     // Estações da ação selecionada
     const [estacoes, setEstacoes] = useState<EstacaoItem[]>([]);
@@ -149,8 +150,14 @@ export default function GerenciarFila() {
         const socket = joinAcaoRoom(acaoId);
         socketRef.current = socket;
 
-        socket.on('fila_atualizada', ({ fila: novaFila }: { acao_id: string; fila: FichaItem[] }) => {
-            setFila(novaFila);
+        socket.on('fila_atualizada', ({ fila: novaFila }: { acao_id: string; fila?: FichaItem[] }) => {
+            if (novaFila && Array.isArray(novaFila)) {
+                // Dados embutidos: atualizar direto
+                setFila(novaFila);
+            } else {
+                // A7: backend emitiu apenas { acao_id } — recarregar via HTTP
+                carregarFila(acaoId);
+            }
         });
 
         // Se o socket reconectar, recarregar a fila via HTTP como fallback
@@ -381,8 +388,9 @@ export default function GerenciarFila() {
                                     { label: 'Aguardando', value: aguardando, color: '#F39C12', icon: Clock },
                                     { label: 'Chamados', value: chamado, color: systemTruckTheme.colors.primary, icon: Bell },
                                     { label: 'Em Atend.', value: emAtendimento, color: '#27AE60', icon: CheckCircle },
+                                    { label: 'Concluído', value: concluidos, color: '#20C997', icon: CheckCircle },
                                 ].map(({ label, value, color, icon: Icon }) => (
-                                    <Grid item xs={4} key={label}>
+                                    <Grid item xs={3} key={label}>
                                         <Card sx={{ textAlign: 'center', p: 1, borderRadius: 2, border: `1px solid ${color}22` }}>
                                             <Icon size={20} color={color} />
                                             <Typography sx={{ fontSize: '1.4rem', fontWeight: 700, color, lineHeight: 1.2 }}>{value}</Typography>
@@ -415,8 +423,8 @@ export default function GerenciarFila() {
                                 </Card>
                             )}
 
-                            {/* Sincronizar inscrições → fila (quando fila está vazia) */}
-                            {acaoId && fila.filter(f => !['concluido','cancelado'].includes(f.status)).length === 0 && (
+                            {/* Sincronizar inscrições → fila — sempre visível com ação selecionada */}
+                            {acaoId && (
                                 <Button
                                     fullWidth variant="outlined" size="medium"
                                     onClick={sincronizarFila}
@@ -494,7 +502,7 @@ export default function GerenciarFila() {
                                     // ━━ FILA AGRUPADA POR EXAME — cada exame tem fila independente ━━
                                     (() => {
                                         // Agrupar fichas por nome do exame
-                                        const filaAtiva = fila.filter(f => !['concluido', 'cancelado'].includes(f.status));
+                                        const filaAtiva = fila.filter(f => !['cancelado'].includes(f.status));
                                         const grupos: Record<string, { exameId?: string; fichas: FichaItem[] }> = {};
 
                                         filaAtiva.forEach(f => {

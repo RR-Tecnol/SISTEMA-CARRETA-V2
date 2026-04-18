@@ -7,7 +7,19 @@ import { CursoExame } from '../models/CursoExame';
 import { EstacaoExame } from '../models/EstacaoExame';
 import { Acao } from '../models/Acao';
 import { ConfiguracaoFilaAcao } from '../models/ConfiguracaoFilaAcao';
+import { PontoMedico } from '../models/PontoMedico';
+import { Funcionario } from '../models/Funcionario';
 import { authenticate, authorizeAdmin, authorizeAdminOrEstrada } from '../middlewares/auth';
+import { NextFunction } from 'express';
+
+const authorizeAtendimento = (req: any, res: any, next: NextFunction) => {
+    if (!req.user) return res.status(401).json({ error: 'Não autenticado' });
+    const roles = req.user.roles ?? [req.user.tipo];
+    if (roles.some((r: string) => ['admin', 'admin_estrada', 'medico'].includes(r))) {
+        return next();
+    }
+    return res.status(403).json({ error: 'Acesso negado.' });
+};
 import { notificarChamado, notificarFichaGerada } from '../utils/notificacoes';
 import type { ConfigNotif, CidadaoNotif } from '../utils/notificacoes';
 
@@ -26,7 +38,7 @@ async function getFila(acao_id: string): Promise<FichaAtendimento[]> {
         where: {
             acao_id,
             hora_entrada: { [Op.gte]: hoje, [Op.lt]: amanha },
-            status: { [Op.in]: ['aguardando', 'chamado', 'em_atendimento'] },
+            status: { [Op.in]: ['aguardando', 'chamado', 'em_atendimento', 'concluido'] },
         },
         include: [
             {
@@ -189,7 +201,7 @@ router.post('/', authenticate, async (req: Request, res: Response) => {
  * PATCH /api/fichas/:id/chamar
  * Chama o próximo da fila (status: aguardando → chamado)
  */
-router.patch('/:id/chamar', authenticate, authorizeAdminOrEstrada, async (req: Request, res: Response) => {
+router.patch('/:id/chamar', authenticate, authorizeAtendimento, async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const { guiche } = req.body;
@@ -501,6 +513,23 @@ router.get('/painel/:acao_id', async (req: Request, res: Response) => {
             attributes: ['id', 'nome', 'status', 'motivo_pausa'],
         });
 
+        // Buscar médicos logados com sala selecionada ativa
+        const medicosAtivos = await PontoMedico.findAll({
+            where: { acao_id, status: { [Op.in]: ['trabalhando', 'intervalo'] }, sala: { [Op.ne]: null } },
+            include: [{ model: Funcionario, as: 'funcionario', attributes: ['nome', 'especialidade'] }],
+        });
+
+        const profissionaisSalas = medicosAtivos.map(pm => {
+            const f = (pm as any).funcionario;
+            return {
+                id: pm.id,
+                medico_nome: f ? f.nome : 'Médico',
+                especialidade: f ? f.especialidade : null,
+                sala: pm.sala,
+                status: pm.status // 'trabalhando' ou 'intervalo'
+            };
+        });
+
         const acao = await Acao.findByPk(acao_id, { attributes: ['nome'] });
 
         res.json({
@@ -508,6 +537,7 @@ router.get('/painel/:acao_id', async (req: Request, res: Response) => {
             aguardando,
             chamadas,
             estacoes,
+            profissionaisSalas,
             totalHoje: todas.length,
             concluidos,
             nomeAcao: (acao as any)?.nome || 'Ação em andamento',
@@ -532,42 +562,58 @@ router.post('/acao/:acao_id/sincronizar-inscricoes', authenticate, authorizeAdmi
         const amanha = new Date(hoje);
         amanha.setDate(amanha.getDate() + 1);
 
-        // 1. Buscar todas as inscrições desta ação hoje
+        // 1. Buscar TODAS as inscrições pendentes desta ação (sem filtro de data_inscricao)
         const inscricoes = await Inscricao.findAll({
             where: {
                 acao_id,
-                data_inscricao: { [Op.gte]: hoje, [Op.lt]: amanha }
-            }
+                status: 'pendente',   // só busca quem não foi atendido/faltou
+            },
         });
 
         if (inscricoes.length === 0) {
-            res.json({ message: 'Nenhuma inscrição encontrada para hoje.', criadas: 0 });
+            res.json({ message: 'Nenhuma inscrição pendente encontrada para esta ação.', criadas: 0 });
             return;
         }
 
-        // 2. Verificar quais já possuem ficha
+        // 2. Verificar quais inscrições já possuem ficha de hoje
         const fichasExistentes = await FichaAtendimento.findAll({
             where: {
                 acao_id,
-                hora_entrada: { [Op.gte]: hoje, [Op.lt]: amanha }
+                hora_entrada: { [Op.gte]: hoje, [Op.lt]: amanha },
+                status: { [Op.notIn]: ['cancelado'] },
             },
-            attributes: ['cidadao_id']
+            attributes: ['cidadao_id', 'inscricao_id'],
         });
-        const idsComFicha = new Set(fichasExistentes.map(f => f.cidadao_id));
 
-        // 3. Criar fichas para os que faltam
+        // Deduplicar por inscricao_id (cada exame = 1 ficha)
+        const inscricoesComFicha = new Set(
+            fichasExistentes
+                .map(f => f.inscricao_id)
+                .filter(Boolean)
+        );
+        // Também por cidadao_id para casos sem inscricao_id
+        const cidadaosComFichaAvulsa = new Set(
+            fichasExistentes
+                .filter(f => !f.inscricao_id)
+                .map(f => f.cidadao_id)
+        );
+
+        // 3. Criar fichas para as inscrições que não têm ficha hoje
         let criadas = 0;
         for (const ins of inscricoes) {
-            if (!idsComFicha.has(ins.cidadao_id)) {
-                await FichaAtendimento.create({
-                    cidadao_id: ins.cidadao_id,
-                    inscricao_id: ins.id,
-                    acao_id,
-                    status: 'aguardando'
-                });
-                criadas++;
-                idsComFicha.add(ins.cidadao_id); // Evitar duplicar no mesmo loop
-            }
+            // Já tem ficha vinculada a esta inscrição?
+            if (inscricoesComFicha.has(ins.id)) continue;
+            // Caso sem inscricao_id: pula se cidadão já tem ficha avulsa
+            if (cidadaosComFichaAvulsa.has(ins.cidadao_id)) continue;
+
+            await FichaAtendimento.create({
+                cidadao_id: ins.cidadao_id,
+                inscricao_id: ins.id,
+                acao_id,
+                status: 'aguardando',
+            });
+            criadas++;
+            inscricoesComFicha.add(ins.id);
         }
 
         // 4. Emitir atualização via Socket se houver mudanças

@@ -71,6 +71,12 @@ const Cadastro: React.FC = () => {
             return;
         }
 
+        // A8 — Data de nascimento obrigatória
+        if (!formData.data_nascimento) {
+            enqueueSnackbar('Data de nascimento é obrigatória', { variant: 'warning' });
+            return;
+        }
+
         if (!formData.senha) {
             enqueueSnackbar('A senha é obrigatória', { variant: 'error' });
             return;
@@ -88,6 +94,7 @@ const Cadastro: React.FC = () => {
 
         setShowTermo(true);
     };
+
 
     const handleAcceptTermo = async (consentData: ConsentData) => {
         try {

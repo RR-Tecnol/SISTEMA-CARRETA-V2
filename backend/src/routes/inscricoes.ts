@@ -7,6 +7,7 @@ import { Acao } from '../models/Acao';
 import { CursoExame } from '../models/CursoExame';
 import { FichaAtendimento } from '../models/FichaAtendimento';
 import { EstacaoExame } from '../models/EstacaoExame';
+import { ResultadoExame } from '../models/ResultadoExame';
 import { authenticate, authorizeAdminOrEstrada, AuthRequest } from '../middlewares/auth';
 
 const router = Router();
@@ -267,6 +268,13 @@ router.post('/bulk', authenticate, authorizeAdminOrEstrada, async (req: Request,
         const criados = resultados.filter(r => r.status === 'criado').length;
         const bloqueados = resultados.filter(r => r.status === 'bloqueado').length;
 
+        if (criados > 0) {
+            const io = (req.app as any).get('io');
+            if (io) {
+                io.to(`acao:${acaoId}`).emit('vagas_atualizadas', { acao_id: acaoId });
+            }
+        }
+
         res.status(201).json({
             message: `${criados} inscrição(ões) criada(s), ${bloqueados} bloqueada(s)`,
             criados,
@@ -348,6 +356,11 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
         // ✅ Criar ficha automática na fila
         await criarFichaParaInscricao(inscricao, req);
 
+        const io = (req.app as any).get('io');
+        if (io) {
+            io.to(`acao:${acao_id}`).emit('vagas_atualizadas', { acao_id: acao_id });
+        }
+
         res.status(201).json({ message: 'Inscrição realizada com sucesso', inscricao });
 
     } catch (error) {
@@ -374,6 +387,12 @@ router.get('/me', authenticate, async (req: AuthRequest, res: Response) => {
                 {
                     model: CursoExame,
                     as: 'curso_exame',
+                },
+                {
+                    model: ResultadoExame,
+                    as: 'resultado_exame',
+                    required: false,
+                    attributes: ['arquivo_resultado_url', 'data_emissao_laudo']
                 }
             ],
             order: [['created_at', 'DESC']],
@@ -383,6 +402,54 @@ router.get('/me', authenticate, async (req: AuthRequest, res: Response) => {
     } catch (error) {
         console.error('Error fetching my inscricoes:', error);
         res.status(500).json({ error: 'Erro ao buscar suas inscrições' });
+    }
+});
+
+/**
+ * DELETE /api/inscricoes/me/:id
+ * Cidadão desiste da sua própria inscrição (apenas se pendente)
+ */
+router.delete('/me/:id', authenticate, async (req: AuthRequest, res: Response) => {
+    try {
+        const { id } = req.params;
+        const cidadao_id = req.user!.id;
+
+        const inscricao = await Inscricao.findOne({
+            where: { id, cidadao_id },
+        });
+
+        if (!inscricao) {
+            res.status(404).json({ error: 'Inscrição não encontrada ou não pertence a você.' });
+            return;
+        }
+
+        if (inscricao.status !== 'pendente') {
+            res.status(400).json({ error: 'Apenas inscrições pendentes podem ser canceladas.' });
+            return;
+        }
+
+        // Deletar ou marcar como 'cancelado' (vamos deletar do banco ou marcar como cancelado, vou deletar para reabrir a vaga real)
+        // O sistema conta vagas por pendente/atendido. Mas para manter o histórico caso precisem, 'cancelado' é melhor status. 
+        // Atualizando para 'cancelado':
+        await inscricao.update({ status: 'cancelado', observacoes: 'Cancelado pelo cidadão' });
+        
+        // Também devemos remover ou inativar a ficha caso a mesma tenha sido gerada
+        await FichaAtendimento.update(
+            { status: 'cancelado' }, 
+            { where: { inscricao_id: inscricao.id, status: 'aguardando' } }
+        );
+
+        // Disparar socket p/ atualizar dashboard de vagas local
+        const io = (req.app as any).get('io');
+        if (io) {
+            io.to(`acao:${inscricao.acao_id}`).emit('vagas_atualizadas', { acao_id: inscricao.acao_id });
+            io.to(`acao:${inscricao.acao_id}`).emit('fila_atualizada', { acao_id: inscricao.acao_id });
+        }
+
+        res.json({ message: 'Inscrição cancelada com sucesso.' });
+    } catch (error) {
+        console.error('Error canceling inscricao:', error);
+        res.status(500).json({ error: 'Erro ao cancelar a inscrição.' });
     }
 });
 
@@ -554,6 +621,11 @@ router.post('/acoes/:acaoId/inscricoes', authenticate, authorizeAdminOrEstrada, 
         // ✅ Criar ficha automática na fila
         await criarFichaParaInscricao(inscricao, req);
 
+        const io = (req.app as any).get('io');
+        if (io) {
+            io.to(`acao:${acaoId}`).emit('vagas_atualizadas', { acao_id: acaoId });
+        }
+
         res.status(201).json({ message: 'Cidadão adicionado com sucesso', inscricao });
 
     } catch (error) {
@@ -655,6 +727,7 @@ router.delete('/:id', authenticate, authorizeAdminOrEstrada, async (req: Request
         const io = (req.app as any).get('io');
         if (io) {
             io.to(`acao:${inscricao.acao_id}`).emit('fila_atualizada', { acao_id: inscricao.acao_id });
+            io.to(`acao:${inscricao.acao_id}`).emit('vagas_atualizadas', { acao_id: inscricao.acao_id });
         }
 
         res.json({

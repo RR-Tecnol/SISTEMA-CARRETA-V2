@@ -102,172 +102,45 @@ export default function PrestacaoContas() {
         setLoading(false);
     }
 
-    // Médico selecionado — prioriza o estado local (medicos), fallback nos dados do relatório
-    function gerarPDF() {
-        if (!documentoRef.current) return;
+    async function gerarPDF() {
+        if (!acaoId) {
+            alert('Selecione uma ação primeiro.');
+            return;
+        }
 
-        // Clona o DOM e injeta os valores atuais dos inputs/textareas
-        // (outerHTML não preserva valores digitados pelo usuário)
-        const clone = documentoRef.current.cloneNode(true) as HTMLElement;
+        setLoading(true);
+        try {
+            const { gerarPrestacaoContasPDF } = await import('../../utils/gerarPrestacaoContas');
+            const { buscarDadosRelatorio } = await import('../../services/relatorioExecutivo');
+            
+            // Format inputs to pass to the generator
+            const dataInicioStr = `${ano}-${String(mes).padStart(2, '0')}-01`;
+            const dataFimStr = new Date(ano, mes, 0).toISOString().split('T')[0];
 
-        // Sincroniza inputs
-        const inputsOriginais = documentoRef.current.querySelectorAll('input');
-        const inputsClone = clone.querySelectorAll('input');
-        inputsOriginais.forEach((inp, i) => {
-            inputsClone[i]?.setAttribute('value', inp.value);
-        });
-
-        // Sincroniza textareas
-        const textareasOriginais = documentoRef.current.querySelectorAll('textarea');
-        const textareasClone = clone.querySelectorAll('textarea');
-        textareasOriginais.forEach((ta, i) => {
-            if (textareasClone[i]) {
-                textareasClone[i].textContent = ta.value;
+            const dadosPdf = await buscarDadosRelatorio(acaoId, dataInicioStr, dataFimStr);
+            if (dadosPdf && dadosPdf.acao) {
+                dadosPdf.acao = {
+                    ...dadosPdf.acao,
+                    numero_processo: numeroProcesso || dadosPdf.acao?.numero_processo,
+                    lote_regiao: loteRegiao || dadosPdf.acao?.lote_regiao,
+                    intercorrencias: intercorrencias || dadosPdf.acao?.intercorrencias,
+                };
             }
-        });
 
-        // Coleta apenas CSS de folhas SAME-ORIGIN (evita erro de CORS com Google Fonts etc.)
-        const cssTexts = Array.from(document.styleSheets)
-            .flatMap(sheet => {
-                try {
-                    // href nulo = <style> inline, sempre seguro; href same-origin também é seguro
-                    if (sheet.href && !sheet.href.startsWith(window.location.origin)) return [];
-                    return Array.from(sheet.cssRules).map(r => r.cssText);
-                }
-                catch { return []; }
-            })
-            .join('\n');
+            await gerarPrestacaoContasPDF(dadosPdf, {
+                dataInicio: dataInicioStr,
+                dataFim: dataFimStr,
+                numeroProcesso: numeroProcesso,
+                loteRegiao: loteRegiao,
+                intercorrencias: intercorrencias
+            });
 
-        const docHtml = clone.outerHTML;
-        const titulo = `PrestaçãoDeContas_${String(mes).padStart(2, '0')}_${ano}`;
-
-        const janela = window.open('', '_blank');
-        if (!janela) { alert('Permita popups para gerar o PDF.'); return; }
-
-        janela.document.write(`<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8"/>
-  <title>${titulo}</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
-  <style>
-    /* ── Todos os estilos da aplicação ── */
-    ${cssTexts}
-
-    /* ── Overrides: documento preenche a folha A4 sem bordas brancas ── */
-    *, *::before, *::after {
-      -webkit-print-color-adjust: exact !important;
-      print-color-adjust: exact !important;
-      box-sizing: border-box;
-    }
-
-    html, body {
-      margin: 0 !important;
-      padding: 0 !important;
-      width: 100% !important;
-      background: #fff;
-      font-family: 'Inter', sans-serif;
-    }
-
-    /* Documento sem margens extras — ocupa 100% da folha */
-    .pc-documento {
-      width: 100% !important;
-      max-width: 100% !important;
-      border-radius: 0 !important;
-      box-shadow: none !important;
-      border: none !important;
-      overflow: visible !important;
-    }
-
-    .pc-documento-wrapper {
-      padding: 0 !important;
-      margin: 0 !important;
-      width: 100% !important;
-    }
-
-    .pc-kpi-grid {
-      grid-template-columns: repeat(4, 1fr) !important;
-    }
-
-    /* ── FIX CRÍTICO: gradient text não renderiza em PDF/print ──
-       Força cor sólida no lugar do -webkit-text-fill-color: transparent */
-    .pc-kpi-value {
-      background: none !important;
-      -webkit-background-clip: unset !important;
-      background-clip: unset !important;
-      -webkit-text-fill-color: #1B4F72 !important;
-      color: #1B4F72 !important;
-      font-weight: 900 !important;
-    }
-
-    /* Força texto visível em todos os elementos que usam CSS var ou gradient text */
-    .pc-section-title { color: #1B4F72 !important; }
-    .pc-section-num { color: #4A6FA5 !important; }
-    .pc-kpi-label { color: #4A6FA5 !important; }
-    .pc-kpi-icon { opacity: 0.15 !important; }
-    .pc-id-row { background: #FAFBFD !important; }
-    .pc-id-row strong { color: #4A6FA5 !important; }
-    .pc-id-row span, .pc-id-row input { color: #0D1B2A !important; }
-    .pc-formal-text { color: #374151 !important; }
-    .pc-formal-text strong { color: #1B4F72 !important; }
-    .pc-table tfoot td { color: #1B4F72 !important; }
-    .pc-meta-text { color: #4A6FA5 !important; }
-    .pc-doc-footer-text, .pc-page-num { color: #fff !important; }
-
-    .pc-table { width: 100% !important; }
-
-    /* SEM margens de página — o próprio documento tem seu espaçamento interno */
-    @page {
-      size: A4 portrait;
-      margin: 0;
-    }
-
-    @media print {
-      *, *::before, *::after {
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-      }
-      html, body { width: 100% !important; margin: 0 !important; padding: 0 !important; }
-      .pc-id-row input, .pc-local-date-row input {
-        border: none !important;
-        border-bottom: 1px solid #555 !important;
-        background: transparent !important;
-      }
-      .pc-textarea-fancy { border: 1px solid #ccc !important; background: transparent !important; }
-      .pc-section { break-inside: avoid; page-break-inside: avoid; }
-      .pc-kpi-card { break-inside: avoid; }
-      .pc-table-wrapper { break-inside: avoid; }
-      .pc-doc-footer { break-inside: avoid; }
-    }
-  </style>
-</head>
-<body>
-  <div class="pc-documento-wrapper">
-    ${docHtml}
-  </div>
-  <script>
-    // Escala o documento para preencher 100% da largura da janela antes de imprimir
-    function ajustarZoom() {
-      var wrapper = document.querySelector('.pc-documento-wrapper');
-      var doc = document.querySelector('.pc-documento');
-      if (!doc || !wrapper) return;
-      var winW = window.innerWidth || document.documentElement.clientWidth;
-      var docW = doc.scrollWidth;
-      if (docW > 0 && winW > 0) {
-        var scale = winW / docW;
-        doc.style.transformOrigin = 'top left';
-        doc.style.transform = 'scale(' + scale + ')';
-        wrapper.style.height = (doc.scrollHeight * scale) + 'px';
-      }
-    }
-    document.fonts.ready.then(function() {
-      ajustarZoom();
-      setTimeout(function() { window.print(); }, 500);
-    });
-  </script>
-</body>
-</html>`);
-        janela.document.close();
+        } catch (error) {
+            console.error('Erro ao gerar PDF', error);
+            alert('Falha ao gerar o arquivo PDF. Verifique se existem dados no relatório e tente novamente.');
+        } finally {
+            setLoading(false);
+        }
     }
 
 

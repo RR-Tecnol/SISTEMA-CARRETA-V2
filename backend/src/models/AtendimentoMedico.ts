@@ -15,6 +15,7 @@ export interface AtendimentoMedicoAttributes {
     status: AtendimentoStatus;
     observacoes?: string;
     nome_paciente?: string;
+    ficha_clinica?: Record<string, any>;
 }
 
 export interface AtendimentoMedicoCreationAttributes extends Optional<AtendimentoMedicoAttributes, 'id' | 'hora_fim' | 'duracao_minutos' | 'status'> { }
@@ -31,6 +32,7 @@ export class AtendimentoMedico extends Model<AtendimentoMedicoAttributes, Atendi
     public status!: AtendimentoStatus;
     public observacoes?: string;
     public nome_paciente?: string;
+    public ficha_clinica?: Record<string, any>;
 
     public readonly created_at!: Date;
     public readonly updated_at!: Date;
@@ -90,6 +92,12 @@ AtendimentoMedico.init(
             type: DataTypes.STRING,
             allowNull: true,
             comment: 'Nome do paciente (preenchido caso não tenha cidadao_id vinculado)',
+        },
+        ficha_clinica: {
+            type: DataTypes.JSONB,
+            allowNull: true,
+            defaultValue: {},
+            comment: 'Prontuário clínico estruturado: anamnese, exame físico, conduta',
         },
     },
     {
