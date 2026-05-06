@@ -11,7 +11,7 @@ import {
     Activity, Clock, UserCheck, AlertTriangle, BarChart2,
     LogIn, LogOut, Plus, FileText, ChevronDown, ChevronUp,
     Timer, Stethoscope, TrendingUp, Award, Search, RefreshCw,
-    Download, Radio, Trophy, Globe,
+    Download, Radio, Trophy, Globe, XCircle,
 } from 'lucide-react';
 import { useSnackbar } from 'notistack';
 import { expressoTheme } from '../../theme/expressoTheme';
@@ -527,6 +527,25 @@ const MedicoMonitoring: React.FC = () => {
         } catch (err: any) { enqueueSnackbar('Erro ao finalizar atendimento', { variant: 'error' }); }
     };
 
+    // ── Encerrar atendimento ao vivo direto do card vermelho ─────────────────
+    const [encerrando, setEncerrando] = useState<string | null>(null);
+    const handleEncerrarLive = async (atdId: string) => {
+        if (!window.confirm('Encerrar este atendimento agora? O status será marcado como concluído.')) return;
+        setEncerrando(atdId);
+        try {
+            await medicoMonitoringService.finalizarAtendimento(atdId);
+            enqueueSnackbar('✅ Atendimento encerrado com sucesso!', { variant: 'success' });
+            // Atualiza live imediatamente
+            setLiveAtendimentos(prev => prev.filter(a => a.id !== atdId));
+            setLiveTickets(prev => { const n = { ...prev }; delete n[atdId]; return n; });
+            fetchAll(true);
+        } catch (err: any) {
+            enqueueSnackbar(err.response?.data?.error || 'Erro ao encerrar atendimento', { variant: 'error' });
+        } finally {
+            setEncerrando(null);
+        }
+    };
+
     // B5: Controle de almoço
     const handleAlmoco = async (pontoId: string, acao: 'iniciar' | 'finalizar') => {
         try {
@@ -722,7 +741,7 @@ const MedicoMonitoring: React.FC = () => {
                                     <Table size="small">
                                         <TableHead>
                                             <TableRow>
-                                                {['Médico', 'Paciente', 'Ação', 'Início', 'Tempo Decorrido'].map(h => (
+                                                {['Médico', 'Paciente', 'Ação', 'Início', 'Tempo Decorrido', ''].map(h => (
                                                     <TableCell key={h} sx={{ fontWeight: 700, fontSize: '0.75rem', background: '#fff5f5', color: '#991b1b' }}>{h}</TableCell>
                                                 ))}
                                             </TableRow>
@@ -741,16 +760,44 @@ const MedicoMonitoring: React.FC = () => {
                                                             icon={<Timer size={12} />}
                                                             sx={{
                                                                 background: (liveTickets[atd.id] || 0) > 1800 ? '#FDE68A' : '#dcfce7',
-                                                                color: (liveTickets[atd.id] || 0) > 1800 ? '#92400e' : '#166534',
+                                                                color: (liveTickets[atd.id] || 0) > 1800 ? '#92400e' : '#166634',
                                                                 fontWeight: 800, fontFamily: 'monospace', fontSize: '0.8rem',
                                                                 '& .MuiChip-icon': { color: 'inherit' },
                                                             }}
                                                         />
                                                     </TableCell>
+                                                    {/* ── Botão Encerrar ── */}
+                                                    <TableCell sx={{ pr: 1.5 }}>
+                                                        <Tooltip title="Encerrar atendimento agora">
+                                                            <span>
+                                                                <IconButton
+                                                                    id={`btn-encerrar-live-${atd.id}`}
+                                                                    size="small"
+                                                                    disabled={encerrando === atd.id}
+                                                                    onClick={() => handleEncerrarLive(atd.id)}
+                                                                    sx={{
+                                                                        background: '#fff',
+                                                                        border: '1.5px solid #fca5a5',
+                                                                        color: '#dc2626',
+                                                                        borderRadius: '8px',
+                                                                        p: 0.6,
+                                                                        '&:hover': { background: '#fef2f2', borderColor: '#ef4444', transform: 'scale(1.08)' },
+                                                                        '&.Mui-disabled': { opacity: 0.5 },
+                                                                        transition: 'all 0.2s',
+                                                                    }}
+                                                                >
+                                                                    {encerrando === atd.id
+                                                                        ? <CircularProgress size={14} sx={{ color: '#dc2626' }} />
+                                                                        : <XCircle size={16} />}
+                                                                </IconButton>
+                                                            </span>
+                                                        </Tooltip>
+                                                    </TableCell>
                                                 </TableRow>
                                             ))}
                                         </TableBody>
                                     </Table>
+
                                 </Box>
                             </Box>
                         </motion.div>

@@ -238,6 +238,25 @@ export default function GerenciarFila() {
         }
     };
 
+    // ─── FILA-2: Encerrar atendimento travado (em_atendimento ou chamado) ──
+    const handleEncerrarAtendimento = async (fichaId: string) => {
+        if (!window.confirm('Encerrar este atendimento e marcar como concluído?')) return;
+        try {
+            // Usa o endpoint real do backend: PATCH /api/fichas/:id/concluir
+            await api.patch(`/fichas/${fichaId}/concluir`);
+            enqueueSnackbar('Atendimento encerrado', { variant: 'success' });
+            if (acaoId) {
+                const response = await api.get(`/fichas/acao/${acaoId}/fila`);
+                setFila(Array.isArray(response.data) ? response.data : []);
+            }
+        } catch (error: any) {
+            enqueueSnackbar(
+                error.response?.data?.error || 'Erro ao encerrar atendimento',
+                { variant: 'error' }
+            );
+        }
+    };
+
     // ─── Render ────────────────────────────────────────────────────────────
     return (
         <Box sx={{ minHeight: '100vh', background: systemTruckTheme.colors.background, py: 3 }}>
@@ -623,6 +642,24 @@ export default function GerenciarFila() {
                                                                                     {['aguardando', 'chamado'].includes(ficha.status) && (
                                                                                         <IconButton size="small" onClick={() => cancelarFicha(ficha.id)} sx={{ color: systemTruckTheme.colors.danger }}>
                                                                                             <XCircle size={15} />
+                                                                                        </IconButton>
+                                                                                    )}
+
+                                                                                    {/* FILA-2: Encerrar atendimento travado */}
+                                                                                    {(ficha.status === 'em_atendimento' || ficha.status === 'chamado') && (
+                                                                                        <IconButton
+                                                                                            size="small"
+                                                                                            title="Encerrar atendimento"
+                                                                                            onClick={() => handleEncerrarAtendimento(ficha.id)}
+                                                                                            sx={{
+                                                                                                color: '#ef4444',
+                                                                                                border: '1px solid #fecaca',
+                                                                                                borderRadius: '8px',
+                                                                                                p: 0.6,
+                                                                                                '&:hover': { background: '#fef2f2' },
+                                                                                            }}
+                                                                                        >
+                                                                                            <XCircle size={16} />
                                                                                         </IconButton>
                                                                                     )}
                                                                                 </Box>

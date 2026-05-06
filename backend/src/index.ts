@@ -53,6 +53,15 @@ import { ManutencaoCaminhao } from './models/ManutencaoCaminhao';
 import { Caminhao } from './models/Caminhao';
 import { Acao, AcaoCaminhao } from './models';
 import { Emergencia } from './models/Emergencia';
+import { PontoMedico } from './models/PontoMedico';
+
+// ─── CORS: origens permitidas (suporta múltiplas separadas por vírgula) ───
+const allowedOrigins: string[] = (config.frontend.url || 'http://localhost:3000')
+    .split(',')
+    .map((o: string) => o.trim())
+    .filter(Boolean);
+
+console.log('✅ CORS origens permitidas:', allowedOrigins);
 
 /**
  * Job automático: a cada hora verifica manutenções vencidas e libera os caminhões.
@@ -98,13 +107,63 @@ async function liberarManutencoesvencidas() {
     }
 }
 
+/**
+ * Job MED-1: a cada minuto, verifica se já são 18:30 e finaliza automaticamente
+ * todos os turnos médicos ainda abertos (status 'trabalhando' ou 'intervalo').
+ */
+async function finalizarTurnosMedicosAutomatico() {
+    try {
+        const agora = new Date();
+        const horas = agora.getHours();
+        const minutos = agora.getMinutes();
+
+        // Só executar a partir das 18:30
+        if (horas < 18 || (horas === 18 && minutos < 30)) return;
+
+        // Buscar todos os turnos abertos (trabalhando ou intervalo)
+        const turnosAbertos = await PontoMedico.findAll({
+            where: {
+                status: { [Op.in]: ['trabalhando', 'intervalo'] },
+            },
+        });
+
+        if (turnosAbertos.length === 0) return;
+
+        // Definir horário de saída automático: 18:30 de hoje
+        const horaSaida = new Date(agora);
+        horaSaida.setHours(18, 30, 0, 0);
+
+        for (const ponto of turnosAbertos) {
+            await ponto.update({
+                status: 'saiu',
+                data_hora_saida: horaSaida,
+                observacoes: (ponto.observacoes
+                    ? ponto.observacoes + ' | '
+                    : '') + 'Turno finalizado automaticamente às 18:30',
+            });
+            console.log(`⏰ Turno médico ${ponto.id} finalizado automaticamente às 18:30`);
+        }
+
+        console.log(`✅ ${turnosAbertos.length} turno(s) médico(s) finalizado(s) automaticamente`);
+    } catch (err) {
+        console.error('❌ Erro no job de finalização de turnos:', err);
+    }
+}
+
 const app: Application = express();
 const httpServer = http.createServer(app);
 
 // ─── Socket.IO ───────────────────────────────────────────────────────────────
 const io = new SocketIOServer(httpServer, {
     cors: {
-        origin: config.frontend.url,
+        origin: (origin, callback) => {
+            if (!origin || allowedOrigins.includes(origin)) {
+                callback(null, true);
+            } else {
+                console.warn(`[CORS Socket.IO] Bloqueado: ${origin}`);
+                callback(new Error(`Socket.IO CORS: origem não permitida: ${origin}`));
+            }
+        },
         methods: ['GET', 'POST', 'PATCH'],
         credentials: true,
     },
@@ -230,7 +289,16 @@ app.use(compression());
 app.use('/uploads', express.static('uploads'));
 
 app.use(cors({
-    origin: config.frontend.url,
+    origin: (origin, callback) => {
+        // Permite requests sem origin (apps mobile, curl, Postman, server-to-server)
+        if (!origin) { callback(null, true); return; }
+        if (allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            console.warn(`[CORS Express] Bloqueado: ${origin}`);
+            callback(new Error(`CORS: origem não permitida: ${origin}`));
+        }
+    },
     credentials: true,
 }));
 
@@ -576,6 +644,10 @@ async function startServer(): Promise<void> {
         liberarManutencoesvencidas();
         setInterval(liberarManutencoesvencidas, 60 * 60 * 1000);
         console.log('⏰ Job de manutenção agendado (1h)');
+
+        // Job MED-1: finalizar turnos médicos abertos automaticamente às 18:30
+        setInterval(finalizarTurnosMedicosAutomatico, 60 * 1000); // verifica a cada 1 minuto
+        console.log('⏰ Job de finalização de turnos médicos agendado (verifica a cada 1min)');
     } catch (error) {
         console.error('❌ Failed to start server:', error);
         process.exit(1);

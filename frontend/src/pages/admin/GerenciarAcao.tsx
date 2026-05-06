@@ -30,6 +30,7 @@ import {
     FormLabel,
     Switch,
     Autocomplete,
+    Pagination,
 } from '@mui/material';
 import {
     Plus,
@@ -103,6 +104,10 @@ const GerenciarAcao = () => {
 
     // Inscrições state
     const [inscricoes, setInscricoes] = useState<any[]>([]);
+    const [totalInscricoes, setTotalInscricoes] = useState(0);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const LIMIT_INSCRICOES = 50;
 
     // Custos state
     const [custos, setCustos] = useState<any[]>([]);
@@ -216,20 +221,32 @@ const GerenciarAcao = () => {
         }
     }, [id, enqueueSnackbar]);
 
-    const loadInscricoes = useCallback(async () => {
+    const loadInscricoes = useCallback(async (page = 1) => {
         if (!id) return;
-
         try {
-            const response = await api.get(`/inscricoes/acoes/${id}/inscricoes`);
+            const response = await api.get(`/inscricoes/acoes/${id}/inscricoes`, {
+                params: { page, limit: LIMIT_INSCRICOES }
+            });
             const inscData = response.data;
-            setInscricoes(Array.isArray(inscData) ? inscData : (inscData.inscricoes || inscData.data || []));
+            // Backend retorna { inscricoes[], total, page, totalPages }
+            if (inscData && typeof inscData === 'object' && 'inscricoes' in inscData) {
+                setInscricoes(inscData.inscricoes || []);
+                setTotalInscricoes(inscData.total || 0);
+                setTotalPages(inscData.totalPages || 1);
+                setCurrentPage(inscData.page || 1);
+            } else {
+                // fallback se vier array direto
+                const arr = Array.isArray(inscData) ? inscData : [];
+                setInscricoes(arr);
+                setTotalInscricoes(arr.length);
+            }
         } catch (error: any) {
             enqueueSnackbar(
                 error.response?.data?.error || 'Erro ao carregar inscrições',
                 { variant: 'error' }
             );
         }
-    }, [id, enqueueSnackbar]);
+    }, [id, enqueueSnackbar, LIMIT_INSCRICOES]);
 
     const loadFuncionariosAcao = useCallback(async () => {
         if (!id) return;
@@ -716,7 +733,7 @@ const GerenciarAcao = () => {
             }
 
             handleCloseInscricaoDialog();
-            loadInscricoes();
+            loadInscricoes(1);
         } catch (error: any) {
             enqueueSnackbar(
                 error.response?.data?.error || 'Erro ao inscrever cidadão',
@@ -751,7 +768,7 @@ const GerenciarAcao = () => {
             enqueueSnackbar('Status atualizado com sucesso!', { variant: 'success' });
             setOpenEditStatusDialog(false);
             setInscricaoSelecionada(null);
-            await loadInscricoes();
+            await loadInscricoes(currentPage);
         } catch (error: any) {
             console.error('❌ Erro ao atualizar status:', error);
             enqueueSnackbar(
@@ -780,7 +797,7 @@ const GerenciarAcao = () => {
             enqueueSnackbar('Inscrição removida com sucesso!', { variant: 'success' });
             setOpenDeleteInscricaoDialog(false);
             setInscricaoParaApagar(null);
-            await loadInscricoes();
+            await loadInscricoes(currentPage);
         } catch (error: any) {
             enqueueSnackbar(
                 error.response?.data?.error || 'Erro ao remover inscrição',
@@ -1565,7 +1582,7 @@ const GerenciarAcao = () => {
                                                     <TableCell align="right">
                                                         <IconButton
                                                             size="small"
-                                                            onClick={() => handleRemoveCursoExame(acaoCurso.id)}
+                                                            onClick={() => handleRemoveCursoExame(acaoCurso.curso_exame_id)}
                                                             sx={{
                                                                 color: '#ef4444',
                                                                 '&:hover': {
@@ -1718,7 +1735,7 @@ const GerenciarAcao = () => {
                                 gap: 1
                             }}>
                                 <UserPlus size={20} />
-                                Inscrições ({inscricoes.length})
+                                Inscrições ({totalInscricoes})
                             </Typography>
                             <Box sx={{ display: 'flex', gap: 1 }}>
                                 <Button
@@ -1920,6 +1937,20 @@ const GerenciarAcao = () => {
                                     </TableBody>
                                 </Table>
                             </TableContainer>
+                        )}
+
+                        {totalPages > 1 && (
+                            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2, mb: 1 }}>
+                                <Pagination
+                                    count={totalPages}
+                                    page={currentPage}
+                                    onChange={(_e, page) => loadInscricoes(page)}
+                                    color="primary"
+                                    shape="rounded"
+                                    showFirstButton
+                                    showLastButton
+                                />
+                            </Box>
                         )}
 
                         <Dialog open={openInscricaoDialog} onClose={handleCloseInscricaoDialog} maxWidth="sm" fullWidth

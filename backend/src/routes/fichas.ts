@@ -25,6 +25,25 @@ import type { ConfigNotif, CidadaoNotif } from '../utils/notificacoes';
 
 const router = Router();
 
+// ─── FILA-1: Helper — monta payload resumido para Socket.IO ─────────────────
+// Envia apenas contagens + primeiras 20 fichas aguardando + última chamada.
+// Os frontends que precisam da lista completa fazem refetch HTTP via polling.
+function buildResumo(acao_id: string, filaCompleta: FichaAtendimento[]) {
+    return {
+        acao_id,
+        total_aguardando: filaCompleta.filter(f => f.status === 'aguardando').length,
+        total_chamado: filaCompleta.filter(f => f.status === 'chamado').length,
+        total_em_atendimento: filaCompleta.filter(f => f.status === 'em_atendimento').length,
+        // Primeiras 20 fichas aguardando para o painel TV
+        fila: filaCompleta.filter(f => f.status === 'aguardando').slice(0, 20),
+        // Última chamada (para o painel TV)
+        ultima_chamada: filaCompleta
+            .filter(f => ['chamado', 'em_atendimento'].includes(f.status))
+            .sort((a, b) => (b.hora_chamada?.getTime() ?? 0) - (a.hora_chamada?.getTime() ?? 0))[0] || null,
+        timestamp: new Date().toISOString(),
+    };
+}
+
 
 
 // ─── Helper: busca fila ativa de hoje para uma ação ──────────────────────────
@@ -181,8 +200,8 @@ router.post('/', authenticate, async (req: Request, res: Response) => {
         // Emitir evento Socket.IO (io é injetado no app via req.app)
         const io = (req.app as any).get('io');
         if (io) {
-            const filaAtualizada = await getFila(acao_id);
-            io.to(`acao:${acao_id}`).emit('fila_atualizada', { acao_id, fila: filaAtualizada });
+            const filaCompleta = await getFila(acao_id);
+            io.to(`acao:${acao_id}`).emit('fila_atualizada', buildResumo(acao_id, filaCompleta));
             io.to(`acao:${acao_id}`).emit('nova_ficha', fichaCompleta);
         }
 
@@ -230,8 +249,8 @@ router.patch('/:id/chamar', authenticate, authorizeAtendimento, async (req: Requ
 
         const io = (req.app as any).get('io');
         if (io) {
-            const filaAtualizada = await getFila(ficha.acao_id);
-            io.to(`acao:${ficha.acao_id}`).emit('fila_atualizada', { acao_id: ficha.acao_id, fila: filaAtualizada });
+            const filaCompleta = await getFila(ficha.acao_id);
+            io.to(`acao:${ficha.acao_id}`).emit('fila_atualizada', buildResumo(ficha.acao_id, filaCompleta));
             io.to(`acao:${ficha.acao_id}`).emit('paciente_chamado', {
                 ficha,
                 cidadao: (ficha as any).cidadao,
@@ -284,8 +303,8 @@ router.patch('/:id/iniciar-atendimento', authenticate, authorizeAdminOrEstrada, 
 
         const io = (req.app as any).get('io');
         if (io) {
-            const filaAtualizada = await getFila(ficha.acao_id);
-            io.to(`acao:${ficha.acao_id}`).emit('fila_atualizada', { acao_id: ficha.acao_id, fila: filaAtualizada });
+            const filaCompleta = await getFila(ficha.acao_id);
+            io.to(`acao:${ficha.acao_id}`).emit('fila_atualizada', buildResumo(ficha.acao_id, filaCompleta));
         }
 
         res.json({ message: 'Atendimento iniciado', ficha });
@@ -318,8 +337,8 @@ router.patch('/:id/concluir', authenticate, authorizeAdminOrEstrada, async (req:
 
         const io = (req.app as any).get('io');
         if (io) {
-            const filaAtualizada = await getFila(ficha.acao_id);
-            io.to(`acao:${ficha.acao_id}`).emit('fila_atualizada', { acao_id: ficha.acao_id, fila: filaAtualizada });
+            const filaCompleta = await getFila(ficha.acao_id);
+            io.to(`acao:${ficha.acao_id}`).emit('fila_atualizada', buildResumo(ficha.acao_id, filaCompleta));
             io.to(`acao:${ficha.acao_id}`).emit('atendimento_concluido', { ficha_id: id });
         }
 
@@ -349,8 +368,8 @@ router.patch('/:id/cancelar', authenticate, authorizeAdminOrEstrada, async (req:
 
         const io = (req.app as any).get('io');
         if (io) {
-            const filaAtualizada = await getFila(ficha.acao_id);
-            io.to(`acao:${ficha.acao_id}`).emit('fila_atualizada', { acao_id: ficha.acao_id, fila: filaAtualizada });
+            const filaCompleta = await getFila(ficha.acao_id);
+            io.to(`acao:${ficha.acao_id}`).emit('fila_atualizada', buildResumo(ficha.acao_id, filaCompleta));
         }
 
         res.json({ message: 'Ficha cancelada', ficha });
@@ -444,8 +463,8 @@ router.post('/acao/:acao_id/chamar-proximo', authenticate, authorizeAdminOrEstra
         // Socket.IO
         const io = (req.app as any).get('io');
         if (io) {
-            const filaAtualizada = await getFila(acao_id);
-            io.to(`acao:${acao_id}`).emit('fila_atualizada', { acao_id, fila: filaAtualizada });
+            const filaCompleta = await getFila(acao_id);
+            io.to(`acao:${acao_id}`).emit('fila_atualizada', buildResumo(acao_id, filaCompleta));
             io.to(`acao:${acao_id}`).emit('paciente_chamado', {
                 ficha: proxima,
                 cidadao: cidadaoData,
@@ -620,8 +639,8 @@ router.post('/acao/:acao_id/sincronizar-inscricoes', authenticate, authorizeAdmi
         if (criadas > 0) {
             const io = (req.app as any).get('io');
             if (io) {
-                const filaAtualizada = await getFila(acao_id);
-                io.to(`acao:${acao_id}`).emit('fila_atualizada', { acao_id, fila: filaAtualizada });
+                const filaCompleta = await getFila(acao_id);
+                io.to(`acao:${acao_id}`).emit('fila_atualizada', buildResumo(acao_id, filaCompleta));
             }
         }
 

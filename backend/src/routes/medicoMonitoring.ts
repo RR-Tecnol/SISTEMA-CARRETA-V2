@@ -36,6 +36,8 @@ import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
 import exceljs from 'exceljs';
+import bcrypt from 'bcrypt';
+import { consultarCidadaoNoCadsus } from '../services/cadsusService';
 
 const storageDir = path.join(__dirname, '..', '..', 'uploads', 'resultados');
 if (!fs.existsSync(storageDir)) fs.mkdirSync(storageDir, { recursive: true });
@@ -1866,6 +1868,159 @@ router.get('/resultados/exportar', authenticate, async (req: any, res: Response)
     } catch (err) {
         console.error('Export erro', err);
         res.status(500).json({ error: 'Falha exportacao excell' });
+    }
+});
+
+/**
+ * POST /api/medico-monitoring/cadastrar-via-cpf
+ * Médico digita CPF → sistema busca localmente → DATASUS → cadastra → inscreve → gera ficha
+ * Não requer acesso a /api/cidadaos (403 para médico) — fluxo completo aqui
+ */
+router.post('/cadastrar-via-cpf', authenticate, authorizeMedicoOrAdmin, async (req: any, res: Response) => {
+    try {
+        const { cpf, cns, acao_id, acao_curso_exame_id } = req.body;
+
+        if ((!cpf && !cns) || !acao_id || !acao_curso_exame_id) {
+            res.status(400).json({ error: 'cpf ou cns, acao_id e acao_curso_exame_id são obrigatórios' });
+            return;
+        }
+
+        // Detectar modo de busca
+        const identificador = (cpf || cns || '').replace(/\D/g, '');
+        const tipoBusca: 'cpf' | 'cns' = identificador.length === 15 ? 'cns' : 'cpf';
+
+        if (identificador.length !== 11 && identificador.length !== 15) {
+            res.status(400).json({ error: 'Informe um CPF (11 dígitos) ou Cartão SUS (15 dígitos) válido' });
+            return;
+        }
+
+        // 1. Verificar se cidadão já existe localmente
+        let cidadao: any = null;
+        if (tipoBusca === 'cpf') {
+            const cpfFormatado = identificador.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4');
+            cidadao = await Cidadao.findOne({
+                where: { cpf: { [Op.or]: [identificador, cpfFormatado] } }
+            });
+        } else {
+            // Busca por cartao_sus
+            cidadao = await Cidadao.findOne({ where: { cartao_sus: identificador } });
+        }
+
+        // 2. Se não existe, buscar no DATASUS e criar
+        if (!cidadao) {
+            let dadosDatasus: any = null;
+            try {
+                dadosDatasus = await consultarCidadaoNoCadsus(tipoBusca, identificador);
+            } catch (err) {
+                console.warn('[CADSUS] Falha na consulta — prosseguindo sem dados externos:', err);
+            }
+
+            const senhaTemp = Math.random().toString(36).slice(-8).toUpperCase();
+            const senhaHash = await bcrypt.hash(senhaTemp, 10);
+
+            cidadao = await Cidadao.create({
+                cpf: tipoBusca === 'cpf' ? identificador : (dadosDatasus?.cpf || identificador),
+                nome_completo: dadosDatasus?.nome_completo || `Paciente ${tipoBusca.toUpperCase()} ${identificador}`,
+                nome_mae: dadosDatasus?.nome_mae || null,
+                data_nascimento: dadosDatasus?.data_nascimento || null,
+                genero: dadosDatasus?.sexo === 'M' ? 'masculino'
+                      : dadosDatasus?.sexo === 'F' ? 'feminino' : null,
+                raca: dadosDatasus?.raca || null,
+                telefone: dadosDatasus?.telefone || null,
+                email: dadosDatasus?.email || null,
+                cep: dadosDatasus?.cep || null,
+                rua: dadosDatasus?.logradouro || null,
+                municipio: dadosDatasus?.municipio || null,
+                estado: dadosDatasus?.estado || null,
+                cartao_sus: tipoBusca === 'cns' ? identificador : (dadosDatasus?.cartao_sus || null),
+                senha: senhaHash,
+                tipo: 'cidadao',
+            } as any);
+        }
+
+        // 3. Verificar se o acao_curso_exame_id é válido para esta ação
+        const acaoCurso = await AcaoCursoExame.findOne({
+            where: { id: acao_curso_exame_id, acao_id },
+        });
+        if (!acaoCurso) {
+            res.status(404).json({ error: 'Exame não encontrado nesta ação' });
+            return;
+        }
+
+        // 4. Verificar se já está inscrito nesta ação/exame
+        const inscricaoExistente = await Inscricao.findOne({
+            where: {
+                cidadao_id: (cidadao as any).id,
+                acao_id,
+                curso_exame_id: acaoCurso.curso_exame_id,
+                status: 'pendente',
+            },
+        });
+
+        let inscricao = inscricaoExistente;
+        if (!inscricao) {
+            inscricao = await Inscricao.create({
+                cidadao_id: (cidadao as any).id,
+                acao_id,
+                curso_exame_id: acaoCurso.curso_exame_id,
+                status: 'pendente',
+                data_inscricao: new Date(),
+                observacoes: 'Cadastro pelo médico via CPF',
+            } as any);
+        }
+
+        // 5. Criar ficha na fila se não existir
+        const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+        const amanha = new Date(hoje); amanha.setDate(amanha.getDate() + 1);
+
+        let ficha = await FichaAtendimento.findOne({
+            where: {
+                cidadao_id: (cidadao as any).id,
+                acao_id,
+                inscricao_id: (inscricao as any).id,
+                status: { [Op.in]: ['aguardando', 'chamado', 'em_atendimento'] },
+            },
+        });
+
+        if (!ficha) {
+            const maxFicha = await FichaAtendimento.findOne({
+                where: { acao_id, hora_entrada: { [Op.gte]: hoje, [Op.lt]: amanha } },
+                order: [['numero_ficha', 'DESC']],
+            });
+            const numero_ficha = maxFicha ? (maxFicha.numero_ficha + 1) : 1;
+
+            ficha = await FichaAtendimento.create({
+                cidadao_id: (cidadao as any).id,
+                acao_id,
+                inscricao_id: (inscricao as any).id,
+                numero_ficha,
+                status: 'aguardando',
+            } as any);
+        }
+
+        // 6. Emitir atualização da fila via Socket.IO
+        const io = (req.app as any).get('io');
+        if (io) {
+            io.to(`acao:${acao_id}`).emit('nova_ficha', { ficha, cidadao });
+            io.to(`acao:${acao_id}`).emit('fila_atualizada', { acao_id });
+        }
+
+        res.status(201).json({
+            cidadao: {
+                id: (cidadao as any).id,
+                nome_completo: (cidadao as any).nome_completo,
+                cpf: (cidadao as any).cpf,
+                data_nascimento: (cidadao as any).data_nascimento,
+                cartao_sus: (cidadao as any).cartao_sus,
+            },
+            inscricao,
+            ficha,
+            novo_cadastro: !inscricaoExistente,
+        });
+
+    } catch (error: any) {
+        console.error('[cadastrar-via-cpf] Erro:', error);
+        res.status(500).json({ error: error.message || 'Erro ao cadastrar cidadão' });
     }
 });
 

@@ -13,7 +13,7 @@ import {
     AlertTriangle, Stethoscope, RefreshCw, LogIn, LogOut,
     Timer, Users, ClipboardList, Wifi, WifiOff, Frown,
     ArrowLeft, Search, Bell, Clock, ClipboardEdit, QrCode, MessageCircle,
-    Coffee, UtensilsCrossed, Megaphone, Mic, MicOff,
+    Coffee, UtensilsCrossed, Megaphone, Mic, MicOff, UserPlus,
 } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { useSnackbar } from 'notistack';
@@ -93,6 +93,13 @@ const MedicoPanel: React.FC = () => {
     const [activeMenu, setActiveMenu] = useState<'atendimento' | 'historico' | 'laudos' | 'chat' | 'emergencias'>('atendimento');
     const [buscaInscrito, setBuscaInscrito] = useState('');
     const [filtroExameId, setFiltroExameId] = useState<string>('');
+    // MEDICO-CPF: estados do modal de cadastro
+    const [modalCpfOpen, setModalCpfOpen] = useState(false);
+    const [modoBusca, setModoBusca] = useState<'cpf' | 'cns'>('cpf');
+    const [cpfInput, setCpfInput] = useState('');
+    const [cpfLoading, setCpfLoading] = useState(false);
+    // Mapa: curso_exame_id → acao_curso_exame_id (pivot id necessário para o backend)
+    const [mapAcaoCurso, setMapAcaoCurso] = useState<Record<string, string>>({});
     const timerRef = useRef<NodeJS.Timeout | null>(null);
     const pollRef = useRef<NodeJS.Timeout | null>(null);
     const [filaEspera, setFilaEspera] = useState<Array<{ id: string; nome_display: string; tempo_espera_segundos: number; cidadao?: any; acao?: any }>>([]);
@@ -108,6 +115,8 @@ const MedicoPanel: React.FC = () => {
     const [chatOpen, setChatOpen] = useState(false);
     const [chatCidadao, setChatCidadao] = useState<{ id: string; nome: string } | null>(null);
     const [emergenciaAtiva, setEmergenciaAtiva] = useState<{ id?: string; cidadao_id: string; nome: string; hora: string } | null>(null);
+    // IDs de emergências já dispensadas nesta sessão — evita re-exibição pelo polling
+    const dismissedEmergIds = useRef<Set<string>>(new Set());
     const [mensagensNaoLidas, setMensagensNaoLidas] = useState<Record<string, number>>({});
     // A1: Gravação de voz no card de consulta em andamento
     const [gravandoVoz, setGravandoVoz] = useState(false);
@@ -267,6 +276,8 @@ const MedicoPanel: React.FC = () => {
             const list = listRes.data?.emergencias || [];
             if (list.length > 0 && list[0].status === 'novo') {
                 const em = list[0];
+                // Não re-exibir emergência que já foi dispensada nesta sessão
+                if (dismissedEmergIds.current.has(em.id)) return;
                 setEmergenciaAtiva({ 
                     id: em.id,
                     cidadao_id: em.cidadao_id, 
@@ -276,6 +287,17 @@ const MedicoPanel: React.FC = () => {
             }
         } catch { /* */ }
     }, [acaoId]);
+
+    // Dispensar emergência: marca como 'visto' no backend e registra no Set local
+    const handleDismissEmergencia = useCallback(async () => {
+        if (!emergenciaAtiva) return;
+        const id = emergenciaAtiva.id;
+        if (id) {
+            dismissedEmergIds.current.add(id);
+            try { await api.put(`/emergencias/${id}/status`, { status: 'visto' }); } catch { /* silencioso */ }
+        }
+        setEmergenciaAtiva(null);
+    }, [emergenciaAtiva]);
 
     useEffect(() => {
         fetchData();
@@ -297,6 +319,8 @@ const MedicoPanel: React.FC = () => {
         const socket = getSocket();
 
         const handleEmergencia = (data: { id?: string; cidadao_id: string; nome: string; hora: string }) => {
+            // Não re-exibir se já foi dispensada nesta sessão
+            if (data.id && dismissedEmergIds.current.has(data.id)) return;
             setEmergenciaAtiva(data);
             try {
                 const ctx = new AudioContext();
@@ -371,6 +395,26 @@ const MedicoPanel: React.FC = () => {
         });
         return result;
     }, [inscritos]);
+
+    // MEDICO-CPF: atualizar mapa curso_exame_id→acao_curso_exame_id quando a ação muda
+    React.useEffect(() => {
+        if (!acaoId) { setMapAcaoCurso({}); return; }
+        api.get(`/medico-monitoring/me/exames-do-dia`)
+            .then(r => {
+                const mapa: Record<string, string> = {};
+                const acoes: any[] = r.data?.acoes || [];
+                acoes.forEach((a: any) => {
+                    if (a.acao?.id === acaoId) {
+                        (a.exames || []).forEach((ex: any) => {
+                            // ex.id = acao_curso_exame.id (pivot), ex.curso_exame_id = curso_exame.id
+                            if (ex.id && ex.curso_exame_id) mapa[ex.curso_exame_id] = ex.id;
+                        });
+                    }
+                });
+                setMapAcaoCurso(mapa);
+            })
+            .catch(() => setMapAcaoCurso({}));
+    }, [acaoId]);
 
     const inscritosFiltrados = inscritos
         .filter((i) => tabInscritos === 'todos' || i.status === tabInscritos)
@@ -509,6 +553,52 @@ const MedicoPanel: React.FC = () => {
             await fetchFila();
         } catch (err: any) {
             enqueueSnackbar(err.response?.data?.error || 'Erro ao chamar paciente', { variant: 'error' });
+        }
+    };
+
+    // MEDICO-CPF: cadastrar paciente via CPF sem precisar de /api/cidadaos
+    const handleCadastrarViaCpf = async () => {
+        const cpfLimpo = cpfInput.replace(/\D/g, '');
+        const tamanhoEsperado = modoBusca === 'cpf' ? 11 : 15;
+        if (cpfLimpo.length !== tamanhoEsperado) {
+            enqueueSnackbar(
+                modoBusca === 'cpf'
+                    ? 'Digite um CPF válido com 11 dígitos'
+                    : 'Digite um Cartão SUS válido com 15 dígitos',
+                { variant: 'warning' }
+            );
+            return;
+        }
+        // Determinar acao_curso_exame_id pelo filtroExameId (curso_exame.id) ou o primeiro disponível
+        const cursoId = filtroExameId || examesDisponiveis[0]?.id;
+        const acaoCursoId = cursoId ? mapAcaoCurso[cursoId] : Object.values(mapAcaoCurso)[0];
+        if (!acaoCursoId) {
+            enqueueSnackbar('Selecione um exame antes de cadastrar (ou aguarde o carregamento)', { variant: 'warning' });
+            return;
+        }
+        setCpfLoading(true);
+        try {
+            const response = await api.post('/medico-monitoring/cadastrar-via-cpf', {
+                [modoBusca]: cpfLimpo,
+                acao_id: acaoId,
+                acao_curso_exame_id: acaoCursoId,
+            });
+            enqueueSnackbar(
+                response.data.novo_cadastro
+                    ? `✅ ${response.data.cidadao.nome_completo} cadastrado e inscrito!`
+                    : `✅ ${response.data.cidadao.nome_completo} já inscrito — ficha garantida!`,
+                { variant: 'success' }
+            );
+            setCpfInput('');
+            setModalCpfOpen(false);
+            await fetchInscritos();
+        } catch (error: any) {
+            enqueueSnackbar(
+                error.response?.data?.error || 'Erro ao cadastrar via CPF',
+                { variant: 'error' }
+            );
+        } finally {
+            setCpfLoading(false);
         }
     };
 
@@ -757,11 +847,14 @@ const MedicoPanel: React.FC = () => {
                                                 size="large"
                                                 startIcon={<ClipboardEdit />}
                                                 onClick={async () => {
-                                                    try {
-                                                        if (emergenciaAtiva.id) await api.put(`/emergencias/${emergenciaAtiva.id}/status`, { status: 'em_atendimento' });
-                                                    } catch {}
+                                                    const id = emergenciaAtiva.id;
+                                                    const cidadao_id = emergenciaAtiva.cidadao_id;
+                                                    if (id) {
+                                                        dismissedEmergIds.current.add(id);
+                                                        try { await api.put(`/emergencias/${id}/status`, { status: 'em_atendimento' }); } catch {}
+                                                    }
                                                     setEmergenciaAtiva(null);
-                                                    navigate(`/ficha/${emergenciaAtiva.cidadao_id}`);
+                                                    navigate(`/ficha/${cidadao_id}`);
                                                 }}
                                                 sx={{ background: '#DC2626', fontWeight: 800, px: 4, borderRadius: '12px' }}
                                             >
@@ -771,12 +864,7 @@ const MedicoPanel: React.FC = () => {
                                                 variant="outlined" 
                                                 color="error"
                                                 size="large"
-                                                onClick={async () => {
-                                                    try {
-                                                        if (emergenciaAtiva.id) await api.put(`/emergencias/${emergenciaAtiva.id}/status`, { status: 'visto' });
-                                                    } catch {}
-                                                    setEmergenciaAtiva(null);
-                                                }}
+                                                onClick={handleDismissEmergencia}
                                                 sx={{ fontWeight: 700, borderRadius: '12px', background: '#fff' }}
                                             >
                                                 Omitir Alerta
@@ -1060,6 +1148,25 @@ const MedicoPanel: React.FC = () => {
                                             </Select>
                                         </FormControl>
                                     )}
+                                    {/* MEDICO-CPF: botão cadastrar paciente via CPF */}
+                                    <Button
+                                        size="small"
+                                        variant="outlined"
+                                        onClick={() => setModalCpfOpen(true)}
+                                        disabled={pontoStatus !== 'trabalhando'}
+                                        startIcon={<UserPlus size={15} />}
+                                        sx={{
+                                            textTransform: 'none',
+                                            fontWeight: 600,
+                                            borderRadius: '8px',
+                                            fontSize: '0.78rem',
+                                            borderColor: expressoTheme.colors.primary,
+                                            color: expressoTheme.colors.primary,
+                                            '&:hover': { background: `${expressoTheme.colors.primary}10` },
+                                        }}
+                                    >
+                                        Cadastrar via CPF
+                                    </Button>
                                 </Box>
 
                                 <Box sx={{ maxHeight: 300, overflowY: 'auto' }}>
@@ -1456,8 +1563,10 @@ const MedicoPanel: React.FC = () => {
             {emergenciaAtiva && (
                 <EmergenciaAlert
                     emergencia={emergenciaAtiva}
-                    onDismiss={() => setEmergenciaAtiva(null)}
+                    onDismiss={handleDismissEmergencia}
                     onAbrirFicha={async (cidadao_id) => {
+                        // Marcar como visto antes de abrir ficha
+                        await handleDismissEmergencia();
                         const inscrito = inscritos.find(i => i.cidadao.id === cidadao_id);
                         if (inscrito) {
                             setQrCidadao(inscrito.cidadao);
@@ -1469,21 +1578,97 @@ const MedicoPanel: React.FC = () => {
                                 setQrHistorico(r.data.historico_clinico);
                             } catch { /* dados básicos */ }
                         }
-                        setEmergenciaAtiva(null);
                     }}
-                    onAbrirChat={(cidadao_id) => {
+                    onAbrirChat={async (cidadao_id) => {
+                        // Marcar como visto antes de abrir chat
+                        await handleDismissEmergencia();
                         const inscrito = inscritos.find(i => i.cidadao.id === cidadao_id);
                         if (inscrito) {
                             setChatCidadao({ id: inscrito.cidadao.id, nome: inscrito.cidadao.nome });
                             setChatOpen(true);
                         }
-                        setEmergenciaAtiva(null);
                     }}
                 />
             )}
         </AnimatePresence>
 
         {/* B5: Modal de Seleção de Sala */}
+        {/* MEDICO-CPF: Dialog de cadastro via CPF */}
+        <Dialog
+            open={modalCpfOpen}
+            onClose={() => { setModalCpfOpen(false); setCpfInput(''); setModoBusca('cpf'); }}
+            maxWidth="xs"
+            fullWidth
+        >
+            <DialogTitle sx={{ fontWeight: 700 }}>Cadastrar Paciente</DialogTitle>
+            <DialogContent>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    Digite o identificador do paciente. O sistema buscará os dados no DATASUS e
+                    inscreverá no exame selecionado automaticamente.
+                </Typography>
+
+                {/* Toggle CPF / Cartão SUS */}
+                <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+                    <Button
+                        size="small"
+                        variant={modoBusca === 'cpf' ? 'contained' : 'outlined'}
+                        onClick={() => { setModoBusca('cpf'); setCpfInput(''); }}
+                        sx={{
+                            flex: 1, textTransform: 'none', fontWeight: 600,
+                            borderRadius: '8px', fontSize: '0.82rem',
+                            ...(modoBusca === 'cpf' ? { background: expressoTheme.gradients.primary } : {})
+                        }}
+                    >
+                        CPF
+                    </Button>
+                    <Button
+                        size="small"
+                        variant={modoBusca === 'cns' ? 'contained' : 'outlined'}
+                        onClick={() => { setModoBusca('cns'); setCpfInput(''); }}
+                        sx={{
+                            flex: 1, textTransform: 'none', fontWeight: 600,
+                            borderRadius: '8px', fontSize: '0.82rem',
+                            ...(modoBusca === 'cns' ? { background: expressoTheme.gradients.primary } : {})
+                        }}
+                    >
+                        Cartão SUS
+                    </Button>
+                </Box>
+
+                <TextField
+                    fullWidth
+                    label={modoBusca === 'cpf' ? 'CPF do Paciente' : 'Número do Cartão SUS'}
+                    value={cpfInput}
+                    onChange={(e) => setCpfInput(e.target.value.replace(/\D/g, '').slice(0, modoBusca === 'cpf' ? 11 : 15))}
+                    placeholder={modoBusca === 'cpf' ? '00000000000' : '000000000000000'}
+                    inputProps={{ maxLength: modoBusca === 'cpf' ? 11 : 15 }}
+                    disabled={cpfLoading}
+                    autoFocus
+                    helperText={modoBusca === 'cns' ? 'Número de 15 dígitos impresso no verso do cartão' : ''}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleCadastrarViaCpf(); }}
+                />
+                {cpfLoading && (
+                    <Box sx={{ textAlign: 'center', mt: 2 }}>
+                        <CircularProgress size={24} />
+                        <Typography variant="body2" sx={{ mt: 1 }}>Consultando DATASUS...</Typography>
+                    </Box>
+                )}
+            </DialogContent>
+            <DialogActions>
+                <Button onClick={() => { setModalCpfOpen(false); setCpfInput(''); setModoBusca('cpf'); }} disabled={cpfLoading}>
+                    Cancelar
+                </Button>
+                <Button
+                    variant="contained"
+                    onClick={handleCadastrarViaCpf}
+                    disabled={cpfLoading || cpfInput.length !== (modoBusca === 'cpf' ? 11 : 15)}
+                    sx={{ background: expressoTheme.gradients.primary, textTransform: 'none', fontWeight: 700 }}
+                >
+                    {cpfLoading ? 'Cadastrando...' : 'Cadastrar e Inscrever'}
+                </Button>
+            </DialogActions>
+        </Dialog>
+
         <Dialog open={modalSalaOpen} onClose={() => setModalSalaOpen(false)} maxWidth="xs" fullWidth>
             <DialogTitle sx={{ fontWeight: 'bold', color: expressoTheme.colors.text }}>Escolha sua Sala</DialogTitle>
             <DialogContent dividers>

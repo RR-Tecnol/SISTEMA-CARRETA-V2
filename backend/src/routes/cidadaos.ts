@@ -9,6 +9,7 @@ import fs from 'fs';
 import bcrypt from 'bcrypt';
 import { sendWelcomeEmail, sendResultadoComAnexo } from '../utils/email';
 import { registrarAuditoria, extrairDadosUsuario } from '../utils/auditoria';
+import { consultarCidadaoNoCadsus } from '../services/cadsusService';
 
 
 const router = Router();
@@ -206,6 +207,9 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
         // Remover formatação do CNS (espaços) antes de salvar — armazena apenas os 15 dígitos
         const cartaoSusFinal = cartao_sus ? cartao_sus.replace(/\D/g, '').slice(0, 15) || null : null;
 
+        const senhaPlain = senha || '123456';
+        const senhaHash = await bcrypt.hash(senhaPlain, 10);
+
         // Criar cidadão
         const novoCidadao = await Cidadao.create({
             nome_completo,
@@ -223,13 +227,12 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
             bairro: bairro || null,
             municipio: municipioFinal,
             estado: estadoFinal,
-            senha: senha || '123456', // Senha padrão se não fornecida
+            senha: senhaHash,
             cartao_sus: cartaoSusFinal, // B1 — garantir que cartao_sus é salvo
         } as any);
 
         // F1 — Enviar e-mail de boas-vindas se o cidadão tem e-mail
         // Não bloquear o cadastro se o e-mail falhar (sendWelcomeEmail já captura o erro)
-        const senhaPlain = senha || '123456';
         if (email) {
             sendWelcomeEmail(email, nome_completo, senhaPlain).catch(() => {
                 // ignore silently — já logado dentro de sendWelcomeEmail
@@ -569,6 +572,82 @@ router.get('/buscar-cpf/:cpf', authenticate, async (req: AuthRequest, res: Respo
     }
 });
 
+/**
+ * GET /api/cidadaos/consultar-datasus/:tipo/:valor
+ * Consulta dados do cidadão no CADSUS via API DATASUS
+ * tipo: 'cpf' | 'cns'
+ * Admin only — requer certificado .pfx configurado
+ */
+router.get('/consultar-datasus/:tipo/:valor', authenticate, async (req: AuthRequest, res: Response) => {
+    try {
+        if (!isAdminOrEstrada(req)) {
+            res.status(403).json({ error: 'Acesso negado' });
+            return;
+        }
+
+        const { tipo, valor } = req.params;
+
+        if (!['cpf', 'cns'].includes(tipo)) {
+            res.status(400).json({ error: 'Tipo de busca inválido. Use: cpf ou cns' });
+            return;
+        }
+
+        const valorLimpo = valor.replace(/\D/g, '');
+
+        if (tipo === 'cpf' && valorLimpo.length !== 11) {
+            res.status(400).json({ error: 'CPF deve ter 11 dígitos' });
+            return;
+        }
+
+        if (tipo === 'cns' && valorLimpo.length !== 15) {
+            res.status(400).json({ error: 'CNS deve ter 15 dígitos' });
+            return;
+        }
+
+        const dadosCidadao = await consultarCidadaoNoCadsus(tipo as 'cpf' | 'cns', valorLimpo);
+
+        if (!dadosCidadao) {
+            res.status(404).json({
+                error: 'Cidadão não encontrado no CADSUS',
+                message: 'Verifique o CPF/CNS e tente novamente'
+            });
+            return;
+        }
+
+        res.json({
+            encontrado: true,
+            dados: dadosCidadao,
+            fonte: 'DATASUS/CADSUS',
+        });
+
+    } catch (error: any) {
+        console.error('Erro ao consultar DATASUS:', error.message);
+
+        // Erros específicos para melhor UX
+        if (error.message?.includes('pfx não encontrado') || error.message?.includes('ENOENT')) {
+            res.status(503).json({
+                error: 'Certificado digital não configurado',
+                message: 'O certificado .pfx do DATASUS não está disponível neste servidor',
+                certificado_necessario: true
+            });
+            return;
+        }
+
+        if (error.response?.status === 401) {
+            res.status(503).json({
+                error: 'Falha na autenticação com DATASUS',
+                message: 'Verifique o certificado digital e a senha'
+            });
+            return;
+        }
+
+        res.status(500).json({
+            error: 'Erro ao consultar DATASUS',
+            message: error.message
+        });
+    }
+});
+
 
 // ── Laudos ────────────────────────────────────────────────────────────────────
 
@@ -612,7 +691,7 @@ router.post('/:id/laudos', authenticate, uploadLaudo.single('laudo'), async (req
  */
 router.get('/:id/laudos', authenticate, async (req: AuthRequest, res: Response) => {
     try {
-        if (!isAdminOrEstrada(req)) { res.status(403).json({ error: 'Acesso negado' }); return; }
+        if (!isAdminOrEstrada(req) && req.user?.id !== req.params.id) { res.status(403).json({ error: 'Acesso negado' }); return; }
         const cidadao = await Cidadao.findByPk(req.params.id);
         if (!cidadao) { res.status(404).json({ error: 'Cidadão não encontrado' }); return; }
 

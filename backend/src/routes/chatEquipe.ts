@@ -14,21 +14,35 @@ router.get('/profissionais', authenticate, async (req: any, res: Response) => {
 
         let profissionais;
         if (acao_id) {
-            // Profissionais vinculados à ação específica
+            // Profissionais vinculados à ação específica + Admins globais
             profissionais = await sequelize.query(
                 `SELECT f.id, f.nome, f.cargo, f.especialidade, f.is_medico, f.crm
                  FROM funcionarios f
                  JOIN acao_funcionarios af ON af.funcionario_id = f.id
                  WHERE af.acao_id = :acao_id AND f.ativo = TRUE AND f.id != :meuId
-                 ORDER BY f.cargo, f.nome`,
+                 
+                 UNION
+                 
+                 SELECT id, nome_completo AS nome, 'Administrador' AS cargo, NULL AS especialidade, false AS is_medico, NULL AS crm
+                 FROM cidadaos
+                 WHERE tipo = 'admin' AND id != :meuId
+                 
+                 ORDER BY cargo, nome`,
                 { replacements: { acao_id, meuId }, type: QueryTypes.SELECT }
             );
         } else {
-            // Todos os profissionais ativos (global)
+            // Todos os profissionais ativos (global) + Admins
             profissionais = await sequelize.query(
                 `SELECT id, nome, cargo, especialidade, is_medico, crm
                  FROM funcionarios
                  WHERE ativo = TRUE AND id != :meuId
+                 
+                 UNION
+                 
+                 SELECT id, nome_completo AS nome, 'Administrador' AS cargo, NULL AS especialidade, false AS is_medico, NULL AS crm
+                 FROM cidadaos
+                 WHERE tipo = 'admin' AND id != :meuId
+                 
                  ORDER BY cargo, nome`,
                 { replacements: { meuId }, type: QueryTypes.SELECT }
             );
@@ -62,15 +76,16 @@ router.get('/conversas', authenticate, async (req: any, res: Response) => {
              FROM (
                 SELECT
                     CASE WHEN remetente_id = :meuId THEN destinatario_id ELSE remetente_id END AS parceiro_id,
-                    f.nome AS parceiro_nome,
-                    f.cargo AS parceiro_cargo,
+                    COALESCE(f.nome, c.nome_completo) AS parceiro_nome,
+                    COALESCE(f.cargo, 'Administrador') AS parceiro_cargo,
                     f.especialidade AS parceiro_especialidade,
                     ce.mensagem AS ultima_msg,
                     ce.created_at AS ultima_data,
                     ce.acao_id,
                     CASE WHEN ce.destinatario_id = :meuId AND ce.lida = FALSE THEN 1 ELSE 0 END AS nao_lidas
                 FROM chat_equipe ce
-                JOIN funcionarios f ON f.id = CASE WHEN ce.remetente_id = :meuId THEN ce.destinatario_id ELSE ce.remetente_id END
+                LEFT JOIN funcionarios f ON f.id = CASE WHEN ce.remetente_id = :meuId THEN ce.destinatario_id ELSE ce.remetente_id END
+                LEFT JOIN cidadaos c ON c.id = CASE WHEN ce.remetente_id = :meuId THEN ce.destinatario_id ELSE ce.remetente_id END AND c.tipo = 'admin'
                 WHERE ce.remetente_id = :meuId OR ce.destinatario_id = :meuId
                 ORDER BY ce.created_at DESC
              ) sub
@@ -110,7 +125,7 @@ router.get('/:funcionarioId', authenticate, async (req: any, res: Response) => {
         const replacements: any = { meuId, funcionarioId };
 
         if (acao_id) {
-            whereAcao = 'AND acao_id = :acao_id';
+            whereAcao = 'AND (acao_id = :acao_id OR acao_id IS NULL)';
             replacements.acao_id = acao_id;
         }
 

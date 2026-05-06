@@ -42,6 +42,7 @@ import {
     ExternalLink,
     FileText,
     Send,
+    Upload,
 } from 'lucide-react';
 import { useSnackbar } from 'notistack';
 import api, { BASE_URL } from '../../services/api';
@@ -94,6 +95,8 @@ const Cidadaos: React.FC = () => {
     const [createOpen, setCreateOpen] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [emailSuggestions, setEmailSuggestions] = useState<string[]>([]);
+    const [consultandoDatasus, setConsultandoDatasus] = useState(false);
+    const [dadosDatasusEncontrados, setDadosDatasusEncontrados] = useState(false);
 
     // ─── Enviar Resultado de Exame ──────────────────────────────────────────────
     const [envioResultadoOpen, setEnvioResultadoOpen] = useState(false);
@@ -107,15 +110,28 @@ const Cidadaos: React.FC = () => {
     const [loadingHistorico, setLoadingHistorico] = useState(false);
     const [prontuarioModalOpen, setProntuarioModalOpen] = useState<any | null>(null);
 
+    // ─── Laudos dentro do modal de Detalhes ────────────────────────────────────
+    const [detailsLaudos, setDetailsLaudos] = useState<any[]>([]);
+    const [loadingDetailsLaudos, setLoadingDetailsLaudos] = useState(false);
+    const [uploadingDetailsLaudo, setUploadingDetailsLaudo] = useState(false);
+
     useEffect(() => {
         if (detailsOpen && selectedCidadao) {
+            // Carregar histórico médico
             setLoadingHistorico(true);
             api.get(`/medico-monitoring/cidadao/${selectedCidadao.id}/historico`)
                 .then(r => setHistoricoMedico(r.data.historico || []))
                 .catch(() => setHistoricoMedico([]))
                 .finally(() => setLoadingHistorico(false));
+            // Carregar laudos
+            setLoadingDetailsLaudos(true);
+            api.get(`/cidadaos/${selectedCidadao.id}/laudos`)
+                .then(r => setDetailsLaudos(Array.isArray(r.data) ? r.data : []))
+                .catch(() => setDetailsLaudos([]))
+                .finally(() => setLoadingDetailsLaudos(false));
         } else {
             setHistoricoMedico([]);
+            setDetailsLaudos([]);
         }
     }, [detailsOpen, selectedCidadao]);
 
@@ -296,15 +312,123 @@ const Cidadaos: React.FC = () => {
 
     const handleCPFBlur = async (cpf: string) => {
         const cpfLimpo = cpf.replace(/\D/g, '');
-        if (cpfLimpo.length === 11) verificarDuplicidade(cpfLimpo, formData.nome_completo);
-        
+
+        // Verificar duplicidade local primeiro
+        if (cpfLimpo.length === 11) {
+            verificarDuplicidade(cpfLimpo, formData.nome_completo);
+        }
+
         if (cpfLimpo.length !== 11) return;
+
+        // Verificar se CPF já existe no sistema local
         try {
             await api.get(`/cidadaos/buscar-cpf/${cpfLimpo}`);
-            // Removendo autopreenchimento total para evitar edição acidental ao criar
-            enqueueSnackbar('Cidadão já cadastrado! O cadastro não pode ser duplicado.', { variant: 'error' });
+            enqueueSnackbar('Cidadão já cadastrado no sistema!', { variant: 'error' });
+            return;
         } catch (err: any) {
-             // Ignorar erro 404
+            if (err.response?.status !== 404) return; // Erro inesperado
+            // 404 = não existe, pode prosseguir com consulta DATASUS
+        }
+
+        // Consultar DATASUS
+        setConsultandoDatasus(true);
+        setDadosDatasusEncontrados(false);
+        enqueueSnackbar('Consultando DATASUS...', { variant: 'info', autoHideDuration: 2000 });
+
+        try {
+            const { data } = await api.get(`/cidadaos/consultar-datasus/cpf/${cpfLimpo}`);
+
+            if (data.encontrado && data.dados) {
+                const d = data.dados;
+
+                // Mapeamento sexo DATASUS (M/F) → sistema
+                const sexoMap: Record<string, string> = {
+                    'M': 'M', 'F': 'F',
+                };
+
+                setFormData(prev => ({
+                    ...prev,
+                    nome_completo: d.nome_completo ? toTitleCase(d.nome_completo) : prev.nome_completo,
+                    nome_mae: d.nome_mae ? toTitleCase(d.nome_mae) : prev.nome_mae,
+                    data_nascimento: d.data_nascimento || prev.data_nascimento,
+                    sexo: d.sexo ? (sexoMap[d.sexo] || prev.sexo) : prev.sexo,
+                    raca: d.raca || prev.raca,
+                    cep: d.cep ? formatCEP(d.cep) : prev.cep,
+                    rua: d.logradouro ? toTitleCase(d.logradouro) : prev.rua,
+                    numero: d.numero || prev.numero,
+                    complemento: d.complemento ? toTitleCase(d.complemento) : prev.complemento,
+                    bairro: d.bairro ? toTitleCase(d.bairro) : prev.bairro,
+                    municipio: d.municipio ? toTitleCase(d.municipio) : prev.municipio,
+                    estado: d.estado || prev.estado,
+                    cartao_sus: d.cartao_sus ? formatCNS(d.cartao_sus) : prev.cartao_sus,
+                    telefone: d.telefone ? formatPhone(d.telefone) : prev.telefone,
+                    email: d.email ? d.email.toLowerCase() : prev.email,
+                }));
+
+                setDadosDatasusEncontrados(true);
+                enqueueSnackbar('✅ Dados encontrados no DATASUS e preenchidos automaticamente!', {
+                    variant: 'success',
+                    autoHideDuration: 5000
+                });
+            } else {
+                enqueueSnackbar('Cidadão não encontrado no DATASUS. Preencha os dados manualmente.', {
+                    variant: 'warning'
+                });
+            }
+        } catch (err: any) {
+            if (err.response?.data?.certificado_necessario) {
+                // Silencioso — certificado não configurado neste ambiente
+                console.info('DATASUS: certificado não configurado — modo manual ativo');
+            } else if (err.response?.status === 404) {
+                enqueueSnackbar('CPF não encontrado no DATASUS. Preencha os dados manualmente.', {
+                    variant: 'warning'
+                });
+            } else {
+                console.warn('Erro ao consultar DATASUS:', err.message);
+            }
+        } finally {
+            setConsultandoDatasus(false);
+        }
+    };
+
+    const handleCNSBlur = async (cns: string) => {
+        const cnsLimpo = cns.replace(/\D/g, '');
+        if (cnsLimpo.length !== 15) return;
+
+        setConsultandoDatasus(true);
+        enqueueSnackbar('Consultando dados pelo CNS...', { variant: 'info', autoHideDuration: 2000 });
+
+        try {
+            const { data } = await api.get(`/cidadaos/consultar-datasus/cns/${cnsLimpo}`);
+
+            if (data.encontrado && data.dados) {
+                const d = data.dados;
+                setFormData(prev => ({
+                    ...prev,
+                    nome_completo: d.nome_completo ? toTitleCase(d.nome_completo) : prev.nome_completo,
+                    nome_mae: d.nome_mae ? toTitleCase(d.nome_mae) : prev.nome_mae,
+                    data_nascimento: d.data_nascimento || prev.data_nascimento,
+                    sexo: d.sexo || prev.sexo,
+                    raca: d.raca || prev.raca,
+                    cpf: d.cpf ? formatCPF(d.cpf) : prev.cpf,
+                    cep: d.cep ? formatCEP(d.cep) : prev.cep,
+                    rua: d.logradouro ? toTitleCase(d.logradouro) : prev.rua,
+                    numero: d.numero || prev.numero,
+                    bairro: d.bairro ? toTitleCase(d.bairro) : prev.bairro,
+                    municipio: d.municipio ? toTitleCase(d.municipio) : prev.municipio,
+                    estado: d.estado || prev.estado,
+                }));
+
+                enqueueSnackbar('✅ Dados preenchidos pelo CNS via DATASUS!', { variant: 'success' });
+            }
+        } catch (err: any) {
+            if (err.response?.data?.certificado_necessario) {
+                console.info('DATASUS: certificado não configurado — modo manual ativo');
+            } else if (err.response?.status === 404) {
+                enqueueSnackbar('CNS não encontrado no DATASUS.', { variant: 'warning' });
+            }
+        } finally {
+            setConsultandoDatasus(false);
         }
     };
 
@@ -427,7 +551,40 @@ const Cidadaos: React.FC = () => {
         }
     };
 
+    // ─── Laudos dentro do modal de Detalhes (upload/delete inline) ───────────────
+    const uploadDetailsLaudo = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files?.[0] || !selectedCidadao) return;
+        const file = e.target.files[0];
+        const form = new FormData();
+        form.append('laudo', file);
+        setUploadingDetailsLaudo(true);
+        try {
+            const res = await api.post(`/cidadaos/${selectedCidadao.id}/laudos`, form, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            });
+            setDetailsLaudos(prev => [...prev, res.data.laudo]);
+            enqueueSnackbar('Laudo enviado com sucesso!', { variant: 'success' });
+        } catch (err: any) {
+            enqueueSnackbar(err.response?.data?.error || 'Erro ao enviar laudo', { variant: 'error' });
+        } finally {
+            setUploadingDetailsLaudo(false);
+            e.target.value = '';
+        }
+    };
+
+    const deleteDetailsLaudo = async (filename: string) => {
+        if (!selectedCidadao) return;
+        try {
+            await api.delete(`/cidadaos/${selectedCidadao.id}/laudos/${filename}`);
+            setDetailsLaudos(prev => prev.filter(l => l.filename !== filename));
+            enqueueSnackbar('Laudo removido', { variant: 'success' });
+        } catch {
+            enqueueSnackbar('Erro ao remover laudo', { variant: 'error' });
+        }
+    };
+
     // ─── Enviar Resultado ──────────────────────────────────────────────────────
+
     const openEnvioResultado = (cidadao: Cidadao) => {
         setEnvioResultadoCidadao(cidadao);
         setArquivoResultado(null);
@@ -1386,6 +1543,92 @@ const Cidadaos: React.FC = () => {
                                         </Box>
                                     )}
                                 </Grid>
+
+                                {/* ── Laudos e Arquivos Anexos ──────────────── */}
+                                <Grid item xs={12}>
+                                    <Box sx={{
+                                        borderRadius: '12px',
+                                        border: '1px solid #bbf7d0',
+                                        background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+                                        overflow: 'hidden',
+                                    }}>
+                                        <Box sx={{ px: 2, py: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #bbf7d0' }}>
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                <Box sx={{ p: 0.75, background: '#16a34a', borderRadius: '6px', display: 'flex', color: 'white' }}>
+                                                    <Paperclip size={15} />
+                                                </Box>
+                                                <Box>
+                                                    <Typography sx={{ fontWeight: 700, fontSize: '0.88rem', color: '#14532d' }}>
+                                                        Laudos e Arquivos Anexos
+                                                    </Typography>
+                                                    <Typography sx={{ fontSize: '0.72rem', color: '#166534' }}>
+                                                        Visível para o cidadão em &quot;Meus Resultados&quot;
+                                                    </Typography>
+                                                </Box>
+                                            </Box>
+                                            <Box component="label" htmlFor="details-laudo-input" sx={{
+                                                display: 'flex', alignItems: 'center', gap: 0.75,
+                                                px: 1.5, py: 0.75, borderRadius: '8px',
+                                                background: uploadingDetailsLaudo ? '#dcfce7' : '#16a34a',
+                                                cursor: uploadingDetailsLaudo ? 'wait' : 'pointer',
+                                                transition: 'all 0.2s',
+                                                '&:hover': { background: '#15803d' },
+                                            }}>
+                                                {uploadingDetailsLaudo
+                                                    ? <CircularProgress size={14} sx={{ color: '#16a34a' }} />
+                                                    : <Upload size={14} color="white" />}
+                                                <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: uploadingDetailsLaudo ? '#16a34a' : 'white', ml: 0.5 }}>
+                                                    {uploadingDetailsLaudo ? 'Enviando...' : 'Anexar'}
+                                                </Typography>
+                                                <input id="details-laudo-input" type="file" accept=".pdf,.jpg,.jpeg,.png" style={{ display: 'none' }} onChange={uploadDetailsLaudo} disabled={uploadingDetailsLaudo} />
+                                            </Box>
+                                        </Box>
+                                        <Box sx={{ p: 1.5, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                            {loadingDetailsLaudos ? (
+                                                <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                                                    <CircularProgress size={24} sx={{ color: '#16a34a' }} />
+                                                </Box>
+                                            ) : detailsLaudos.length === 0 ? (
+                                                <Typography sx={{ fontSize: '0.82rem', color: '#6b7280', fontStyle: 'italic', py: 1 }}>
+                                                    Nenhum laudo anexado. Clique em &quot;Anexar&quot; para adicionar.
+                                                </Typography>
+                                            ) : (
+                                                detailsLaudos.map((laudo, i) => {
+                                                    const isPdf = laudo.mimetype?.includes('pdf');
+                                                    const sizeKb = Math.round((laudo.size || 0) / 1024);
+                                                    const date = laudo.uploadedAt ? new Date(laudo.uploadedAt).toLocaleDateString('pt-BR') : '';
+                                                    return (
+                                                        <Box key={i} sx={{
+                                                            display: 'flex', alignItems: 'center', gap: 1, p: 1,
+                                                            borderRadius: '8px', background: 'white',
+                                                            border: '1px solid #d1fae5',
+                                                        }}>
+                                                            <Box sx={{ p: 0.5, borderRadius: '6px', background: isPdf ? '#fee2e2' : '#e0f2fe', flexShrink: 0 }}>
+                                                                <FileText size={16} color={isPdf ? '#dc2626' : '#0284c7'} />
+                                                            </Box>
+                                                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                                                                <Typography sx={{ fontWeight: 600, fontSize: '0.8rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                                    {laudo.originalname}
+                                                                </Typography>
+                                                                <Typography sx={{ fontSize: '0.7rem', color: '#6b7280' }}>
+                                                                    {sizeKb} KB{date ? ` · ${date}` : ''}
+                                                                </Typography>
+                                                            </Box>
+                                                            <Box sx={{ display: 'flex', gap: 0.25, flexShrink: 0 }}>
+                                                                <IconButton size="small" title="Abrir" onClick={() => window.open(`${BASE_URL}${laudo.url}`, '_blank')} sx={{ color: '#0284c7', p: 0.5 }}>
+                                                                    <ExternalLink size={14} />
+                                                                </IconButton>
+                                                                <IconButton size="small" title="Remover" onClick={() => deleteDetailsLaudo(laudo.filename)} sx={{ color: '#dc2626', p: 0.5 }}>
+                                                                    <Trash2 size={14} />
+                                                                </IconButton>
+                                                            </Box>
+                                                        </Box>
+                                                    );
+                                                })
+                                            )}
+                                        </Box>
+                                    </Box>
+                                </Grid>
                             </Grid>
                         </DialogContent>
                         <DialogActions sx={{ borderTop: `1px solid ${systemTruckTheme.colors.border}`, p: 2 }}>
@@ -1808,13 +2051,18 @@ const Cidadaos: React.FC = () => {
                                 onBlur={(e) => handleCPFBlur(e.target.value)}
                                 placeholder="000.000.000-00"
                                 inputProps={{ maxLength: 14 }}
+                                disabled={consultandoDatasus}
                                 error={formData.cpf.replace(/\D/g, '').length === 11 && !validateCPF(formData.cpf)}
                                 helperText={
-                                    formData.cpf.replace(/\D/g, '').length === 11 && !validateCPF(formData.cpf)
+                                    consultandoDatasus
+                                        ? '⏳ Consultando DATASUS...'
+                                        : dadosDatasusEncontrados
+                                        ? '✅ Dados preenchidos automaticamente via DATASUS'
+                                        : formData.cpf.replace(/\D/g, '').length === 11 && !validateCPF(formData.cpf)
                                         ? '⚠️ CPF inválido — verifique os números'
                                         : formData.cpf.replace(/\D/g, '').length === 11
-                                            ? '✅ CPF válido — preenche dados automaticamente ao sair do campo'
-                                            : 'Obrigatório · Formato: 000.000.000-00'
+                                        ? '✅ CPF válido — consultando DATASUS ao sair do campo'
+                                        : 'Obrigatório · Formato: 000.000.000-00'
                                 }
                                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: systemTruckTheme.borderRadius.medium } }}
                             />
@@ -1876,6 +2124,7 @@ const Cidadaos: React.FC = () => {
                                 helperText={formData.cartao_sus.replace(/\D/g, '').length > 0 && formData.cartao_sus.replace(/\D/g, '').length < 15 ? `${15 - formData.cartao_sus.replace(/\D/g,'').length} dígitos restantes` : '15 dígitos'}
                                 value={formData.cartao_sus}
                                 onChange={(e) => handleChange('cartao_sus', formatCNS(e.target.value))}
+                                onBlur={(e) => handleCNSBlur(e.target.value)}
                                 inputProps={{ maxLength: 19 }}
                                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: systemTruckTheme.borderRadius.medium } }}
                             />
