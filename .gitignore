@@ -60,3 +60,7 @@ backend/src/scripts/listar-*.js
 backend/src/scripts/ver-*.js
 !backend/src/scripts/init-db.ts
 !backend/src/scripts/seed.ts
+
+# Certificados digitais DATASUS (ICP-Brasil) — NUNCA commitar
+backend/certs/*.pfx
+certs/*.pfx

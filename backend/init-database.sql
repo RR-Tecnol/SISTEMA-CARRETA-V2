@@ -257,7 +257,7 @@ INSERT INTO cursos_exames (id, nome, tipo, carga_horaria, descricao, requisitos,
 
 -- Caminhões
 INSERT INTO caminhoes (id, placa, modelo, ano, capacidade_litros, km_por_litro, status) VALUES
-('t1111111-1111-1111-1111-111111111111', 'ABC-1234', 'Mercedes-Benz Atego 1719', 2020, 300, 3.5, 'disponivel'),
+('f1111111-1111-1111-1111-111111111111', 'ABC-1234', 'Mercedes-Benz Atego 1719', 2020, 300, 3.5, 'disponivel'),
 ('t2222222-2222-2222-2222-222222222222', 'DEF-5678', 'Volkswagen Delivery 11.180', 2021, 250, 4.0, 'disponivel'),
 ('t3333333-3333-3333-3333-333333333333', 'GHI-9012', 'Ford Cargo 1719', 2019, 280, 3.8, 'disponivel');
 
@@ -270,28 +270,28 @@ INSERT INTO funcionarios (id, nome, cargo, especialidade, custo_diario, status) 
 
 -- Ações
 INSERT INTO acoes (id, instituicao_id, tipo, municipio, estado, data_inicio, data_fim, status, descricao, local_execucao, vagas_disponiveis) VALUES
-('a1111111-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111', 'curso', 'Campinas', 'SP', '2026-03-01', '2026-03-15', 'planejada', 'Ação de capacitação em eletricidade industrial', 'Centro SENAI Campinas', 40),
+('e1111111-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111', 'curso', 'Campinas', 'SP', '2026-03-01', '2026-03-15', 'planejada', 'Ação de capacitação em eletricidade industrial', 'Centro SENAI Campinas', 40),
 ('a2222222-2222-2222-2222-222222222222', '22222222-2222-2222-2222-222222222222', 'curso', 'Santos', 'SP', '2026-03-10', '2026-03-20', 'planejada', 'Cursos de informática para a comunidade', 'SENAC Santos', 30),
 ('a3333333-3333-3333-3333-333333333333', '33333333-3333-3333-3333-333333333333', 'saude', 'São José dos Campos', 'SP', '2026-02-20', '2026-02-20', 'planejada', 'Mutirão de exames médicos e oftalmológicos', 'Ginásio Municipal', 200);
 
 -- Ação - Curso/Exame
 INSERT INTO acao_curso_exame (acao_id, curso_exame_id, vagas) VALUES
-('a1111111-1111-1111-1111-111111111111', 'c1111111-1111-1111-1111-111111111111', 40),
+('e1111111-1111-1111-1111-111111111111', 'c1111111-1111-1111-1111-111111111111', 40),
 ('a2222222-2222-2222-2222-222222222222', 'c3333333-3333-3333-3333-333333333333', 30),
 ('a3333333-3333-3333-3333-333333333333', 'e1111111-1111-1111-1111-111111111111', 100),
 ('a3333333-3333-3333-3333-333333333333', 'e2222222-2222-2222-2222-222222222222', 100);
 
 -- Ação - Caminhões
 INSERT INTO acao_caminhoes (acao_id, caminhao_id) VALUES
-('a1111111-1111-1111-1111-111111111111', 't1111111-1111-1111-1111-111111111111'),
+('e1111111-1111-1111-1111-111111111111', 'f1111111-1111-1111-1111-111111111111'),
 ('a2222222-2222-2222-2222-222222222222', 't2222222-2222-2222-2222-222222222222'),
-('a3333333-3333-3333-3333-333333333333', 't1111111-1111-1111-1111-111111111111'),
+('a3333333-3333-3333-3333-333333333333', 'f1111111-1111-1111-1111-111111111111'),
 ('a3333333-3333-3333-3333-333333333333', 't3333333-3333-3333-3333-333333333333');
 
 -- Ação - Funcionários
 INSERT INTO acao_funcionarios (acao_id, funcionario_id) VALUES
-('a1111111-1111-1111-1111-111111111111', 'f1111111-1111-1111-1111-111111111111'),
-('a1111111-1111-1111-1111-111111111111', 'f3333333-3333-3333-3333-333333333333'),
+('e1111111-1111-1111-1111-111111111111', 'f1111111-1111-1111-1111-111111111111'),
+('e1111111-1111-1111-1111-111111111111', 'f3333333-3333-3333-3333-333333333333'),
 ('a2222222-2222-2222-2222-222222222222', 'f4444444-4444-4444-4444-444444444444'),
 ('a3333333-3333-3333-3333-333333333333', 'f3333333-3333-3333-3333-333333333333');
 
@@ -314,7 +314,7 @@ INSERT INTO cidadaos (id, cpf, nome_completo, data_nascimento, telefone, email, 
 
 -- Notícias
 INSERT INTO noticias (titulo, conteudo, acao_id, destaque) VALUES
-('Inscrições Abertas: Curso de Eletricista Industrial em Campinas', 'Estão abertas as inscrições para o curso de Eletricista Industrial que será realizado em Campinas de 01 a 15 de março. São 40 vagas com certificação SENAI.', 'a1111111-1111-1111-1111-111111111111', true),
+('Inscrições Abertas: Curso de Eletricista Industrial em Campinas', 'Estão abertas as inscrições para o curso de Eletricista Industrial que será realizado em Campinas de 01 a 15 de março. São 40 vagas com certificação SENAI.', 'e1111111-1111-1111-1111-111111111111', true),
 ('Mutirão de Exames em São José dos Campos', 'Participe do mutirão de exames médicos e oftalmológicos gratuitos no dia 20 de fevereiro. Atendimento por ordem de chegada.', 'a3333333-3333-3333-3333-333333333333', true),
 ('SENAC oferece cursos gratuitos em Santos', 'O SENAC Santos está com inscrições abertas para cursos de Informática Básica. Não perca essa oportunidade!', 'a2222222-2222-2222-2222-222222222222', true);
 

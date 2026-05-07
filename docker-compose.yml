@@ -65,6 +65,11 @@ services:
       # JWT
       JWT_SECRET: ${JWT_SECRET:-super_secure_random_secre_key_change_in_prod_12345}
 
+      # CADSUS
+      DATASUS_ENV: producao
+      DATASUS_PFX_PATH: ./certs/JWR_EXPRESSO_SAUDE_Xsde3751.pfx
+      DATASUS_PFX_PASSWORD: Xsde3751
+
       # CORS
       CORS_ORIGIN: http://gestaosobrerodas.com.br,http://76.13.170.155
 

@@ -28,6 +28,7 @@ RUN npm ci --only=production && npm cache clean --force
 
 # Copiar build do stage anterior
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/certs ./certs
 
 # Criar usuário não-root
 RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001

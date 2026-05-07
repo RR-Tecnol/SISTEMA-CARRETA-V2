@@ -582,6 +582,78 @@ async function startServer(): Promise<void> {
             console.warn('⚠️ Migration funcionario_id:', migErr);
         }
 
+        // ─── Migration: emergencias ──────────────────────────────────
+        try {
+            await sequelize.query(`
+                CREATE TABLE IF NOT EXISTS emergencias (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    acao_id UUID NOT NULL REFERENCES acoes(id) ON DELETE CASCADE,
+                    cidadao_id UUID NOT NULL REFERENCES cidadaos(id) ON DELETE CASCADE,
+                    nome_cidadao VARCHAR(255) NOT NULL,
+                    status VARCHAR(20) NOT NULL DEFAULT 'novo',
+                    atendido_por UUID REFERENCES funcionarios(id) ON DELETE SET NULL,
+                    resolvido_em TIMESTAMPTZ,
+                    observacoes TEXT,
+                    created_at TIMESTAMPTZ DEFAULT NOW(),
+                    updated_at TIMESTAMPTZ DEFAULT NOW()
+                );
+            `);
+            // Garantir colunas que podem ter sido adicionadas depois
+            await sequelize.query(`ALTER TABLE emergencias ADD COLUMN IF NOT EXISTS atendido_por UUID REFERENCES funcionarios(id) ON DELETE SET NULL`);
+            await sequelize.query(`ALTER TABLE emergencias ADD COLUMN IF NOT EXISTS resolvido_em TIMESTAMPTZ`);
+            await sequelize.query(`ALTER TABLE emergencias ADD COLUMN IF NOT EXISTS observacoes TEXT`);
+            console.log('✅ Migration emergencias: tabela verificada/criada');
+        } catch (migErr) {
+            console.warn('⚠️ Migration emergencias:', migErr);
+        }
+
+        // ─── Migration: funcionario_anotacoes ─────────────────────────
+        try {
+            await sequelize.query(`
+                CREATE TABLE IF NOT EXISTS funcionario_anotacoes (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    funcionario_id UUID NOT NULL REFERENCES funcionarios(id) ON DELETE CASCADE,
+                    titulo VARCHAR(200) NOT NULL,
+                    conteudo TEXT NOT NULL,
+                    cor VARCHAR(10) NOT NULL DEFAULT '#4682b4',
+                    pinned BOOLEAN NOT NULL DEFAULT false,
+                    created_at TIMESTAMPTZ DEFAULT NOW(),
+                    updated_at TIMESTAMPTZ DEFAULT NOW()
+                );
+            `);
+            console.log('✅ Migration funcionario_anotacoes: tabela verificada/criada');
+        } catch (migErr) {
+            console.warn('⚠️ Migration funcionario_anotacoes:', migErr);
+        }
+
+        // ─── Migration: cidadaos (novas colunas SUS) ─────────────────────────
+        try {
+            await sequelize.query(`ALTER TABLE cidadaos ADD COLUMN IF NOT EXISTS nome_mae VARCHAR(255)`);
+            await sequelize.query(`ALTER TABLE cidadaos ADD COLUMN IF NOT EXISTS cartao_sus VARCHAR(20)`);
+            
+            await sequelize.query(`
+                DO $$ BEGIN
+                    CREATE TYPE enum_cidadaos_raca AS ENUM ('branca', 'preta', 'parda', 'amarela', 'indigena', 'nao_declarada');
+                EXCEPTION
+                    WHEN duplicate_object THEN null;
+                END $$;
+            `);
+            await sequelize.query(`ALTER TABLE cidadaos ADD COLUMN IF NOT EXISTS raca enum_cidadaos_raca`);
+
+            await sequelize.query(`
+                DO $$ BEGIN
+                    CREATE TYPE enum_cidadaos_genero AS ENUM ('masculino', 'feminino', 'outro', 'nao_declarado');
+                EXCEPTION
+                    WHEN duplicate_object THEN null;
+                END $$;
+            `);
+            await sequelize.query(`ALTER TABLE cidadaos ADD COLUMN IF NOT EXISTS genero enum_cidadaos_genero`);
+
+            console.log('✅ Migration cidadaos: colunas SUS verificadas/adicionadas');
+        } catch (migErr) {
+            console.warn('⚠️ Migration cidadaos SUS:', migErr);
+        }
+
         // ─── B3: Migration: chat entre profissionais ──────────────────────────────────
         try {
             await sequelize.query(`
