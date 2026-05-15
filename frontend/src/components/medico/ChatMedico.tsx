@@ -92,7 +92,7 @@ const ChatMedico: React.FC<ChatMedicoProps> = ({
 
     return (
         <Drawer
-            anchor="left"
+            anchor="right"
             open={open}
             onClose={onClose}
             PaperProps={{

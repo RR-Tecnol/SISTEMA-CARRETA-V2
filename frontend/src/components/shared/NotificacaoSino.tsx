@@ -6,7 +6,7 @@ import {
 import { Bell, AlertTriangle, FileText, CheckCircle, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
-import { io } from 'socket.io-client';
+import { getSocket } from '../../utils/socket';
 import { expressoTheme } from '../../theme/expressoTheme';
 
 interface EmergenciaItem {
@@ -55,8 +55,7 @@ const NotificacaoSino: React.FC<NotificacaoSinoProps> = ({ acaoId }) => {
 
     // Socket.IO: escutar emergências em tempo real
     useEffect(() => {
-        const backendUrl = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:3001';
-        const socket = io(backendUrl, { transports: ['websocket', 'polling'] });
+        const socket = getSocket();
 
         if (acaoId) {
             socket.emit('join_acao', acaoId);
@@ -86,7 +85,7 @@ const NotificacaoSino: React.FC<NotificacaoSinoProps> = ({ acaoId }) => {
 
         return () => {
             if (acaoId) socket.emit('leave_acao', acaoId);
-            socket.disconnect();
+            socket.off('emergencia');
         };
     }, [acaoId]);
 
