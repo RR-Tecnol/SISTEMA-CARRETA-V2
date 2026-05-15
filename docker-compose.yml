@@ -47,7 +47,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3001
-      FRONTEND_URL: http://gestaosobrerodas.com.br,http://76.13.170.155,http://localhost,http://localhost:3000,http://localhost:80
+      FRONTEND_URL: https://gestaosobrerodas.com.br,http://gestaosobrerodas.com.br,http://76.13.170.155,http://localhost,http://localhost:3000,http://localhost:80
 
       # Database
       DB_HOST: carretas-postgres
@@ -71,7 +71,7 @@ services:
       DATASUS_PFX_PASSWORD: Xsde3751
 
       # CORS
-      CORS_ORIGIN: http://gestaosobrerodas.com.br,http://76.13.170.155,http://localhost,http://localhost:3000,http://localhost:80
+      CORS_ORIGIN: https://gestaosobrerodas.com.br,http://gestaosobrerodas.com.br,http://76.13.170.155,http://localhost,http://localhost:3000,http://localhost:80
 
       # Email (Brevo/SMTP) — configure no .env da VPS, nunca no código
       SMTP_HOST: ${SMTP_HOST:-smtp-relay.brevo.com}
