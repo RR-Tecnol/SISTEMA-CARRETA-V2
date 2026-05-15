@@ -274,6 +274,22 @@ function parseSoapResponse(xmlResponse: string): CidadaoDatasus | null {
 
     const rawBairro = extract('city');
     const rawMunicipio = extract('county') || extract('city');
+    let rawComplemento = extract('additionalLocator');
+
+    // Função para limpar strings (remover acentos e lowercase) para comparação
+    const normalizeStr = (str: string | null) => 
+        str ? str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim() : '';
+
+    const bairroLimpo = rawBairro && !/^\d+$/.test(rawBairro.trim()) ? rawBairro : null;
+    const municipioLimpo = rawMunicipio && !/^\d+$/.test(rawMunicipio.trim()) ? rawMunicipio : null;
+
+    // Se o complemento for exatamente igual ao bairro ou município, anula para evitar sujeira
+    if (rawComplemento) {
+        const compNorm = normalizeStr(rawComplemento);
+        if (compNorm === normalizeStr(bairroLimpo) || compNorm === normalizeStr(municipioLimpo)) {
+            rawComplemento = null;
+        }
+    }
 
     return {
     nome_completo: nomeCompleto,
@@ -286,9 +302,9 @@ function parseSoapResponse(xmlResponse: string): CidadaoDatasus | null {
     cep: extract('postalCode'),
     logradouro: extract('streetAddressLine') || extract('streetName'),
     numero: extract('houseNumber'),
-    complemento: extract('additionalLocator'),
-    bairro: rawBairro && !/^\d+$/.test(rawBairro.trim()) ? rawBairro : null,
-    municipio: rawMunicipio && !/^\d+$/.test(rawMunicipio.trim()) ? rawMunicipio : null,
+    complemento: rawComplemento,
+    bairro: bairroLimpo,
+    municipio: municipioLimpo,
     estado: extract('state'),
     telefone,
     email,
