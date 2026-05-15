@@ -66,15 +66,30 @@ router.put('/:id/status', authenticate, async (req: any, res: Response) => {
         const updates: any = { status };
         if (observacoes !== undefined) updates.observacoes = observacoes;
 
+        // Helper para pegar o nome do usuário
+        const getNome = async (userId: string, tipo: string) => {
+            if (tipo === 'admin' || tipo === 'cidadao') {
+                const c = await Cidadao.findByPk(userId);
+                return c ? (c as any).nome_completo : 'Equipe';
+            } else {
+                const f = await require('../models/Funcionario').Funcionario.findByPk(userId);
+                return f ? f.nome : 'Equipe Médica';
+            }
+        };
+
         // Se está atendendo, registrar quem
         if (status === 'em_atendimento' && req.user?.id) {
-            updates.atendido_por = req.user.id;
+            const isFuncionario = req.user.tipo === 'medico' || req.user.tipo === 'admin_estrada';
+            updates.atendido_por = isFuncionario ? req.user.id : null;
+            updates.atendido_por_nome = await getNome(req.user.id, req.user.tipo);
         }
         // Se resolveu, registrar quando
         if (status === 'resolvido') {
             updates.resolvido_em = new Date();
-            if (req.user?.id && !emergencia.atendido_por) {
-                updates.atendido_por = req.user.id;
+            if (req.user?.id && !emergencia.atendido_por_nome) {
+                const isFuncionario = req.user.tipo === 'medico' || req.user.tipo === 'admin_estrada';
+                updates.atendido_por = isFuncionario ? req.user.id : null;
+                updates.atendido_por_nome = await getNome(req.user.id, req.user.tipo);
             }
         }
 

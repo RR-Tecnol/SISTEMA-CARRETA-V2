@@ -930,25 +930,46 @@ router.post('/:id/avisar-inscritos', authenticate, authorizeAdminOrEstrada, asyn
             return;
         }
 
-        // Buscar todos os inscritos desta ação que têm e-mail
+        // Buscar todos os inscritos desta ação (para calcular total)
         const inscricoes = await Inscricao.findAll({
             where: { acao_id: id },
             include: [{
                 model: Cidadao,
                 as: 'cidadao',
                 attributes: ['id', 'nome_completo', 'email'],
-                where: { email: { [Op.ne]: null } },
-                required: false,
+                required: true,
             }],
         });
 
-        let enviados = 0;
-        let semEmail = 0;
-        const erros: string[] = [];
-
+        // Filtrar cidadãos únicos para evitar envio duplicado (caso pessoa inscrita em >1 exame)
+        const cidadaosUnicos = new Map<string, any>();
         for (const ins of inscricoes) {
             const cidadao = (ins as any).cidadao;
-            if (cidadao?.email) {
+            if (cidadao && !cidadaosUnicos.has(cidadao.id)) {
+                cidadaosUnicos.set(cidadao.id, cidadao);
+            }
+        }
+
+        const cidadaosList = Array.from(cidadaosUnicos.values());
+        const cidadaosComEmail = cidadaosList.filter(c => c.email);
+        const semEmail = cidadaosList.length - cidadaosComEmail.length;
+
+        // Responder instantaneamente para não dar Timeout no navegador
+        res.json({
+            message: 'Processamento em background',
+            total_inscritos: cidadaosList.length,
+            sem_email: semEmail,
+            com_email: cidadaosComEmail.length
+        });
+
+        // Processar os e-mails assincronamente em background
+        (async () => {
+            let enviados = 0;
+            const erros: string[] = [];
+            
+            console.log(`🚀 Iniciando disparo em lote em background para ${cidadaosComEmail.length} e-mails (Ação ${(acao as any).numero_acao})`);
+            
+            for (const cidadao of cidadaosComEmail) {
                 const resultado = await sendGenericEmail(
                     cidadao.email,
                     `[Ação ${(acao as any).numero_acao}] ${assunto}`,
@@ -959,19 +980,11 @@ router.post('/:id/avisar-inscritos', authenticate, authorizeAdminOrEstrada, asyn
                 } else {
                     erros.push(cidadao.email);
                 }
-            } else {
-                semEmail++;
             }
-        }
 
-        console.log(`📧 Aviso enviado — Ação ${(acao as any).numero_acao}: ${enviados} enviados, ${semEmail} sem e-mail, ${erros.length} erros`);
-
-        res.json({
-            message: `Aviso enviado com sucesso`,
-            enviados,
-            sem_email: semEmail,
-            erros: erros.length,
-            total_inscritos: inscricoes.length,
+            console.log(`✅ Disparo em lote concluído — Ação ${(acao as any).numero_acao}: ${enviados} enviados, ${semEmail} sem e-mail, ${erros.length} erros`);
+        })().catch(err => {
+            console.error('❌ Erro no disparo assíncrono de e-mails:', err);
         });
     } catch (error) {
         console.error('Erro ao avisar inscritos:', error);

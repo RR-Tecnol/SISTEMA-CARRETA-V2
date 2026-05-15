@@ -6,6 +6,7 @@ import {
 import { MessageCircle, Users, Send } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { useSnackbar } from 'notistack';
+import { useLocation } from 'react-router-dom';
 import api from '../../services/api';
 import { getSocket } from '../../utils/socket';
 import { systemTruckTheme } from '../../theme/systemTruckTheme';
@@ -44,12 +45,7 @@ const ChatCidadao: React.FC = () => {
     const [enviando, setEnviando] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
-    useEffect(() => {
-        api.get('/inscricoes/me')
-            .then(r => setInscricoes(r.data || []))
-            .catch(() => {})
-            .finally(() => setLoading(false));
-    }, []);
+    const location = useLocation();
 
     // Quando clica em uma ação, abre o chat direto
     const handleSelectAcao = (insc: Inscricao) => {
@@ -63,6 +59,22 @@ const ChatCidadao: React.FC = () => {
 
         api.patch(`/chat/${insc.acao.id}/${user.id}/lido`, { de: 'cidadao' }).catch(() => {});
     };
+
+    useEffect(() => {
+        api.get('/inscricoes/me')
+            .then(r => {
+                const list = r.data || [];
+                setInscricoes(list);
+                if (location.state?.acaoId) {
+                    const found = list.find((i: any) => i.acao.id === location.state.acaoId);
+                    if (found) {
+                        handleSelectAcao(found);
+                    }
+                }
+            })
+            .catch(() => {})
+            .finally(() => setLoading(false));
+    }, [location.state?.acaoId]);
 
     // Socket
     useEffect(() => {

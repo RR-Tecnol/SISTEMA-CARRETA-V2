@@ -79,16 +79,22 @@ async function getToken(): Promise<string> {
   const urls = getUrls();
   const httpsAgent = getHttpsAgent();
 
-  const response = await axios.post(urls.token, null, {
-    httpsAgent,
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    timeout: 30000,
-  });
+  // DataSUS OIDC token endpoint exige form-urlencoded com grant_type
+  console.log(`Solicitando token DataSUS em: ${urls.token} via GET`);
+  let response;
+  try {
+    response = await axios.get(urls.token, {
+      httpsAgent,
+      timeout: 30000,
+    });
+  } catch (err: any) {
+    console.error(`ERRO AO OBTER TOKEN DATASUS (${urls.token}):`, err.response?.status, err.response?.data || err.message);
+    throw err;
+  }
 
   const accessToken = response.data.access_token;
-  const expiresIn = response.data.expires_in || 1800000; // 30 min em ms
+  // expires_in vem em segundos, converter para ms
+  const expiresIn = (response.data.expires_in || 1800) * 1000;
 
   tokenCache = {
     token: accessToken,
@@ -266,7 +272,10 @@ function parseSoapResponse(xmlResponse: string): CidadaoDatasus | null {
   const maeMatch = patientPersonXml.match(/<[^>]*:?code[^>]*code="PRN"[^>]*>[\s\S]*?<[^>]*:?given[^>]*>([^<]+)<\//i);
   const nomeMae = maeMatch ? maeMatch[1].trim() : null;
 
-  return {
+    const rawBairro = extract('city');
+    const rawMunicipio = extract('county') || extract('city');
+
+    return {
     nome_completo: nomeCompleto,
     nome_mae: nomeMae,
     data_nascimento: dataNascimento,
@@ -278,8 +287,8 @@ function parseSoapResponse(xmlResponse: string): CidadaoDatasus | null {
     logradouro: extract('streetAddressLine') || extract('streetName'),
     numero: extract('houseNumber'),
     complemento: extract('additionalLocator'),
-    bairro: extract('city'), // CADSUS pode retornar bairro em city
-    municipio: extract('county') || extract('city'),
+    bairro: rawBairro && !/^\d+$/.test(rawBairro.trim()) ? rawBairro : null,
+    municipio: rawMunicipio && !/^\d+$/.test(rawMunicipio.trim()) ? rawMunicipio : null,
     estado: extract('state'),
     telefone,
     email,
@@ -296,16 +305,22 @@ export async function consultarCidadaoNoCadsus(
   const urls = getUrls();
   const soapBody = buildSoapEnvelope(tipoBusca, valor);
 
-  console.log(`🔍 CADSUS: consultando ${tipoBusca} no ambiente ${process.env.DATASUS_ENV || 'homologacao'}`);
+  console.log(`🔍 CADSUS: consultando ${tipoBusca} no ambiente ${process.env.DATASUS_ENV || 'homologacao'} (${urls.consulta})`);
 
-  const response = await axios.post(urls.consulta, soapBody, {
-    httpsAgent,
-    headers: {
-      'Content-Type': 'application/soap+xml; charset=utf-8',
-      'Authorization': `Bearer ${token}`,
-    },
-    timeout: 30000,
-  });
+  let response;
+  try {
+    response = await axios.post(urls.consulta, soapBody, {
+      httpsAgent,
+      headers: {
+        'Content-Type': 'application/soap+xml; charset=utf-8',
+        'Authorization': `Bearer ${token}`,
+      },
+      timeout: 30000,
+    });
+  } catch (err: any) {
+    console.error(`ERRO NA CONSULTA SOAP DATASUS (${urls.consulta}):`, err.response?.status, err.response?.data || err.message);
+    throw err;
+  }
 
   return parseSoapResponse(response.data);
 }

@@ -1,23 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import {
-    Box, Typography, Container, Paper, Chip, CircularProgress,
+    Box, Typography, Container, Paper, Chip, CircularProgress, Button
 } from '@mui/material';
 import { AlertTriangle, Clock, CheckCircle, Stethoscope } from 'lucide-react';
 import { useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { systemTruckTheme } from '../../theme/systemTruckTheme';
 
 interface Emergencia {
     id: string;
+    acao_id: string;
     status: string;
     nome_cidadao: string;
     created_at: string;
+    updated_at: string;
     atendido_por_nome?: string;
-    atendido_em?: string;
 }
 
 const EmergenciasCidadao: React.FC = () => {
     const user = useSelector((state: any) => state.auth?.user);
+    const navigate = useNavigate();
     const [emergencias, setEmergencias] = useState<Emergencia[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -84,7 +87,6 @@ const EmergenciasCidadao: React.FC = () => {
                                 {emerg.atendido_por_nome && (
                                     <Typography sx={{ fontSize: '0.78rem', color: '#475569', mt: 0.5 }}>
                                         👨‍⚕️ Atendido por: <strong>{emerg.atendido_por_nome}</strong>
-                                        {emerg.atendido_em && ` em ${formatDate(emerg.atendido_em)}`}
                                     </Typography>
                                 )}
 
@@ -96,9 +98,25 @@ const EmergenciasCidadao: React.FC = () => {
 
                                 {emerg.status === 'resolvido' && (
                                     <Typography sx={{ fontSize: '0.75rem', color: '#059669', mt: 0.5 }}>
-                                        ✅ Esta emergência foi resolvida com sucesso.
+                                        ✅ Esta emergência foi resolvida em {formatDate(emerg.updated_at || emerg.created_at)}.
                                     </Typography>
                                 )}
+
+                                <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
+                                    <Button
+                                        variant="outlined"
+                                        size="small"
+                                        onClick={() => navigate('/portal/chat', { state: { acaoId: emerg.acao_id } })}
+                                        sx={{ 
+                                            textTransform: 'none', borderRadius: '8px', 
+                                            borderColor: systemTruckTheme.colors.primary, 
+                                            color: systemTruckTheme.colors.primary,
+                                            fontWeight: 600
+                                        }}
+                                    >
+                                        Ir para o Chat
+                                    </Button>
+                                </Box>
                             </Paper>
                         );
                     })}

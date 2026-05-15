@@ -51,8 +51,9 @@ router.post('/:acao_id/:cidadao_id', authenticate, async (req: any, res: Respons
             res.status(400).json({ error: 'mensagem e de são obrigatórios' });
             return;
         }
-        // funcionario_id vem do token JWT quando é médico/profissional
-        const funcionarioId = de === 'medico' && req.user?.id ? req.user.id : null;
+        // funcionario_id vem do token JWT quando é médico/profissional (admin geral não tem FK em funcionarios)
+        const isFuncionario = req.user?.tipo === 'medico' || req.user?.tipo === 'admin_estrada';
+        const funcionarioId = de === 'medico' && req.user?.id && isFuncionario ? req.user.id : null;
         const rows = await sequelize.query(
             `INSERT INTO chat_mensagens (acao_id, cidadao_id, de, mensagem, funcionario_id)
              VALUES (:acao_id, :cidadao_id, :de, :mensagem, :funcionarioId)
@@ -66,6 +67,35 @@ router.post('/:acao_id/:cidadao_id', authenticate, async (req: any, res: Respons
             io.to(`chat:${acao_id}:${cidadao_id}`).emit('chat_msg', { ...nova, acao_id, cidadao_id });
             if (de === 'medico') {
                 io.to(`acao:${acao_id}`).emit('chat_nova_msg', { cidadao_id, acao_id });
+            }
+        }
+
+        // Auto-atender emergência se estiver nova/vista
+        if (de === 'medico') {
+            const { Emergencia } = require('../models/Emergencia');
+            const { Op } = require('sequelize');
+            const emergenciaAtiva = await Emergencia.findOne({
+                where: { acao_id, cidadao_id, status: { [Op.in]: ['novo', 'visto'] } }
+            });
+
+            if (emergenciaAtiva) {
+                const { Cidadao } = require('../models');
+                const getNome = async (userId: string, tipo: string) => {
+                    if (tipo === 'admin' || tipo === 'cidadao') {
+                        const c = await Cidadao.findByPk(userId);
+                        return c ? (c as any).nome_completo : 'Equipe';
+                    } else {
+                        const f = await require('../models/Funcionario').Funcionario.findByPk(userId);
+                        return f ? f.nome : 'Equipe Médica';
+                    }
+                };
+
+                const isFuncionario = req.user?.tipo === 'medico' || req.user?.tipo === 'admin_estrada';
+                await emergenciaAtiva.update({
+                    status: 'em_atendimento',
+                    atendido_por: isFuncionario ? req.user.id : null,
+                    atendido_por_nome: req.user?.id ? await getNome(req.user.id, req.user.tipo) : 'Equipe Médica'
+                });
             }
         }
         res.status(201).json(nova);

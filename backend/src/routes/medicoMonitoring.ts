@@ -845,12 +845,24 @@ router.put('/ponto/:id/saida', authenticate, authorizeMedicoOrAdmin, async (req:
 // Acessível por qualquer usuário autenticado (médico, admin, enfermeiro, cidadão)
 router.get('/cidadao/:id/perfil-clinico', authenticate, async (req: Request, res: Response) => {
     try {
-        const cidadao = await Cidadao.findByPk(req.params.id);
+        // Tenta encontrar pelo cidadao_id direto
+        let cidadaoId = req.params.id;
+        let cidadao = await Cidadao.findByPk(cidadaoId);
+
+        // Fallback: se não encontrou como cidadão, tenta como ficha_id e resolve o cidadão
+        if (!cidadao) {
+            const ficha = await FichaAtendimento.findByPk(cidadaoId);
+            if (ficha) {
+                cidadaoId = (ficha as any).cidadao_id;
+                cidadao = await Cidadao.findByPk(cidadaoId);
+            }
+        }
+
         if (!cidadao) { res.status(404).json({ error: 'Cidadão não encontrado' }); return; }
 
         // Buscar últimos atendimentos com ficha clínica
         const atendimentos = await AtendimentoMedico.findAll({
-            where: { cidadao_id: req.params.id, status: 'concluido' },
+            where: { cidadao_id: cidadaoId, status: 'concluido' },
             order: [['hora_inicio', 'DESC']],
             limit: 5,
             attributes: ['id', 'hora_inicio', 'hora_fim', 'observacoes', 'ficha_clinica', 'nome_paciente'],

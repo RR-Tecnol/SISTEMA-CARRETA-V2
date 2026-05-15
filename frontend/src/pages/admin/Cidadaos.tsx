@@ -300,10 +300,10 @@ const Cidadaos: React.FC = () => {
         if (endereco) {
             setFormData(prev => ({
                 ...prev,
-                rua: endereco.rua,
-                bairro: endereco.bairro,
-                municipio: endereco.municipio,
-                estado: endereco.estado,
+                rua: endereco.rua || prev.rua,
+                bairro: endereco.bairro || prev.bairro,
+                municipio: endereco.municipio || prev.municipio,
+                estado: endereco.estado || prev.estado,
                 complemento: endereco.complemento || prev.complemento,
             }));
             enqueueSnackbar('Endereço preenchido automaticamente!', { variant: 'success' });
@@ -357,8 +357,8 @@ const Cidadaos: React.FC = () => {
                     rua: d.logradouro ? toTitleCase(d.logradouro) : prev.rua,
                     numero: d.numero || prev.numero,
                     complemento: d.complemento ? toTitleCase(d.complemento) : prev.complemento,
-                    bairro: d.bairro ? toTitleCase(d.bairro) : prev.bairro,
-                    municipio: d.municipio ? toTitleCase(d.municipio) : prev.municipio,
+                    bairro: d.bairro && !/^\d+$/.test(String(d.bairro).trim()) ? toTitleCase(d.bairro) : prev.bairro,
+                    municipio: d.municipio && !/^\d+$/.test(String(d.municipio).trim()) ? toTitleCase(d.municipio) : prev.municipio,
                     estado: d.estado || prev.estado,
                     cartao_sus: d.cartao_sus ? formatCNS(d.cartao_sus) : prev.cartao_sus,
                     telefone: d.telefone ? formatPhone(d.telefone) : prev.telefone,
@@ -370,6 +370,11 @@ const Cidadaos: React.FC = () => {
                     variant: 'success',
                     autoHideDuration: 5000
                 });
+
+                // Auto-trigger CEP search if DATASUS returned a CEP
+                if (d.cep) {
+                    await handleCEPBlur(d.cep);
+                }
             } else {
                 enqueueSnackbar('Cidadão não encontrado no DATASUS. Preencha os dados manualmente.', {
                     variant: 'warning'
@@ -414,12 +419,16 @@ const Cidadaos: React.FC = () => {
                     cep: d.cep ? formatCEP(d.cep) : prev.cep,
                     rua: d.logradouro ? toTitleCase(d.logradouro) : prev.rua,
                     numero: d.numero || prev.numero,
-                    bairro: d.bairro ? toTitleCase(d.bairro) : prev.bairro,
-                    municipio: d.municipio ? toTitleCase(d.municipio) : prev.municipio,
+                    bairro: d.bairro && !/^\d+$/.test(String(d.bairro).trim()) ? toTitleCase(d.bairro) : prev.bairro,
+                    municipio: d.municipio && !/^\d+$/.test(String(d.municipio).trim()) ? toTitleCase(d.municipio) : prev.municipio,
                     estado: d.estado || prev.estado,
                 }));
 
                 enqueueSnackbar('✅ Dados preenchidos pelo CNS via DATASUS!', { variant: 'success' });
+                
+                if (d.cep) {
+                    await handleCEPBlur(d.cep);
+                }
             }
         } catch (err: any) {
             if (err.response?.data?.certificado_necessario) {

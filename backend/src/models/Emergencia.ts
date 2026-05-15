@@ -10,6 +10,7 @@ export interface EmergenciaAttributes {
     nome_cidadao: string;
     status: EmergenciaStatus;
     atendido_por?: string;
+    atendido_por_nome?: string;
     resolvido_em?: Date;
     observacoes?: string;
     created_at?: Date;
@@ -23,6 +24,7 @@ export class Emergencia extends Model<EmergenciaAttributes> implements Emergenci
     public nome_cidadao!: string;
     public status!: EmergenciaStatus;
     public atendido_por?: string;
+    public atendido_por_nome?: string;
     public resolvido_em?: Date;
     public observacoes?: string;
 
@@ -60,6 +62,10 @@ Emergencia.init(
             type: DataTypes.UUID,
             allowNull: true,
             references: { model: 'funcionarios', key: 'id' },
+        },
+        atendido_por_nome: {
+            type: DataTypes.STRING,
+            allowNull: true,
         },
         resolvido_em: {
             type: DataTypes.DATE,

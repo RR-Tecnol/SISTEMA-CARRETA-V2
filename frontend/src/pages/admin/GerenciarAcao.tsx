@@ -187,11 +187,21 @@ const GerenciarAcao = () => {
         setLoadingAviso(true);
         try {
             const response = await api.post(`/acoes/${id}/avisar-inscritos`, avisoForm);
-            const { enviados, sem_email, total_inscritos } = response.data;
-            enqueueSnackbar(
-                `✅ Aviso enviado! ${enviados} e-mails enviados de ${total_inscritos} inscritos (${sem_email} sem e-mail).`,
-                { variant: 'success', autoHideDuration: 6000 }
-            );
+            const { message, total_inscritos, sem_email, com_email } = response.data;
+            
+            if (message === 'Processamento em background') {
+                enqueueSnackbar(
+                    `Envio em lote iniciado para ${com_email} cidadãos. (Total únicos: ${total_inscritos}, Sem e-mail: ${sem_email}). O processo rodará no servidor.`,
+                    { variant: 'info', autoHideDuration: 8000 }
+                );
+            } else {
+                // Fallback for older API responses
+                const { enviados } = response.data;
+                enqueueSnackbar(
+                    `✅ Aviso enviado! ${enviados} e-mails enviados. (${sem_email} sem e-mail).`,
+                    { variant: 'success', autoHideDuration: 6000 }
+                );
+            }
             setOpenAvisoDialog(false);
             setAvisoForm({ assunto: '', mensagem: '' });
         } catch (error: any) {
