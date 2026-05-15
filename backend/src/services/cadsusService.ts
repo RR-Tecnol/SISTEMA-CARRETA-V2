@@ -276,17 +276,23 @@ function parseSoapResponse(xmlResponse: string): CidadaoDatasus | null {
     const rawMunicipio = extract('county') || extract('city');
     let rawComplemento = extract('additionalLocator');
 
-    // Função para limpar strings (remover acentos e lowercase) para comparação
+    // Função para limpar strings (remover acentos, lowercase, e pontuações) para comparação agressiva
     const normalizeStr = (str: string | null) => 
-        str ? str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim() : '';
+        str ? str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "").trim() : '';
 
     const bairroLimpo = rawBairro && !/^\d+$/.test(rawBairro.trim()) ? rawBairro : null;
     const municipioLimpo = rawMunicipio && !/^\d+$/.test(rawMunicipio.trim()) ? rawMunicipio : null;
 
-    // Se o complemento for exatamente igual ao bairro ou município, anula para evitar sujeira
+    // Se o complemento contiver o nome do bairro ou do município (ou vice-versa), anula para evitar sujeira
     if (rawComplemento) {
         const compNorm = normalizeStr(rawComplemento);
-        if (compNorm === normalizeStr(bairroLimpo) || compNorm === normalizeStr(municipioLimpo)) {
+        const bairroNorm = normalizeStr(bairroLimpo);
+        const munNorm = normalizeStr(municipioLimpo);
+        
+        if (
+            (bairroNorm && (compNorm.includes(bairroNorm) || bairroNorm.includes(compNorm))) ||
+            (munNorm && (compNorm.includes(munNorm) || munNorm.includes(compNorm)))
+        ) {
             rawComplemento = null;
         }
     }
