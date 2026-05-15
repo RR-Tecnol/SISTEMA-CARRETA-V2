@@ -7,12 +7,12 @@ import { io, Socket } from 'socket.io-client';
 // Em produção, conecta no mesmo origin da página (nginx faz o proxy /socket.io/ → backend)
 // Em desenvolvimento, usa REACT_APP_API_URL ou localhost:3001
 const SOCKET_URL = (() => {
-    if (process.env.REACT_APP_API_URL) {
-        return process.env.REACT_APP_API_URL.replace('/api', '').replace(/\/$/, '');
-    }
-    // Produção sem variável: usar mesmo origin (vai passar pelo nginx)
     if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
         return window.location.origin;
+    }
+    if (process.env.REACT_APP_API_URL) {
+        const url = process.env.REACT_APP_API_URL.replace('/api', '').replace(/\/$/, '');
+        if (url) return url;
     }
     return 'http://localhost:3001';
 })();
